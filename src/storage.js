@@ -1,28 +1,60 @@
+import { supabase } from './supabaseClient.js'
+
 function makeKey(key, shared) {
-  return `${shared ? "shared" : "personal"}:${key}`;
+  return shared ? key : key
 }
 
 window.storage = {
   async get(key, shared = false) {
-    const raw = localStorage.getItem(makeKey(key, shared));
-    if (raw === null) return null;
-    return { key, value: raw, shared };
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión')
+    const { data, error } = await supabase
+      .from('app_data')
+      .select('value')
+      .eq('agent_id', user.id)
+      .eq('key', makeKey(key, shared))
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return null
+    return { key, value: JSON.stringify(data.value), shared }
   },
+
   async set(key, value, shared = false) {
-    localStorage.setItem(makeKey(key, shared), value);
-    return { key, value, shared };
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión')
+    const { error } = await supabase
+      .from('app_data')
+      .upsert({
+        agent_id: user.id,
+        key: makeKey(key, shared),
+        value: JSON.parse(value),
+        updated_at: new Date().toISOString(),
+      })
+    if (error) throw error
+    return { key, value, shared }
   },
+
   async delete(key, shared = false) {
-    localStorage.removeItem(makeKey(key, shared));
-    return { key, deleted: true, shared };
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión')
+    const { error } = await supabase
+      .from('app_data')
+      .delete()
+      .eq('agent_id', user.id)
+      .eq('key', makeKey(key, shared))
+    if (error) throw error
+    return { key, deleted: true, shared }
   },
-  async list(prefix = "", shared = false) {
-    const p = `${shared ? "shared" : "personal"}:${prefix}`;
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k.startsWith(p)) keys.push(k.slice(p.length - prefix.length));
-    }
-    return { keys, prefix, shared };
+
+  async list(prefix = '', shared = false) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No hay sesión')
+    const { data, error } = await supabase
+      .from('app_data')
+      .select('key')
+      .eq('agent_id', user.id)
+      .like('key', `${prefix}%`)
+    if (error) throw error
+    return { keys: (data || []).map((d) => d.key), prefix, shared }
   },
-};
+}
