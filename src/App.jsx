@@ -464,7 +464,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
   );
 }
 
-function CondicionesGenerales({ docs, onUpload, onRemove, onView }) {
+function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
   const [query, setQuery] = useState("");
   const [ramo, setRamo] = useState(RAMOS[0]);
   const [aseguradora, setAseguradora] = useState(ASEGURADORAS[0]);
@@ -552,17 +552,27 @@ function CondicionesGenerales({ docs, onUpload, onRemove, onView }) {
           padding: "12px 0", borderBottom: "1px solid #E4E0D3", gap: 10,
         }}>
           <div style={{ minWidth: 0 }}>
-            <button
-              onClick={() => onView(d.path)}
-              style={{
+            {urls[d.path] ? (
+              <a
+                href={urls[d.path]} target="_blank" rel="noreferrer"
+                style={{
+                  fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  color: "#1B2A41", textDecoration: "underline",
+                  display: "flex", alignItems: "center", gap: 6, maxWidth: "100%",
+                }}
+              >
+                <FileText size={13} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</span>
+              </a>
+            ) : (
+              <div style={{
                 fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                background: "none", border: "none", padding: 0, color: "#1B2A41", textDecoration: "underline",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: 6, maxWidth: "100%",
-              }}
-            >
-              <FileText size={13} style={{ flexShrink: 0 }} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</span>
-            </button>
+                color: "#8A8574", display: "flex", alignItems: "center", gap: 6, maxWidth: "100%",
+              }}>
+                <FileText size={13} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{d.name} (preparando enlace...)</span>
+              </div>
+            )}
             <div style={{ fontSize: 12, color: "#8A8574" }}>{d.aseguradora} · {d.ramo}</div>
           </div>
           <button
@@ -915,7 +925,7 @@ function SectionTitle({ children }) {
   );
 }
 
-function Documentos({ clientId, docs, onUpload, onRemove, onView }) {
+function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
   const clientDocs = docs[clientId] || {};
   return (
     <div>
@@ -924,6 +934,7 @@ function Documentos({ clientId, docs, onUpload, onRemove, onView }) {
       </p>
       {DOC_TYPES.map((docType) => {
         const uploaded = clientDocs[docType];
+        const href = uploaded && uploaded.path ? urls[uploaded.path] : null;
         return (
           <div key={docType} style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -932,22 +943,26 @@ function Documentos({ clientId, docs, onUpload, onRemove, onView }) {
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{docType}</div>
               {uploaded && uploaded.path ? (
-                <button
-                  onClick={() => onView(uploaded.path)}
-                  style={{
-                    fontSize: 12, color: "#3E6259", background: "none", border: "none", padding: 0,
-                    textDecoration: "underline", cursor: "pointer", maxWidth: 220, overflow: "hidden",
-                    textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block",
-                  }}
-                >
-                  ✓ {uploaded.name}
-                </button>
+                href ? (
+                  <a
+                    href={href} target="_blank" rel="noreferrer"
+                    style={{
+                      fontSize: 12, color: "#3E6259", textDecoration: "underline", maxWidth: 220, overflow: "hidden",
+                      textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block",
+                    }}
+                  >
+                    ✓ {uploaded.name}
+                  </a>
+                ) : (
+                  <div style={{ fontSize: 12, color: "#8A8574" }}>✓ {uploaded.name} (preparando enlace...)</div>
+                )
               ) : uploaded ? (
                 <div style={{ fontSize: 12, color: "#C98A2C" }}>
                   {uploaded.name} — se subió antes de la actualización, vuelve a subirlo para poder abrirlo
                 </div>
               ) : (
                 <div style={{ fontSize: 12, color: "#B0AB9A" }}>Pendiente</div>
+
               )}
             </div>
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -1408,6 +1423,18 @@ export default function SegurosCRM() {
   const [expandedTab, setExpandedTab] = useState("datos");
 
   const [documents, setDocuments] = useState({});
+  const [docSignedUrls, setDocSignedUrls] = useState({});
+
+  useEffect(() => {
+    if (expandedTab !== "documentos" || !expandedId) return;
+    const clientDocs = documents[expandedId] || {};
+    Object.values(clientDocs).forEach((doc) => {
+      if (!doc || !doc.path || docSignedUrls[doc.path]) return;
+      supabase.storage.from(DOCS_BUCKET).createSignedUrl(doc.path, 3600).then(({ data, error }) => {
+        if (!error && data) setDocSignedUrls((u) => ({ ...u, [doc.path]: data.signedUrl }));
+      });
+    });
+  }, [expandedTab, expandedId, documents]);
   const [docsLoaded, setDocsLoaded] = useState(false);
 
   const [profile, setProfile] = useState(null);
@@ -1611,26 +1638,17 @@ export default function SegurosCRM() {
     });
   }
 
-  async function handleViewDoc(path) {
-    if (!path) {
-      alert("Este archivo se subió antes de la actualización y no se guardó de verdad. Vuelve a subirlo.");
-      return;
-    }
-    // Abrimos la pestaña primero (en el mismo clic del usuario) para que el navegador
-    // de escritorio no la bloquee como ventana emergente; luego le damos la URL real.
-    const ventana = window.open("", "_blank");
-    try {
-      const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(path, 3600);
-      if (error) throw error;
-      if (ventana) ventana.location.href = data.signedUrl;
-      else window.open(data.signedUrl, "_blank", "noopener");
-    } catch (e) {
-      if (ventana) ventana.close();
-      alert("No se pudo abrir el documento: " + e.message);
-    }
-  }
 
   const [conditionDocs, setConditionDocs] = useState([]);
+
+  useEffect(() => {
+    conditionDocs.forEach((d) => {
+      if (!d.path || docSignedUrls[d.path]) return;
+      supabase.storage.from(DOCS_BUCKET).createSignedUrl(d.path, 3600).then(({ data, error }) => {
+        if (!error && data) setDocSignedUrls((u) => ({ ...u, [d.path]: data.signedUrl }));
+      });
+    });
+  }, [conditionDocs]);
   const [condDocsLoaded, setCondDocsLoaded] = useState(false);
 
   useEffect(() => {
@@ -2249,9 +2267,9 @@ export default function SegurosCRM() {
                         <Documentos
                           clientId={c.id}
                           docs={documents}
+                          urls={docSignedUrls}
                           onUpload={handleUploadDoc}
                           onRemove={handleRemoveDoc}
-                          onView={handleViewDoc}
                         />
                       )}
                     </div>
@@ -2275,9 +2293,9 @@ export default function SegurosCRM() {
         {tab === "condiciones" && (
           <CondicionesGenerales
             docs={conditionDocs}
+            urls={docSignedUrls}
             onUpload={handleAddConditionDoc}
             onRemove={handleRemoveConditionDoc}
-            onView={handleViewDoc}
           />
         )}
 
