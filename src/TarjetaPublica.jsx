@@ -48,7 +48,7 @@ export default function TarjetaPublica({ agentId }) {
 
   return (
     <div className="min-h-dvh" style={{
-      background: "#F7F5F0", display: "flex", alignItems: "center",
+      background: "#F7F5F0", display: "flex", flexDirection: "column", alignItems: "center",
       justifyContent: "center", padding: 20, fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       <div style={{ width: 320, maxWidth: "100%", position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.18)", aspectRatio: "1080 / 1920" }}>
@@ -79,9 +79,6 @@ export default function TarjetaPublica({ agentId }) {
           </>
         )}
       </div>
-      <p style={{ textAlign: "center", fontSize: 10, color: "#B0AB9A", marginTop: 14 }}>
-        Creado por Joshua Lechuga en colaboración con Claude, todos los derechos reservados
-      </p>
     </div>
   );
 }
