@@ -79,6 +79,9 @@ export default function TarjetaPublica({ agentId }) {
           </>
         )}
       </div>
+      <p style={{ textAlign: "center", fontSize: 10, color: "#B0AB9A", marginTop: 14 }}>
+        Creado por Joshua Lechuga en colaboración con Claude, todos los derechos reservados
+      </p>
     </div>
   );
 }

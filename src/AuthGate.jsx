@@ -122,6 +122,9 @@ export default function AuthGate({ children }) {
             {mode === 'signin' ? '¿No tienes cuenta? Créala' : '¿Ya tienes cuenta? Inicia sesión'}
           </button>
         </form>
+        <p style={{ textAlign: 'center', fontSize: 10, color: '#B0AB9A', marginTop: 20 }}>
+          Creado por Joshua Lechuga en colaboración con Claude, todos los derechos reservados
+        </p>
       </div>
     )
   }

@@ -2383,6 +2383,10 @@ export default function SegurosCRM() {
           </div>
         </div>
       )}
+
+      <p style={{ textAlign: "center", fontSize: 10, color: "#B0AB9A", padding: "16px 10px 24px" }}>
+        Creado por Joshua Lechuga en colaboración con Claude, todos los derechos reservados
+      </p>
     </div>
   );
 }
