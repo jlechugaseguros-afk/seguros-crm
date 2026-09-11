@@ -13,8 +13,12 @@ export const TARJETA_PLANTILLAS = {
 export const TARJETA_POS = {
   foto: { left: "31.4%", top: "16.6%", width: "35.6%", height: "20.1%" },
   nombre: { top: "40.4%", height: "6.25%" },
+  iconoUbicacion: { left: "15.6%", top: "52.3%", size: "14%" },
   iconoCorreo: { left: "42.5%", top: "52.3%", size: "14%" },
   iconoTelefono: { left: "69.4%", top: "52.3%", size: "14%" },
   whatsappBubble: { left: "9.7%", top: "85.2%", width: "16.7%", height: "9.4%" },
   cotizarBtn: { left: "17.1%", top: "63.5%", width: "66.7%", height: "8.1%" },
 };
+
+export const UBICACION_OFICINA = { lat: 19.037832, lng: -98.226562 };
+export const LINK_UBICACION = `https://www.google.com/maps/search/?api=1&query=${UBICACION_OFICINA.lat},${UBICACION_OFICINA.lng}`;

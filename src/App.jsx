@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
-import { TARJETA_PLANTILLAS, TARJETA_POS } from "./tarjetaAssets.js";
+import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
 
 const DOCS_BUCKET = "documentos";
 const TARJETAS_BUCKET = "tarjetas-fotos";
@@ -96,6 +96,17 @@ function fmtDateFull(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   return `${d} ${meses[m - 1]} ${y}`;
+}
+
+function slugifyFileName(str) {
+  return (
+    String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9.]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase() || "archivo"
+  );
 }
 
 const inputStyle = {
@@ -712,6 +723,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
             </span>
           </div>
 
+          <a href={LINK_UBICACION} target="_blank" rel="noreferrer" style={{ position: "absolute", borderRadius: "50%", ...TARJETA_POS.iconoUbicacion }} title="Ver ubicación en Google Maps" />
           {linkCorreo && (
             <a href={linkCorreo} style={{ position: "absolute", borderRadius: "50%", ...TARJETA_POS.iconoCorreo }} title={correo} />
           )}
@@ -919,7 +931,7 @@ function Documentos({ clientId, docs, onUpload, onRemove, onView }) {
           }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{docType}</div>
-              {uploaded ? (
+              {uploaded && uploaded.path ? (
                 <button
                   onClick={() => onView(uploaded.path)}
                   style={{
@@ -930,6 +942,10 @@ function Documentos({ clientId, docs, onUpload, onRemove, onView }) {
                 >
                   ✓ {uploaded.name}
                 </button>
+              ) : uploaded ? (
+                <div style={{ fontSize: 12, color: "#C98A2C" }}>
+                  {uploaded.name} — se subió antes de la actualización, vuelve a subirlo para poder abrirlo
+                </div>
               ) : (
                 <div style={{ fontSize: 12, color: "#B0AB9A" }}>Pendiente</div>
               )}
@@ -1575,7 +1591,7 @@ export default function SegurosCRM() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sin sesión activa.");
       const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
-      const path = `clientes/${user.id}/${clientId}/${docType}-${Date.now()}.${ext}`;
+      const path = `clientes/${user.id}/${clientId}/${slugifyFileName(docType)}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       setDocuments((ds) => ({
@@ -1596,11 +1612,20 @@ export default function SegurosCRM() {
   }
 
   async function handleViewDoc(path) {
+    if (!path) {
+      alert("Este archivo se subió antes de la actualización y no se guardó de verdad. Vuelve a subirlo.");
+      return;
+    }
+    // Abrimos la pestaña primero (en el mismo clic del usuario) para que el navegador
+    // de escritorio no la bloquee como ventana emergente; luego le damos la URL real.
+    const ventana = window.open("", "_blank");
     try {
       const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(path, 3600);
       if (error) throw error;
-      window.open(data.signedUrl, "_blank", "noopener");
+      if (ventana) ventana.location.href = data.signedUrl;
+      else window.open(data.signedUrl, "_blank", "noopener");
     } catch (e) {
+      if (ventana) ventana.close();
       alert("No se pudo abrir el documento: " + e.message);
     }
   }
@@ -1630,7 +1655,7 @@ export default function SegurosCRM() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sin sesión activa.");
-      const path = `condiciones/${user.id}/${Date.now()}-${file.name}`;
+      const path = `condiciones/${user.id}/${Date.now()}-${slugifyFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       setConditionDocs((cs) => [...cs, { id: Date.now().toString(), name: file.name, path, ramo, aseguradora }]);
