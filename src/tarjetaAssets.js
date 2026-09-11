@@ -12,7 +12,7 @@ export const TARJETA_PLANTILLAS = {
 // Coordenadas en % sobre el diseno original de 1080x1920
 export const TARJETA_POS = {
   foto: { left: "31.4%", top: "16.6%", width: "35.6%", height: "20.1%" },
-  nombre: { top: "40.4%", height: "6.25%" },
+  nombre: { top: "39.6%", height: "8%" },
   iconoUbicacion: { left: "15.6%", top: "52.3%", width: "14%", height: "14%" },
   iconoCorreo: { left: "42.5%", top: "52.3%", width: "14%", height: "14%" },
   iconoTelefono: { left: "69.4%", top: "52.3%", width: "14%", height: "14%" },

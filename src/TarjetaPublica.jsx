@@ -24,13 +24,13 @@ export default function TarjetaPublica({ agentId }) {
   }, [agentId]);
 
   if (data === undefined) {
-    return <div style={{ minHeight: "100vh", background: "#F7F5F0" }} />;
+    return <div className="min-h-dvh" style={{ background: "#F7F5F0" }} />;
   }
 
   if (!data) {
     return (
-      <div style={{
-        minHeight: "100vh", background: "#F7F5F0", display: "flex", alignItems: "center",
+      <div className="min-h-dvh" style={{
+        background: "#F7F5F0", display: "flex", alignItems: "center",
         justifyContent: "center", fontFamily: "'Inter', system-ui, sans-serif", padding: 20, textAlign: "center",
       }}>
         <div>
@@ -47,8 +47,8 @@ export default function TarjetaPublica({ agentId }) {
   const linkTelefono = data.telefono ? `tel:${String(data.telefono).replace(/\s/g, "")}` : "";
 
   return (
-    <div style={{
-      minHeight: "100vh", background: "#F7F5F0", display: "flex", alignItems: "center",
+    <div className="min-h-dvh" style={{
+      background: "#F7F5F0", display: "flex", alignItems: "center",
       justifyContent: "center", padding: 20, fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       <div style={{ width: 320, maxWidth: "100%", position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.18)", aspectRatio: "1080 / 1920" }}>
@@ -64,7 +64,7 @@ export default function TarjetaPublica({ agentId }) {
           position: "absolute", width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
           padding: "0 16px", top: TARJETA_POS.nombre.top, height: TARJETA_POS.nombre.height,
         }}>
-          <span style={{ fontWeight: 800, fontSize: 15, textAlign: "center", color: plantilla.colorNombre }}>
+          <span style={{ fontWeight: 800, fontSize: 14, lineHeight: 1.15, textAlign: "center", color: plantilla.colorNombre }}>
             {data.nombre}
           </span>
         </div>

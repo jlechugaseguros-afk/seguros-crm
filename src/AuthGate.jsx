@@ -49,13 +49,13 @@ export default function AuthGate({ children }) {
   }
 
   if (session === undefined) {
-    return <div style={{ background: '#F7F5F0', minHeight: '100vh' }} />
+    return <div className="min-h-dvh" style={{ background: '#F7F5F0' }} />
   }
 
   if (!session) {
     return (
-      <div style={{
-        fontFamily: "'Inter', system-ui, sans-serif", background: '#F7F5F0', minHeight: '100vh',
+      <div className="min-h-dvh" style={{
+        fontFamily: "'Inter', system-ui, sans-serif", background: '#F7F5F0',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}>
         <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 360 }}>

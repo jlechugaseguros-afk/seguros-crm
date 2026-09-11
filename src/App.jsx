@@ -1941,13 +1941,13 @@ export default function SegurosCRM() {
   );
 
   if (!profileLoaded) {
-    return <div style={{ background: "#F7F5F0", minHeight: "100vh" }}>{baseStyles}</div>;
+    return <div className="min-h-dvh" style={{ background: "#F7F5F0" }}>{baseStyles}</div>;
   }
 
   if (!profile || showEditProfile) {
     return (
-      <div style={{
-        fontFamily: "'Inter', system-ui, sans-serif", background: "#F7F5F0", minHeight: "100vh",
+      <div className="min-h-dvh" style={{
+        fontFamily: "'Inter', system-ui, sans-serif", background: "#F7F5F0",
         color: "#1B2A41", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }}>
         {baseStyles}
@@ -2007,10 +2007,9 @@ export default function SegurosCRM() {
   }
 
   return (
-    <div style={{
+    <div className="min-h-dvh" style={{
       fontFamily: "'Inter', system-ui, sans-serif",
       background: "#F7F5F0",
-      minHeight: "100vh",
       color: "#1B2A41",
     }}>
       {baseStyles}

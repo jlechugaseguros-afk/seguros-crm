@@ -7,3 +7,11 @@
 body {
   background: #F7F5F0;
 }
+
+/* Altura de pantalla correcta en móviles: la barra de direcciones del navegador
+   cambia de tamaño y "100vh" se calcula mal, dejando espacio en blanco o
+   empujando el contenido fuera de la vista. "100dvh" se ajusta a la altura real visible. */
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
