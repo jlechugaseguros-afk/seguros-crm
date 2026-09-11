@@ -29,7 +29,7 @@ window.storage = {
         key: makeKey(key, shared),
         value: JSON.parse(value),
         updated_at: new Date().toISOString(),
-      })
+      }, { onConflict: 'agent_id,key' })
     if (error) throw error
     return { key, value, shared }
   },
