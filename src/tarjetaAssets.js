@@ -13,9 +13,9 @@ export const TARJETA_PLANTILLAS = {
 export const TARJETA_POS = {
   foto: { left: "31.4%", top: "16.6%", width: "35.6%", height: "20.1%" },
   nombre: { top: "40.4%", height: "6.25%" },
-  iconoUbicacion: { left: "15.6%", top: "52.3%", size: "14%" },
-  iconoCorreo: { left: "42.5%", top: "52.3%", size: "14%" },
-  iconoTelefono: { left: "69.4%", top: "52.3%", size: "14%" },
+  iconoUbicacion: { left: "15.6%", top: "52.3%", width: "14%", height: "14%" },
+  iconoCorreo: { left: "42.5%", top: "52.3%", width: "14%", height: "14%" },
+  iconoTelefono: { left: "69.4%", top: "52.3%", width: "14%", height: "14%" },
   whatsappBubble: { left: "9.7%", top: "85.2%", width: "16.7%", height: "9.4%" },
   cotizarBtn: { left: "17.1%", top: "63.5%", width: "66.7%", height: "8.1%" },
 };
