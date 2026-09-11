@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { id: "condiciones", label: "Condiciones generales" },
   { id: "tarjeta", label: "Tarjeta digital" },
   { id: "comisiones", label: "Comisiones" },
+  { id: "multicotizador", label: "Multicotizador" },
 ];
 
 const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar"];
@@ -60,6 +61,9 @@ const emptyForm = {
 };
 
 const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, Hogar: 0 };
+
+const MULTICOTIZADOR_PIN = "081115";
+const MULTICOTIZADOR_URL = "https://v4.clickseguros.lat/login";
 
 function todayStr() {
   const d = new Date();
@@ -922,6 +926,78 @@ function SectionTitle({ children }) {
     <h3 className="serif" style={{ fontSize: 14, color: "#1B2A41", margin: "0 0 10px" }}>
       {children}
     </h3>
+  );
+}
+
+function Multicotizador() {
+  const [desbloqueado, setDesbloqueado] = useState(false);
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (pin === MULTICOTIZADOR_PIN) {
+      setError("");
+      setDesbloqueado(true);
+      window.open(MULTICOTIZADOR_URL, "_blank", "noopener");
+    } else {
+      setError("PIN incorrecto, ponte en contacto con tu administrador.");
+      setPin("");
+    }
+  }
+
+  if (desbloqueado) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px" }}>
+        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
+          El Multicotizador se abrió en una pestaña nueva.
+        </p>
+        <a
+          href={MULTICOTIZADOR_URL} target="_blank" rel="noreferrer"
+          style={{
+            display: "inline-block", background: "#1B2A41", color: "#F7F5F0", borderRadius: 6,
+            padding: "10px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none",
+          }}
+        >
+          Abrir de nuevo
+        </a>
+        <div>
+          <button
+            onClick={() => { setDesbloqueado(false); setPin(""); }}
+            style={{ marginTop: 20, background: "none", border: "none", fontSize: 12, color: "#8A8574", textDecoration: "underline" }}
+          >
+            Bloquear otra vez
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
+      <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
+        Ingresa el PIN de acceso para entrar al Multicotizador.
+      </p>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="password" inputMode="numeric" value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          style={{ ...inputStyle, textAlign: "center", letterSpacing: 4, fontSize: 16, marginBottom: 12 }}
+          placeholder="PIN"
+          autoFocus
+        />
+        <button
+          type="submit"
+          style={{
+            width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
+            borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
+          }}
+        >
+          Entrar
+        </button>
+      </form>
+      {error && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{error}</p>}
+    </div>
   );
 }
 
@@ -2319,6 +2395,8 @@ export default function SegurosCRM() {
             onPorcentajesChange={setPorcentajes}
           />
         )}
+
+        {tab === "multicotizador" && <Multicotizador />}
 
         {docError && (
           <div style={{
