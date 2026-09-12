@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera } from "lucide-react";
+import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
@@ -20,6 +20,8 @@ const NAV_ITEMS = [
   { id: "tarjeta", label: "Tarjeta digital" },
   { id: "comisiones", label: "Comisiones" },
   { id: "multicotizador", label: "Multicotizador" },
+  { id: "examen", label: "Prepárate para tu examen" },
+  { id: "cedulaA", label: "Simulador Cédula A" },
 ];
 
 const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar"];
@@ -63,7 +65,39 @@ const emptyForm = {
 const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, Hogar: 0 };
 
 const MULTICOTIZADOR_PIN = "081115";
-const MULTICOTIZADOR_URL = "https://v4.clickseguros.lat/login";
+
+const MULTICOTIZADOR_MENU = [
+  {
+    label: "Sindicatos",
+    children: [
+      { label: "Telmex", url: "https://mcbrokers.dora.com.mx/" },
+      { label: "SNTE 23", url: "https://mcbrokers.dora.com.mx/" },
+    ],
+  },
+  {
+    label: "Privados",
+    children: [
+      { label: "GNP", url: "https://portalintermediarios.gnp.com.mx/sesion" },
+      { label: "AXA", url: "https://portal.axa.com.mx/" },
+      {
+        label: "Qualitas",
+        children: [
+          { label: "Autos", url: "https://agentes360.qualitas.com.mx/web/guest/home" },
+          { label: "QSalud", url: "" },
+        ],
+      },
+      { label: "ANA Seguros", url: "https://www.anaseguros.com.mx/anaweb/" },
+      { label: "Plan Seguro", url: "https://oficina.planseguro.com.mx/" },
+      { label: "GMX", url: "https://www.gmx.com.mx/soy-agente/" },
+    ],
+  },
+  { label: "Otros", url: "https://v4.clickseguros.lat/login", pin: true },
+];
+
+const NAV_EXTERNAL_LINKS = {
+  examen: "https://soyagenteactualizado.com/",
+  cedulaA: "https://universidad.qualitas.com.mx/es/our-team/",
+};
 
 function todayStr() {
   const d = new Date();
@@ -930,73 +964,118 @@ function SectionTitle({ children }) {
 }
 
 function Multicotizador() {
-  const [desbloqueado, setDesbloqueado] = useState(false);
+  const [path, setPath] = useState([]);
+  const [pendingItem, setPendingItem] = useState(null);
   const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
+  const [pinError, setPinError] = useState("");
 
-  function handleSubmit(e) {
+  function getChildren(p) {
+    let level = MULTICOTIZADOR_MENU;
+    for (const label of p) {
+      const found = level.find((n) => n.label === label);
+      if (!found || !found.children) return [];
+      level = found.children;
+    }
+    return level;
+  }
+
+  const items = getChildren(path);
+
+  function handleSelect(item) {
+    if (item.children) {
+      setPath([...path, item.label]);
+      return;
+    }
+    if (!item.url) {
+      alert("Este enlace todavía no está configurado. Avísale a tu administrador.");
+      return;
+    }
+    if (item.pin) {
+      setPendingItem(item);
+      setPin("");
+      setPinError("");
+      return;
+    }
+    window.open(item.url, "_blank", "noopener");
+  }
+
+  function handlePinSubmit(e) {
     e.preventDefault();
     if (pin === MULTICOTIZADOR_PIN) {
-      setError("");
-      setDesbloqueado(true);
-      window.open(MULTICOTIZADOR_URL, "_blank", "noopener");
+      window.open(pendingItem.url, "_blank", "noopener");
+      setPendingItem(null);
+      setPin("");
+      setPinError("");
     } else {
-      setError("PIN incorrecto, ponte en contacto con tu administrador.");
+      setPinError("PIN incorrecto, ponte en contacto con tu administrador.");
       setPin("");
     }
   }
 
-  if (desbloqueado) {
+  if (pendingItem) {
     return (
-      <div style={{ textAlign: "center", padding: "60px 20px" }}>
+      <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
         <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
-          El Multicotizador se abrió en una pestaña nueva.
+          "{pendingItem.label}" pide un PIN de acceso.
         </p>
-        <a
-          href={MULTICOTIZADOR_URL} target="_blank" rel="noreferrer"
-          style={{
-            display: "inline-block", background: "#1B2A41", color: "#F7F5F0", borderRadius: 6,
-            padding: "10px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none",
-          }}
-        >
-          Abrir de nuevo
-        </a>
-        <div>
+        <form onSubmit={handlePinSubmit}>
+          <input
+            type="password" inputMode="numeric" value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            style={{ ...inputStyle, textAlign: "center", letterSpacing: 4, fontSize: 16, marginBottom: 12 }}
+            placeholder="PIN"
+            autoFocus
+          />
           <button
-            onClick={() => { setDesbloqueado(false); setPin(""); }}
-            style={{ marginTop: 20, background: "none", border: "none", fontSize: 12, color: "#8A8574", textDecoration: "underline" }}
+            type="submit"
+            style={{
+              width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
+              borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
+            }}
           >
-            Bloquear otra vez
+            Entrar
           </button>
-        </div>
+        </form>
+        {pinError && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{pinError}</p>}
+        <button
+          onClick={() => setPendingItem(null)}
+          style={{ marginTop: 16, background: "none", border: "none", fontSize: 12, color: "#8A8574", textDecoration: "underline" }}
+        >
+          Cancelar
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
-      <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
-        Ingresa el PIN de acceso para entrar al Multicotizador.
+    <div style={{ maxWidth: 320, margin: "0 auto" }}>
+      <p style={{ fontSize: 12, color: "#8A8574", marginBottom: 16 }}>
+        {path.length === 0 ? "Multicotizador" : `Multicotizador › ${path.join(" › ")}`}
       </p>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="password" inputMode="numeric" value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          style={{ ...inputStyle, textAlign: "center", letterSpacing: 4, fontSize: 16, marginBottom: 12 }}
-          placeholder="PIN"
-          autoFocus
-        />
+      {path.length > 0 && (
         <button
-          type="submit"
-          style={{
-            width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
-            borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
-          }}
+          onClick={() => setPath(path.slice(0, -1))}
+          style={{ marginBottom: 12, background: "none", border: "none", fontSize: 13, color: "#3E6259", fontWeight: 600 }}
         >
-          Entrar
+          ‹ Atrás
         </button>
-      </form>
-      {error && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{error}</p>}
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {items.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => handleSelect(item)}
+            style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8,
+              padding: "12px 16px", fontSize: 14, fontWeight: 500, color: "#1B2A41", textAlign: "left",
+            }}
+          >
+            {item.label}
+            <span style={{ color: "#B0AB9A" }}>{item.children ? "›" : item.pin ? "🔒" : "↗"}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -2137,7 +2216,15 @@ export default function SegurosCRM() {
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
-                onClick={() => { setTab(item.id); setMenuOpen(false); }}
+                onClick={() => {
+                  if (NAV_EXTERNAL_LINKS[item.id]) {
+                    window.open(NAV_EXTERNAL_LINKS[item.id], "_blank", "noopener");
+                    setMenuOpen(false);
+                    return;
+                  }
+                  setTab(item.id);
+                  setMenuOpen(false);
+                }}
                 style={{
                   textAlign: "left", background: tab === item.id ? "#1B2A41" : "none",
                   color: tab === item.id ? "#F7F5F0" : "#1B2A41",
@@ -2169,6 +2256,17 @@ export default function SegurosCRM() {
               }}
             >
               <LogOut size={15} /> Cerrar sesión
+            </button>
+            <button
+              onClick={() => { window.open("https://paypal.me/JoshuaLep13", "_blank", "noopener"); setMenuOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                textAlign: "left", background: "none", color: "#8A8574",
+                border: "none", borderRadius: 6, padding: "10px 14px", fontSize: 12, fontWeight: 500,
+                marginTop: 10,
+              }}
+            >
+              <Heart size={13} /> Agradecimientos al desarrollador
             </button>
           </div>
         </div>
