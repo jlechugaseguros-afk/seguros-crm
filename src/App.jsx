@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart } from "lucide-react";
+import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
@@ -11,17 +11,17 @@ const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAHCCAIAAABN
 
 
 const NAV_ITEMS = [
-  { id: "planificador", label: "Planificador" },
-  { id: "recordatorios", label: "Recordatorios" },
-  { id: "dashboard", label: "Dashboard" },
-  { id: "clientes", label: "Clientes" },
-  { id: "prospectos", label: "Prospectos" },
-  { id: "condiciones", label: "Condiciones generales" },
-  { id: "tarjeta", label: "Tarjeta digital" },
-  { id: "comisiones", label: "Comisiones" },
-  { id: "multicotizador", label: "Multicotizador" },
-  { id: "examen", label: "Prepárate para tu examen" },
-  { id: "cedulaA", label: "Simulador Cédula A" },
+  { id: "planificador", label: "Planificador", icon: CalendarDays },
+  { id: "recordatorios", label: "Recordatorios", icon: Bell },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "clientes", label: "Clientes", icon: Users },
+  { id: "prospectos", label: "Prospectos", icon: UserPlus },
+  { id: "condiciones", label: "Condiciones generales", icon: FileText },
+  { id: "tarjeta", label: "Tarjeta digital", icon: CreditCard },
+  { id: "comisiones", label: "Comisiones", icon: Calculator },
+  { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
+  { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
+  { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
 ];
 
 const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar"];
@@ -38,6 +38,23 @@ const ASEGURADORAS = [
   "HDI Seguros",
   "Otra",
 ];
+
+const ASEGURADORA_COLORS = {
+  "GNP Seguros": "#F58220",
+  "AXA Seguros": "#00008F",
+  "MetLife": "#0A2A43",
+  "Qualitas": "#93278F",
+  "Zurich": "#0033A0",
+  "Mapfre": "#E30613",
+  "Allianz": "#003781",
+  "Chubb Seguros": "#B0182F",
+  "Seguros Banorte": "#D52B1E",
+  "HDI Seguros": "#C9A227",
+  "Otra": "var(--stone)",
+};
+function insurerColor(name) {
+  return ASEGURADORA_COLORS[name] || "var(--stone)";
+}
 const DOC_TYPES = [
   "INE",
   "Comprobante de domicilio",
@@ -86,7 +103,7 @@ const MULTICOTIZADOR_MENU = [
         color: "#93278F",
         children: [
           { label: "Autos", url: "https://agentes360.qualitas.com.mx/web/guest/home", color: "#93278F" },
-          { label: "QSalud", url: "", color: "#93278F" },
+          { label: "QSalud", url: "https://www.qualitassalud.com.mx/web/guest/home", color: "#93278F" },
         ],
       },
       { label: "ANA Seguros", url: "https://www.anaseguros.com.mx/anaweb/", color: "#E30613" },
@@ -152,7 +169,7 @@ function slugifyFileName(str) {
 
 const inputStyle = {
   width: "100%", padding: "10px 12px", border: "1px solid #DAD5C7",
-  borderRadius: 6, fontSize: 14, background: "#FFFFFF", color: "#1B2A41",
+  borderRadius: 6, fontSize: 14, background: "#FFFFFF", color: "var(--ink)",
 };
 
 function isoToDMY(iso) {
@@ -199,7 +216,7 @@ function DateWithFallback({ value, onChange }) {
     <div>
       <input type="date" value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} />
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-        <span style={{ fontSize: 11, color: "#8A8574" }}>o escribe:</span>
+        <span style={{ fontSize: 11, color: "var(--stone)" }}>o escribe:</span>
         <input
           value={manual}
           onChange={(e) => commitManual(e.target.value)}
@@ -276,7 +293,7 @@ function ClientFields({ data, onChange }) {
       <Field label="Correo electrónico">
         <input type="email" value={data.correo || ""} onChange={(e) => onChange("correo", e.target.value)} style={inputStyle} />
       </Field>
-      <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 13, color: "#1B2A41" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontSize: 13, color: "var(--ink)" }}>
         <input
           type="checkbox"
           checked={!!data.requiereFactura}
@@ -329,11 +346,11 @@ function ClientFields({ data, onChange }) {
 
 const ESTADOS_PROSPECTO = ["No contactado", "Llamada", "Cita", "Se envía propuesta", "En proceso", "No interesado"];
 const ESTADO_COLOR = {
-  "No contactado": "#8A8574",
+  "No contactado": "var(--stone)",
   "Llamada": "#4A6FA5",
-  "Cita": "#C98A2C",
+  "Cita": "var(--gold)",
   "Se envía propuesta": "#9C7A3C",
-  "En proceso": "#3E6259",
+  "En proceso": "var(--emerald)",
   "No interesado": "#B23A2E",
 };
 
@@ -386,7 +403,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
               onClick={() => setFilter(filter === estado ? null : estado)}
               style={{
                 display: "flex", alignItems: "center", gap: 6, fontSize: 12,
-                border: filter === estado ? `1.5px solid ${ESTADO_COLOR[estado]}` : "1px solid #DAD5C7",
+                border: filter === estado ? `1.5px solid ${ESTADO_COLOR[estado]}` : "1px solid var(--line)",
                 background: filter === estado ? "#FFFFFF" : "#FFFFFF",
                 borderRadius: 20, padding: "6px 10px",
               }}
@@ -402,7 +419,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
         onClick={() => { setForm(emptyProspecto); setError(""); setShowForm(true); }}
         style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: "#1B2A41", color: "#F7F5F0", border: "none",
+          background: "var(--ink)", color: "var(--cream)", border: "none",
           borderRadius: 6, padding: "10px 16px", fontSize: 14, fontWeight: 600,
           marginBottom: 16,
         }}
@@ -410,7 +427,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
         <Plus size={16} /> Nuevo prospecto
       </button>
 
-      {visible.length === 0 && <p style={{ color: "#8A8574", fontSize: 14 }}>Sin prospectos{filter ? ` en "${filter}"` : ""}.</p>}
+      {visible.length === 0 && <p style={{ color: "var(--stone)", fontSize: 14 }}>Sin prospectos{filter ? ` en "${filter}"` : ""}.</p>}
 
       {visible.map((p) => {
         const isOpen = expandedId === p.id;
@@ -422,13 +439,13 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
             >
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{p.nombre}</div>
-                <div style={{ fontSize: 12, color: "#8A8574", marginTop: 2 }}>{p.telefono}</div>
+                <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[p.estado] }} />
                   <span style={{ fontSize: 12, color: "#5B5646" }}>{p.estado}</span>
                 </div>
               </div>
-              <ChevronDown size={18} color="#8A8574" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
+              <ChevronDown size={18} color="var(--stone)" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
             </button>
 
             {isOpen && editDraft && (
@@ -451,7 +468,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
                   <input value={editDraft.notas || ""} onChange={(e) => setEditDraft((d) => ({ ...d, notas: e.target.value }))} style={inputStyle} />
                 </Field>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "#1B2A41", color: "#F7F5F0", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
+                  <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
                     Guardar cambios
                   </button>
                   <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid #DAD5C7", color: "#B23A2E", borderRadius: 6, padding: "12px 14px" }}>
@@ -460,7 +477,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
                 </div>
                 <button
                   onClick={() => onConvert(p)}
-                  style={{ width: "100%", background: "none", border: "1px solid #3E6259", color: "#3E6259", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
+                  style={{ width: "100%", background: "none", border: "1px solid #3E6259", color: "var(--emerald)", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
                 >
                   Convertir a cliente
                 </button>
@@ -472,7 +489,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
 
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10 }}>
-          <form onSubmit={submitAdd} style={{ background: "#F7F5F0", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto" }}>
+          <form onSubmit={submitAdd} style={{ background: "var(--cream)", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 className="serif" style={{ fontSize: 18, margin: 0 }}>Nuevo prospecto</h2>
               <button type="button" onClick={() => setShowForm(false)} style={{ background: "none", border: "none" }}><X size={20} /></button>
@@ -495,7 +512,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
             <Field label="Notas">
               <input value={form.notas} onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))} style={inputStyle} />
             </Field>
-            <button type="submit" style={{ width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
+            <button type="submit" style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
               Guardar prospecto
             </button>
           </form>
@@ -529,7 +546,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "#8A8574", marginTop: 0 }}>
+      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
         Sube aquí las condiciones generales por ramo y compañía. Toca el nombre para abrir el PDF.
       </p>
 
@@ -550,7 +567,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <label style={{
-            flex: 1, background: "#FFFFFF", border: "1px solid #DAD5C7", color: "#1B2A41", borderRadius: 6,
+            flex: 1, background: "#FFFFFF", border: "1px solid #DAD5C7", color: "var(--ink)", borderRadius: 6,
             padding: "10px 12px", fontSize: 13, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {pendingFile ? pendingFile.name : "Elegir archivo PDF..."}
@@ -565,7 +582,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
             onClick={handleAdd}
             disabled={!pendingFile}
             style={{
-              background: pendingFile ? "#1B2A41" : "#DAD5C7", color: "#F7F5F0", border: "none",
+              background: pendingFile ? "var(--ink)" : "var(--line)", color: "var(--cream)", border: "none",
               borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 600,
             }}
           >
@@ -582,7 +599,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
       />
 
       {filtered.length === 0 && (
-        <p style={{ fontSize: 13, color: "#8A8574", textAlign: "center", padding: "20px 0" }}>
+        <p style={{ fontSize: 13, color: "var(--stone)", textAlign: "center", padding: "20px 0" }}>
           {docs.length === 0 ? "Aún no subes condiciones generales." : "Sin resultados para tu búsqueda."}
         </p>
       )}
@@ -592,33 +609,41 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
           display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "12px 0", borderBottom: "1px solid #E4E0D3", gap: 10,
         }}>
-          <div style={{ minWidth: 0 }}>
-            {urls[d.path] ? (
-              <a
-                href={urls[d.path]} target="_blank" rel="noreferrer"
-                style={{
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
+            <div style={{
+              width: 26, height: 26, borderRadius: 7, flexShrink: 0, marginTop: 1,
+              background: insurerColor(d.aseguradora), color: "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 12,
+            }}>
+              {d.aseguradora ? d.aseguradora.charAt(0).toUpperCase() : "?"}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              {urls[d.path] ? (
+                <a
+                  href={urls[d.path]} target="_blank" rel="noreferrer"
+                  style={{
+                    fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    color: "var(--ink)", textDecoration: "underline",
+                    display: "block", maxWidth: "100%",
+                  }}
+                >
+                  {d.name}
+                </a>
+              ) : (
+                <div style={{
                   fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  color: "#1B2A41", textDecoration: "underline",
-                  display: "flex", alignItems: "center", gap: 6, maxWidth: "100%",
-                }}
-              >
-                <FileText size={13} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{d.name}</span>
-              </a>
-            ) : (
-              <div style={{
-                fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                color: "#8A8574", display: "flex", alignItems: "center", gap: 6, maxWidth: "100%",
-              }}>
-                <FileText size={13} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{d.name} (preparando enlace...)</span>
-              </div>
-            )}
-            <div style={{ fontSize: 12, color: "#8A8574" }}>{d.aseguradora} · {d.ramo}</div>
+                  color: "var(--stone)", maxWidth: "100%",
+                }}>
+                  {d.name} (preparando enlace...)
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: "var(--stone)" }}>{d.aseguradora} · {d.ramo}</div>
+            </div>
           </div>
           <button
             onClick={() => onRemove(d.id)}
-            style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, color: "#B23A2E", padding: "6px 10px", flexShrink: 0 }}
+            style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 10px", flexShrink: 0 }}
           >
             <Trash2 size={14} />
           </button>
@@ -648,7 +673,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "#8A8574", marginTop: 0 }}>
+      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
         Elige tu aseguradora, sube tu foto y agrega tu teléfono y WhatsApp. Tu nombre y correo son los de tu perfil.
       </p>
 
@@ -661,7 +686,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
             <input readOnly value={ligaPublica} style={{ ...inputStyle, flex: 1, fontSize: 12, color: "#5B5646" }} onFocus={(e) => e.target.select()} />
             <button
               onClick={copiarLiga}
-              style={{ background: "#1B2A41", color: "#F7F5F0", borderRadius: 6, padding: "0 14px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}
+              style={{ background: "var(--ink)", color: "var(--cream)", borderRadius: 6, padding: "0 14px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}
             >
               {copiado ? "¡Copiada!" : "Copiar"}
             </button>
@@ -669,26 +694,39 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
           <a
             href={`https://wa.me/?text=${encodeURIComponent("Aquí está mi tarjeta digital: " + ligaPublica)}`}
             target="_blank" rel="noreferrer"
-            style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: "#3E6259", fontWeight: 600, textDecoration: "underline" }}
+            style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: "var(--emerald)", fontWeight: 600, textDecoration: "underline" }}
           >
             Compartir por WhatsApp
           </a>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {Object.entries(TARJETA_PLANTILLAS).map(([id, p]) => (
-          <button
-            key={id}
-            onClick={() => onChange("plantillaId", id)}
-            style={{
-              flex: 1, padding: "10px 6px", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#fff",
-              background: p.colorNombre, border: tarjeta.plantillaId === id ? "3px solid #1B2A41" : "3px solid transparent",
-            }}
-          >
-            {p.nombre}
-          </button>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 18 }}>
+        {Object.entries(TARJETA_PLANTILLAS).map(([id, p]) => {
+          const active = tarjeta.plantillaId === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onChange("plantillaId", id)}
+              className="logo-tile"
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${p.colorNombre}`,
+                borderRadius: 8, padding: "10px 12px", textAlign: "left",
+                outline: active ? `2px solid ${p.colorNombre}` : "none", outlineOffset: 1,
+              }}
+            >
+              <div style={{
+                width: 26, height: 26, borderRadius: 7, flexShrink: 0, background: p.colorNombre, color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 12,
+              }}>
+                {p.nombre.charAt(0)}
+              </div>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>{p.nombre}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 14, marginBottom: 20 }}>
@@ -702,7 +740,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
             </div>
           )}
           <label style={{
-            background: "#1B2A41", color: "#F7F5F0", borderRadius: 6, padding: "8px 12px",
+            background: "var(--ink)", color: "var(--cream)", borderRadius: 6, padding: "8px 12px",
             fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>
             {subiendoFoto ? "Subiendo..." : tarjeta.fotoUrl ? "Cambiar foto" : "Cargar foto"}
@@ -828,9 +866,9 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
   const fmt = (n) => `$${Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   function semaforoColor(avance) {
-    if (avance === null) return "#DAD5C7";
-    if (avance >= 100) return "#3E6259";
-    if (avance >= 50) return "#C98A2C";
+    if (avance === null) return "var(--line)";
+    if (avance >= 100) return "var(--emerald)";
+    if (avance >= 50) return "var(--gold)";
     return "#B23A2E";
   }
 
@@ -850,21 +888,21 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "#8A8574", marginTop: 0 }}>
+      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
         Cálculo automático a partir de la prima anual capturada en cada cliente (Vida 25%, Autos 8%, GMM 8%; ajustable abajo).
       </p>
 
       {/* Selector de mes */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 20 }}>
         <button onClick={() => cambiarMes(-1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "6px 10px" }}>‹</button>
-        <span style={{ fontWeight: 600, fontSize: 14, color: "#1B2A41", minWidth: 140, textAlign: "center" }}>{mesLabel}</span>
+        <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", minWidth: 140, textAlign: "center" }}>{mesLabel}</span>
         <button onClick={() => cambiarMes(1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "6px 10px" }}>›</button>
       </div>
 
       {/* SECCIÓN 1: Ramo, aseguradora y prima -> comisión */}
       <SectionTitle>Comisiones del mes por ramo</SectionTitle>
       <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, overflow: "hidden", marginBottom: 24 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", background: "#1B2A41", color: "#F7F5F0", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>Pólizas</span>
           <span>Prima anual</span>
@@ -877,15 +915,15 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
             <span>{r.numPolizas}</span>
             <span>{fmt(r.primaTotal)}</span>
             <span>{r.pct}%</span>
-            <span style={{ fontWeight: 600, color: "#3E6259" }}>{fmt(r.comision)}</span>
+            <span style={{ fontWeight: 600, color: "var(--emerald)" }}>{fmt(r.comision)}</span>
           </div>
         ))}
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "10px", fontSize: 12, borderTop: "2px solid #1B2A41", background: "#F0EEE6", fontWeight: 700 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "12px 10px", fontSize: 12, borderTop: "2px solid var(--ink)", background: "var(--cream-2)", fontWeight: 700, alignItems: "center" }}>
           <span>Total</span>
           <span>{totalPolizas}</span>
           <span>{fmt(totalPrima)}</span>
           <span></span>
-          <span style={{ color: "#3E6259" }}>{fmt(totalComision)}</span>
+          <span className="serif" style={{ color: "var(--emerald)", fontSize: 17, fontWeight: 600 }}>{fmt(totalComision)}</span>
         </div>
       </div>
       {/* Detalle de aseguradoras por ramo */}
@@ -893,7 +931,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
         <div style={{ marginBottom: 24 }}>
           {porRamo.filter((r) => r.numPolizas > 0).map((r) => (
             <div key={r.ramo} style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "#1B2A41", margin: "0 0 4px" }}>{r.ramo}</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: "0 0 4px" }}>{r.ramo}</p>
               {r.polizas.map((c) => (
                 <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#5B5646", padding: "3px 0" }}>
                   <span>{c.aseguradora} — {c.nombre}</span>
@@ -910,9 +948,9 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 10, marginBottom: 24 }}>
         {porRamo.map((r) => (
           <div key={r.ramo} style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 12, textAlign: "center" }}>
-            <div style={{ width: 14, height: 14, borderRadius: "50%", background: semaforoColor(r.avance), margin: "0 auto 8px" }} />
-            <p style={{ fontSize: 12, fontWeight: 600, margin: "0 0 2px", color: "#1B2A41" }}>{r.ramo}</p>
-            <p style={{ fontSize: 11, color: "#8A8574", margin: 0 }}>
+            <div style={{ width: 16, height: 16, borderRadius: "50%", background: semaforoColor(r.avance), margin: "0 auto 8px", transition: "background .4s ease" }} />
+            <p style={{ fontSize: 12, fontWeight: 600, margin: "0 0 2px", color: "var(--ink)" }}>{r.ramo}</p>
+            <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>
               {r.numPolizas}{r.meta.metaPolizas ? ` / ${r.meta.metaPolizas}` : ""} pólizas
             </p>
           </div>
@@ -925,7 +963,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
       {/* SECCIÓN 3: Metas manuales y % de comisión */}
       <SectionTitle>Metas mensuales y % de comisión</SectionTitle>
       <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", background: "#1B2A41", color: "#F7F5F0", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>% com.</span>
           <span>Meta pólizas</span>
@@ -960,7 +998,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
 function SectionTitle({ children }) {
   return (
-    <h3 className="serif" style={{ fontSize: 14, color: "#1B2A41", margin: "0 0 10px" }}>
+    <h3 className="serif" style={{ fontSize: 14, color: "var(--ink)", margin: "0 0 10px" }}>
       {children}
     </h3>
   );
@@ -1137,7 +1175,7 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
   const clientDocs = docs[clientId] || {};
   return (
     <div>
-      <p style={{ fontSize: 12, color: "#8A8574", marginTop: 0 }}>
+      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
         Marca lo que ya te compartió el cliente. Toca el nombre del archivo para abrirlo.
       </p>
       {DOC_TYPES.map((docType) => {
@@ -1155,17 +1193,17 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
                   <a
                     href={href} target="_blank" rel="noreferrer"
                     style={{
-                      fontSize: 12, color: "#3E6259", textDecoration: "underline", maxWidth: 220, overflow: "hidden",
+                      fontSize: 12, color: "var(--emerald)", textDecoration: "underline", maxWidth: 220, overflow: "hidden",
                       textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block",
                     }}
                   >
                     ✓ {uploaded.name}
                   </a>
                 ) : (
-                  <div style={{ fontSize: 12, color: "#8A8574" }}>✓ {uploaded.name} (preparando enlace...)</div>
+                  <div style={{ fontSize: 12, color: "var(--stone)" }}>✓ {uploaded.name} (preparando enlace...)</div>
                 )
               ) : uploaded ? (
-                <div style={{ fontSize: 12, color: "#C98A2C" }}>
+                <div style={{ fontSize: 12, color: "var(--gold)" }}>
                   {uploaded.name} — se subió antes de la actualización, vuelve a subirlo para poder abrirlo
                 </div>
               ) : (
@@ -1175,7 +1213,7 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
             </div>
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
               <label style={{
-                background: "#1B2A41", color: "#F7F5F0", borderRadius: 6,
+                background: "var(--ink)", color: "var(--cream)", borderRadius: 6,
                 padding: "8px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
               }}>
                 {uploaded ? "Reemplazar" : "Subir"}
@@ -1218,7 +1256,7 @@ function countBy(list, key) {
   return Object.entries(counts).sort((a, b) => b[1] - a[1]);
 }
 
-const CHART_COLORS = ["#1B2A41", "#C98A2C", "#3E6259", "#B23A2E", "#6B7A8F", "#9C7A3C", "#4A6FA5", "#7A5C6E"];
+const CHART_COLORS = ["var(--ink)", "var(--gold)", "var(--emerald)", "#B23A2E", "#6B7A8F", "#9C7A3C", "#4A6FA5", "#7A5C6E"];
 
 function polarPoint(cx, cy, r, angleDeg) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -1240,8 +1278,8 @@ function PieChart({ data, size = 180 }) {
   });
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="#F7F5F0" strokeWidth="1.5" />)}
-      <circle cx={cx} cy={cy} r={r * 0.55} fill="#F7F5F0" />
+      {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="var(--cream)" strokeWidth="1.5" />)}
+      <circle cx={cx} cy={cy} r={r * 0.55} fill="var(--cream)" />
     </svg>
   );
 }
@@ -1260,8 +1298,8 @@ function StatChart({ title, data }) {
               onClick={() => setType(opt.id)}
               style={{
                 border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 600,
-                background: type === opt.id ? "#1B2A41" : "transparent",
-                color: type === opt.id ? "#F7F5F0" : "#5B5646",
+                background: type === opt.id ? "var(--ink)" : "transparent",
+                color: type === opt.id ? "var(--cream)" : "#5B5646",
               }}
             >
               {opt.label}
@@ -1270,7 +1308,7 @@ function StatChart({ title, data }) {
         </div>
       </div>
 
-      {data.length === 0 && <p style={{ fontSize: 13, color: "#8A8574" }}>Sin datos todavía.</p>}
+      {data.length === 0 && <p style={{ fontSize: 13, color: "var(--stone)" }}>Sin datos todavía.</p>}
 
       {data.length > 0 && type === "pie" && (
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -1332,7 +1370,7 @@ function buildCalendarEvents(clients, year, month) {
   return events;
 }
 
-const TONE_COLOR = { pago: "#B23A2E", renovacion: "#C98A2C", cumple: "#3E6259" };
+const TONE_COLOR = { pago: "#B23A2E", renovacion: "var(--gold)", cumple: "var(--emerald)" };
 
 function Calendar({ clients }) {
   const today = new Date();
@@ -1370,7 +1408,7 @@ function Calendar({ clients }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
         {DIAS_SEMANA.map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 11, color: "#8A8574", fontWeight: 600 }}>{d}</div>
+          <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--stone)", fontWeight: 600 }}>{d}</div>
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
@@ -1385,13 +1423,13 @@ function Calendar({ clients }) {
               key={i}
               onClick={() => setSelectedDate(dayEvents.length ? dateStr : null)}
               style={{
-                aspectRatio: "1", background: isSelected ? "#1B2A41" : "transparent",
+                aspectRatio: "1", background: isSelected ? "var(--ink)" : "transparent",
                 border: isToday ? "1px solid #C98A2C" : "1px solid transparent",
                 borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center",
                 justifyContent: "center", gap: 2, padding: 2,
               }}
             >
-              <span style={{ fontSize: 12, color: isSelected ? "#F7F5F0" : "#1B2A41" }}>{day}</span>
+              <span style={{ fontSize: 12, color: isSelected ? "var(--cream)" : "var(--ink)" }}>{day}</span>
               <span style={{ display: "flex", gap: 2 }}>
                 {dayEvents.slice(0, 3).map((ev, j) => (
                   <span key={j} style={{ width: 4, height: 4, borderRadius: 4, background: TONE_COLOR[ev.tone] }} />
@@ -1496,14 +1534,14 @@ function Planificador({ clients, activities, onAddActivity, onRemoveActivity }) 
           <div key={dateStr} style={{ marginBottom: 18, borderBottom: "1px solid #E4E0D3", paddingBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="serif" style={{ fontSize: 14, fontWeight: 700, color: isToday ? "#C98A2C" : "#1B2A41" }}>
+                <span className="serif" style={{ fontSize: 14, fontWeight: 700, color: isToday ? "var(--gold)" : "var(--ink)" }}>
                   {DIAS_LARGO[i]} {date.getDate()}
                 </span>
-                {isToday && <span style={{ fontSize: 10, color: "#C98A2C", fontWeight: 700 }}>HOY</span>}
+                {isToday && <span style={{ fontSize: 10, color: "var(--gold)", fontWeight: 700 }}>HOY</span>}
               </div>
               <button
                 onClick={() => (isAdding ? setAddingFor(null) : openAdd(dateStr))}
-                style={{ background: "none", border: "none", color: "#1B2A41" }}
+                style={{ background: "none", border: "none", color: "var(--ink)" }}
               >
                 <Plus size={16} />
               </button>
@@ -1568,7 +1606,7 @@ function Planificador({ clients, activities, onAddActivity, onRemoveActivity }) 
                 </select>
                 <button
                   onClick={() => submitAdd(dateStr)}
-                  style={{ width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
+                  style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
                 >
                   Agregar
                 </button>
@@ -1594,10 +1632,10 @@ function Dashboard({ clients }) {
 
       {topRamo && (
         <div style={{
-          background: "#1B2A41", color: "#F7F5F0", borderRadius: 10,
+          background: "var(--ink)", color: "var(--cream)", borderRadius: 10,
           padding: "16px 18px", marginBottom: 24,
         }}>
-          <div style={{ fontSize: 11, letterSpacing: 0.5, color: "#C98A2C", fontWeight: 700, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, letterSpacing: 0.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase" }}>
             Tu ramo líder
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
@@ -2134,8 +2172,8 @@ export default function SegurosCRM() {
 
   const toneColor = {
     pago: "#B23A2E",
-    renovacion: "#C98A2C",
-    cumple: "#3E6259",
+    renovacion: "var(--gold)",
+    cumple: "var(--emerald)",
   };
 
   const baseStyles = (
@@ -2150,14 +2188,14 @@ export default function SegurosCRM() {
   );
 
   if (!profileLoaded) {
-    return <div className="min-h-dvh" style={{ background: "#F7F5F0" }}>{baseStyles}</div>;
+    return <div className="min-h-dvh" style={{ background: "var(--cream)" }}>{baseStyles}</div>;
   }
 
   if (!profile || showEditProfile) {
     return (
       <div className="min-h-dvh" style={{
-        fontFamily: "'Inter', system-ui, sans-serif", background: "#F7F5F0",
-        color: "#1B2A41", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+        fontFamily: "'Inter', system-ui, sans-serif", background: "var(--cream)",
+        color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }}>
         {baseStyles}
         <form onSubmit={saveProfile} style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -2190,7 +2228,7 @@ export default function SegurosCRM() {
             />
           </Field>
           <button type="submit" style={{
-            width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
+            width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
             borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600, marginTop: 8,
           }}>
             {profile ? "Guardar" : "Entrar"}
@@ -2218,8 +2256,8 @@ export default function SegurosCRM() {
   return (
     <div className="min-h-dvh" style={{
       fontFamily: "'Inter', system-ui, sans-serif",
-      background: "#F7F5F0",
-      color: "#1B2A41",
+      background: "var(--cream)",
+      color: "var(--ink)",
     }}>
       {baseStyles}
 
@@ -2256,26 +2294,39 @@ export default function SegurosCRM() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute", top: 0, left: 0, bottom: 0, width: 250,
-              background: "#F7F5F0", padding: "20px 16px", boxShadow: "2px 0 12px rgba(0,0,0,0.15)",
+              position: "absolute", top: 0, left: 0, bottom: 0, width: 260,
+              background: "var(--ink)", padding: "20px 14px", boxShadow: "2px 0 12px rgba(0,0,0,0.15)",
               display: "flex", flexDirection: "column",
               overflowY: "auto", WebkitOverflowScrolling: "touch",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 className="serif" style={{ fontSize: 18, margin: 0 }}>Ledger de pólizas</h2>
-              <button onClick={() => setMenuOpen(false)} style={{ background: "none", border: "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, padding: "0 6px" }}>
+              <h2 className="serif" style={{ fontSize: 17, margin: 0, color: "#F3EFE3", fontWeight: 500 }}>Ledger de pólizas</h2>
+              <button onClick={() => setMenuOpen(false)} style={{ background: "none", border: "none", color: "#B7BCC9" }}>
                 <X size={18} />
               </button>
             </div>
             {NAV_ITEMS.map((item) => {
               const externalUrl = NAV_EXTERNAL_LINKS[item.id];
+              const isActive = tab === item.id;
+              const Icon = item.icon;
               const itemStyle = {
-                textAlign: "left", background: tab === item.id ? "#1B2A41" : "none",
-                color: tab === item.id ? "#F7F5F0" : "#1B2A41",
-                border: "none", borderRadius: 6, padding: "12px 14px", fontSize: 14, fontWeight: 600,
-                marginBottom: 4, textDecoration: "none", display: "block",
+                position: "relative",
+                display: "flex", alignItems: "center", gap: 10,
+                textAlign: "left", background: isActive ? "rgba(255,255,255,.07)" : "none",
+                color: isActive ? "#F7F5EE" : "#B7BCC9",
+                border: "none", borderRadius: 7, padding: "10px 12px", fontSize: 13.5, fontWeight: 500,
+                marginBottom: 2, textDecoration: "none",
               };
+              const inner = (
+                <>
+                  {isActive && (
+                    <span style={{ position: "absolute", left: 0, top: 8, bottom: 8, width: 3, borderRadius: 2, background: "var(--gold)" }} />
+                  )}
+                  {Icon && <Icon size={16} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.85 }} />}
+                  <span>{item.label}</span>
+                </>
+              );
               if (externalUrl) {
                 return (
                   <a
@@ -2283,7 +2334,7 @@ export default function SegurosCRM() {
                     onClick={() => setMenuOpen(false)}
                     style={itemStyle}
                   >
-                    {item.label}
+                    {inner}
                   </a>
                 );
               }
@@ -2293,17 +2344,18 @@ export default function SegurosCRM() {
                   onClick={() => { setTab(item.id); setMenuOpen(false); }}
                   style={itemStyle}
                 >
-                  {item.label}
+                  {inner}
                 </button>
               );
             })}
             <div style={{ flex: 1 }} />
+            <div style={{ borderTop: "1px solid rgba(255,255,255,.1)", margin: "8px 0 12px" }} />
             <button
               onClick={() => { handleExportExcel(); setMenuOpen(false); }}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#3E6259",
-                border: "1px solid #3E6259", borderRadius: 6, padding: "12px 14px", fontSize: 13, fontWeight: 600,
+                textAlign: "left", background: "none", color: "#8FD9C4",
+                border: "1px solid rgba(143,217,196,.4)", borderRadius: 6, padding: "12px 14px", fontSize: 13, fontWeight: 600,
               }}
             >
               <Download size={15} /> Exportar a Excel
@@ -2312,8 +2364,8 @@ export default function SegurosCRM() {
               onClick={() => { supabase.auth.signOut(); setMenuOpen(false); }}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#B23A2E",
-                border: "1px solid #B23A2E", borderRadius: 6, padding: "12px 14px", fontSize: 13, fontWeight: 600,
+                textAlign: "left", background: "none", color: "#E7A08F",
+                border: "1px solid rgba(231,160,143,.4)", borderRadius: 6, padding: "12px 14px", fontSize: 13, fontWeight: 600,
                 marginTop: 8,
               }}
             >
@@ -2324,7 +2376,7 @@ export default function SegurosCRM() {
               onClick={() => setMenuOpen(false)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#8A8574", textDecoration: "none",
+                textAlign: "left", background: "none", color: "#8991A3", textDecoration: "none",
                 border: "none", borderRadius: 6, padding: "10px 14px", fontSize: 12, fontWeight: 500,
                 marginTop: 10,
               }}
@@ -2348,7 +2400,7 @@ export default function SegurosCRM() {
         {tab === "recordatorios" && (
           <div>
             {reminders.length === 0 && (
-              <div style={{ textAlign: "center", padding: "60px 20px", color: "#8A8574" }}>
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--stone)" }}>
                 <Bell size={28} style={{ marginBottom: 10, opacity: 0.5 }} />
                 <p style={{ margin: 0, fontSize: 14 }}>
                   Sin fechas próximas en el próximo año.
@@ -2381,7 +2433,7 @@ export default function SegurosCRM() {
                   rel="noreferrer"
                   style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    padding: "8px 12px", background: "#1B2A41", color: "#F7F5F0",
+                    padding: "8px 12px", background: "var(--ink)", color: "var(--cream)",
                     borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: "none",
                     whiteSpace: "nowrap",
                   }}
@@ -2401,7 +2453,7 @@ export default function SegurosCRM() {
               onClick={() => { setForm({ ...emptyForm, fechaAlta: todayStr() }); setError(""); setShowForm(true); }}
               style={{
                 display: "flex", alignItems: "center", gap: 8,
-                background: "#1B2A41", color: "#F7F5F0", border: "none",
+                background: "var(--ink)", color: "var(--cream)", border: "none",
                 borderRadius: 6, padding: "10px 16px", fontSize: 14, fontWeight: 600,
                 marginBottom: 16,
               }}
@@ -2410,7 +2462,7 @@ export default function SegurosCRM() {
             </button>
 
             {clients.length === 0 && (
-              <p style={{ color: "#8A8574", fontSize: 14 }}>Aún no has agregado clientes.</p>
+              <p style={{ color: "var(--stone)", fontSize: 14 }}>Aún no has agregado clientes.</p>
             )}
 
             {clients.map((c) => {
@@ -2424,27 +2476,37 @@ export default function SegurosCRM() {
                       padding: "14px 4px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600 }}>{c.nombre}</div>
-                      <div style={{ fontSize: 13, color: "#5B5646", marginTop: 2 }}>
-                        {c.aseguradora} · {c.ramo} {c.numeroPoliza && `· Póliza ${c.numeroPoliza}`}
+                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", minWidth: 0 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 8, flexShrink: 0, marginTop: 2,
+                        background: insurerColor(c.aseguradora), color: "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 13,
+                      }}>
+                        {c.aseguradora ? c.aseguradora.charAt(0).toUpperCase() : "?"}
                       </div>
-                      <div style={{ fontSize: 12, color: "#8A8574", marginTop: 2 }}>
-                        {c.telefono}
-                      </div>
-                      {(c.fechaPago || c.fechaRenovacion || c.fechaCumple) && (
-                        <div style={{ fontSize: 12, color: "#8A8574", marginTop: 4 }}>
-                          {c.fechaPago && `Pago: ${fmtDateFull(c.fechaPago)}`}
-                          {c.fechaPago && (c.fechaRenovacion || c.fechaCumple) && " · "}
-                          {c.fechaRenovacion && `Renovación: ${fmtDateFull(c.fechaRenovacion)}`}
-                          {c.fechaRenovacion && c.fechaCumple && " · "}
-                          {c.fechaCumple && `Cumpleaños: ${fmtDate(c.fechaCumple)}`}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600 }}>{c.nombre}</div>
+                        <div style={{ fontSize: 13, color: "#5B5646", marginTop: 2 }}>
+                          {c.aseguradora} · {c.ramo} {c.numeroPoliza && `· Póliza ${c.numeroPoliza}`}
                         </div>
-                      )}
+                        <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
+                          {c.telefono}
+                        </div>
+                        {(c.fechaPago || c.fechaRenovacion || c.fechaCumple) && (
+                          <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 4 }}>
+                            {c.fechaPago && `Pago: ${fmtDateFull(c.fechaPago)}`}
+                            {c.fechaPago && (c.fechaRenovacion || c.fechaCumple) && " · "}
+                            {c.fechaRenovacion && `Renovación: ${fmtDateFull(c.fechaRenovacion)}`}
+                            {c.fechaRenovacion && c.fechaCumple && " · "}
+                            {c.fechaCumple && `Cumpleaños: ${fmtDate(c.fechaCumple)}`}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <ChevronDown
                       size={18}
-                      color="#8A8574"
+                      color="var(--stone)"
                       style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
                     />
                   </button>
@@ -2461,7 +2523,7 @@ export default function SegurosCRM() {
                             onClick={() => setExpandedTab(t.id)}
                             style={{
                               background: "none", border: "none", padding: "6px 10px", fontSize: 13, fontWeight: 600,
-                              color: expandedTab === t.id ? "#1B2A41" : "#8A8574",
+                              color: expandedTab === t.id ? "var(--ink)" : "var(--stone)",
                               borderBottom: expandedTab === t.id ? "2px solid #C98A2C" : "2px solid transparent",
                             }}
                           >
@@ -2479,7 +2541,7 @@ export default function SegurosCRM() {
                               onClick={() => saveEdit(c.id)}
                               style={{
                                 flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                                background: "#1B2A41", color: "#F7F5F0", border: "none",
+                                background: "var(--ink)", color: "var(--cream)", border: "none",
                                 borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600,
                               }}
                             >
@@ -2581,7 +2643,7 @@ export default function SegurosCRM() {
           <form
             onSubmit={handleAddSubmit}
             style={{
-              background: "#F7F5F0", width: "100%", maxWidth: 480,
+              background: "var(--cream)", width: "100%", maxWidth: 480,
               borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto",
             }}
           >
@@ -2597,7 +2659,7 @@ export default function SegurosCRM() {
             <ClientFields data={form} onChange={handleNewChange} />
 
             <button type="submit" style={{
-              width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
+              width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
               borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600, marginTop: 8,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
@@ -2621,7 +2683,7 @@ export default function SegurosCRM() {
             <button
               onClick={() => setShowPrimaWarning(false)}
               style={{
-                width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
+                width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
                 borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600, marginBottom: 8,
               }}
             >
@@ -2630,7 +2692,7 @@ export default function SegurosCRM() {
             <button
               onClick={guardarComoProspectoDesdeForm}
               style={{
-                width: "100%", background: "none", color: "#1B2A41", border: "1px solid #DAD5C7",
+                width: "100%", background: "none", color: "var(--ink)", border: "1px solid #DAD5C7",
                 borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
               }}
             >
