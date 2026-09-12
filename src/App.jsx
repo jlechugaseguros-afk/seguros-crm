@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
+import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
 
 const DOCS_BUCKET = "documentos";
@@ -2195,9 +2196,18 @@ export default function SegurosCRM() {
     return (
       <div className="min-h-dvh" style={{
         fontFamily: "'Inter', system-ui, sans-serif", background: "var(--cream)",
-        color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+        color: "var(--ink)", display: "flex", flexDirection: "column",
       }}>
         {baseStyles}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+          padding: "8px 16px", borderBottom: "1px solid var(--line)", background: "#FFFFFF",
+        }}>
+          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 18, objectFit: "contain" }} />
+          <div style={{ width: 1, height: 14, background: "var(--line)" }} />
+          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 22, objectFit: "contain" }} />
+        </div>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <form onSubmit={saveProfile} style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center" }}>
           {!profile && (
             <img src={LOGO_SRC} alt="Logo" style={{ width: 120, marginBottom: 20 }} />
@@ -2249,6 +2259,7 @@ export default function SegurosCRM() {
             </p>
           )}
         </form>
+        </div>
       </div>
     );
   }
@@ -2260,6 +2271,15 @@ export default function SegurosCRM() {
       color: "var(--ink)",
     }}>
       {baseStyles}
+
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+        padding: "8px 16px", borderBottom: "1px solid var(--line)", background: "#FFFFFF",
+      }}>
+        <img src={MC_LOGO} alt="MCBrokers" style={{ height: 18, objectFit: "contain" }} />
+        <div style={{ width: 1, height: 14, background: "var(--line)" }} />
+        <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 22, objectFit: "contain" }} />
+      </div>
 
       <header style={{
         padding: "16px 20px",
