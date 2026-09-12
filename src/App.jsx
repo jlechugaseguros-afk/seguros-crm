@@ -69,29 +69,32 @@ const MULTICOTIZADOR_PIN = "081115";
 const MULTICOTIZADOR_MENU = [
   {
     label: "Sindicatos",
+    color: "var(--ink)",
     children: [
-      { label: "Telmex", url: "https://mcbrokers.dora.com.mx/" },
-      { label: "SNTE 23", url: "https://mcbrokers.dora.com.mx/" },
+      { label: "Telmex", url: "https://mcbrokers.dora.com.mx/", color: "#E4032E" },
+      { label: "SNTE 23", url: "https://mcbrokers.dora.com.mx/", color: "#1B6EC2" },
     ],
   },
   {
     label: "Privados",
+    color: "var(--ink)",
     children: [
-      { label: "GNP", url: "https://portalintermediarios.gnp.com.mx/sesion" },
-      { label: "AXA", url: "https://axa.mx/" },
+      { label: "GNP", url: "https://portalintermediarios.gnp.com.mx/sesion", color: "#F58220" },
+      { label: "AXA", url: "https://axa.mx/", color: "#00008F" },
       {
         label: "Qualitas",
+        color: "#93278F",
         children: [
-          { label: "Autos", url: "https://agentes360.qualitas.com.mx/web/guest/home" },
-          { label: "QSalud", url: "" },
+          { label: "Autos", url: "https://agentes360.qualitas.com.mx/web/guest/home", color: "#93278F" },
+          { label: "QSalud", url: "", color: "#93278F" },
         ],
       },
-      { label: "ANA Seguros", url: "https://www.anaseguros.com.mx/anaweb/" },
-      { label: "Plan Seguro", url: "https://oficina.planseguro.com.mx/" },
-      { label: "GMX", url: "https://www.gmx.com.mx/soy-agente/" },
+      { label: "ANA Seguros", url: "https://www.anaseguros.com.mx/anaweb/", color: "#E30613" },
+      { label: "Plan Seguro", url: "https://oficina.planseguro.com.mx/", color: "#0E7C66" },
+      { label: "GMX", url: "https://www.gmx.com.mx/soy-agente/", color: "#0A2A43" },
     ],
   },
-  { label: "Otros", url: "https://v4.clickseguros.lat/login", pin: true },
+  { label: "Otros", url: "https://v4.clickseguros.lat/login", pin: true, color: "var(--stone)" },
 ];
 
 const NAV_EXTERNAL_LINKS = {
@@ -1020,7 +1023,7 @@ function Multicotizador() {
         <a
           href={unlockedUrl} target="_blank" rel="noreferrer"
           style={{
-            display: "inline-block", background: "#1B2A41", color: "#F7F5F0", borderRadius: 6,
+            display: "inline-block", background: "var(--ink)", color: "var(--cream)", borderRadius: 7,
             padding: "10px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none",
           }}
         >
@@ -1029,7 +1032,7 @@ function Multicotizador() {
         <div>
           <button
             onClick={() => setUnlockedUrl(null)}
-            style={{ marginTop: 20, background: "none", border: "none", fontSize: 12, color: "#8A8574", textDecoration: "underline" }}
+            style={{ marginTop: 20, background: "none", border: "none", fontSize: 12, color: "var(--stone)", textDecoration: "underline" }}
           >
             Volver al menú
           </button>
@@ -1055,8 +1058,8 @@ function Multicotizador() {
           <button
             type="submit"
             style={{
-              width: "100%", background: "#1B2A41", color: "#F7F5F0", border: "none",
-              borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
+              width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
+              borderRadius: 7, padding: "10px", fontSize: 13, fontWeight: 600,
             }}
           >
             Entrar
@@ -1065,7 +1068,7 @@ function Multicotizador() {
         {pinError && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{pinError}</p>}
         <button
           onClick={() => setPendingItem(null)}
-          style={{ marginTop: 16, background: "none", border: "none", fontSize: 12, color: "#8A8574", textDecoration: "underline" }}
+          style={{ marginTop: 16, background: "none", border: "none", fontSize: 12, color: "var(--stone)", textDecoration: "underline" }}
         >
           Cancelar
         </button>
@@ -1074,39 +1077,54 @@ function Multicotizador() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: "0 auto" }}>
-      <p style={{ fontSize: 12, color: "#8A8574", marginBottom: 16 }}>
-        {path.length === 0 ? "Multicotizador" : `Multicotizador › ${path.join(" › ")}`}
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <h3 className="serif" style={{ fontSize: 18, color: "var(--ink)", margin: "0 0 4px", fontWeight: 500 }}>
+        {path.length === 0 ? "Multicotizador" : path[path.length - 1]}
+      </h3>
+      <p style={{ fontSize: 12, color: "var(--stone)", marginBottom: 18 }}>
+        {path.length === 0 ? "Elige dónde quieres cotizar" : `Multicotizador › ${path.join(" › ")}`}
       </p>
       {path.length > 0 && (
         <button
           onClick={() => setPath(path.slice(0, -1))}
-          style={{ marginBottom: 12, background: "none", border: "none", fontSize: 13, color: "#3E6259", fontWeight: 600 }}
+          style={{ marginBottom: 16, background: "none", border: "none", fontSize: 13, color: "var(--emerald)", fontWeight: 600, padding: 0 }}
         >
           ‹ Atrás
         </button>
       )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
         {items.map((item) => {
-          const itemStyle = {
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8,
-            padding: "12px 16px", fontSize: 14, fontWeight: 500, color: "#1B2A41", textAlign: "left",
-            textDecoration: "none",
+          const brand = item.color || "var(--ink)";
+          const mono = item.pin ? "🔒" : item.label.charAt(0).toUpperCase();
+          const tileStyle = {
+            display: "flex", alignItems: "center", gap: 10,
+            background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${brand}`,
+            borderRadius: 8, padding: "12px 14px", textAlign: "left", textDecoration: "none",
+            color: "var(--ink)",
           };
+          const monoStyle = {
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: brand, color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 14,
+          };
+          const content = (
+            <>
+              <div style={monoStyle}>{mono}</div>
+              <span style={{ fontSize: 13.5, fontWeight: 600, flex: 1 }}>{item.label}</span>
+              {item.children && <span style={{ color: "var(--stone)", fontSize: 13 }}>›</span>}
+            </>
+          );
           // Enlace real (no bloqueable por el navegador) para los que abren directo a una URL
           if (item.url && !item.pin) {
             return (
-              <a key={item.label} href={item.url} target="_blank" rel="noreferrer" style={itemStyle}>
-                {item.label}
-                <span style={{ color: "#B0AB9A" }}>↗</span>
+              <a key={item.label} href={item.url} target="_blank" rel="noreferrer" className="logo-tile" style={tileStyle}>
+                {content}
               </a>
             );
           }
           return (
-            <button key={item.label} onClick={() => handleSelect(item)} style={itemStyle}>
-              {item.label}
-              <span style={{ color: "#B0AB9A" }}>{item.children ? "›" : item.pin ? "🔒" : "↗"}</span>
+            <button key={item.label} onClick={() => handleSelect(item)} className="logo-tile" style={tileStyle}>
+              {content}
             </button>
           );
         })}
@@ -2125,6 +2143,9 @@ export default function SegurosCRM() {
       * { box-sizing: border-box; }
       button { font-family: inherit; cursor: pointer; }
       input, select { font-family: inherit; }
+      .logo-tile { transition: transform .12s ease, box-shadow .15s ease; cursor: pointer; }
+      .logo-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(11,42,68,.10); }
+      .logo-tile:active { transform: scale(.98); }
     `}</style>
   );
 
