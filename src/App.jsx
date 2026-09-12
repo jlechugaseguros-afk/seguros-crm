@@ -78,7 +78,7 @@ const MULTICOTIZADOR_MENU = [
     label: "Privados",
     children: [
       { label: "GNP", url: "https://portalintermediarios.gnp.com.mx/sesion" },
-      { label: "AXA", url: "https://portal.axa.com.mx/" },
+      { label: "AXA", url: "https://axa.mx/" },
       {
         label: "Qualitas",
         children: [
@@ -966,6 +966,7 @@ function SectionTitle({ children }) {
 function Multicotizador() {
   const [path, setPath] = useState([]);
   const [pendingItem, setPendingItem] = useState(null);
+  const [unlockedUrl, setUnlockedUrl] = useState(null);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
 
@@ -1002,7 +1003,7 @@ function Multicotizador() {
   function handlePinSubmit(e) {
     e.preventDefault();
     if (pin === MULTICOTIZADOR_PIN) {
-      window.open(pendingItem.url, "_blank", "noopener");
+      setUnlockedUrl(pendingItem.url);
       setPendingItem(null);
       setPin("");
       setPinError("");
@@ -1010,6 +1011,31 @@ function Multicotizador() {
       setPinError("PIN incorrecto, ponte en contacto con tu administrador.");
       setPin("");
     }
+  }
+
+  if (unlockedUrl) {
+    return (
+      <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
+        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>PIN correcto.</p>
+        <a
+          href={unlockedUrl} target="_blank" rel="noreferrer"
+          style={{
+            display: "inline-block", background: "#1B2A41", color: "#F7F5F0", borderRadius: 6,
+            padding: "10px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none",
+          }}
+        >
+          Abrir Otros
+        </a>
+        <div>
+          <button
+            onClick={() => setUnlockedUrl(null)}
+            style={{ marginTop: 20, background: "none", border: "none", fontSize: 12, color: "#8A8574", textDecoration: "underline" }}
+          >
+            Volver al menú
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (pendingItem) {
@@ -1061,20 +1087,29 @@ function Multicotizador() {
         </button>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {items.map((item) => (
-          <button
-            key={item.label}
-            onClick={() => handleSelect(item)}
-            style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8,
-              padding: "12px 16px", fontSize: 14, fontWeight: 500, color: "#1B2A41", textAlign: "left",
-            }}
-          >
-            {item.label}
-            <span style={{ color: "#B0AB9A" }}>{item.children ? "›" : item.pin ? "🔒" : "↗"}</span>
-          </button>
-        ))}
+        {items.map((item) => {
+          const itemStyle = {
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8,
+            padding: "12px 16px", fontSize: 14, fontWeight: 500, color: "#1B2A41", textAlign: "left",
+            textDecoration: "none",
+          };
+          // Enlace real (no bloqueable por el navegador) para los que abren directo a una URL
+          if (item.url && !item.pin) {
+            return (
+              <a key={item.label} href={item.url} target="_blank" rel="noreferrer" style={itemStyle}>
+                {item.label}
+                <span style={{ color: "#B0AB9A" }}>↗</span>
+              </a>
+            );
+          }
+          return (
+            <button key={item.label} onClick={() => handleSelect(item)} style={itemStyle}>
+              {item.label}
+              <span style={{ color: "#B0AB9A" }}>{item.children ? "›" : item.pin ? "🔒" : "↗"}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -2205,6 +2240,7 @@ export default function SegurosCRM() {
               position: "absolute", top: 0, left: 0, bottom: 0, width: 250,
               background: "#F7F5F0", padding: "20px 16px", boxShadow: "2px 0 12px rgba(0,0,0,0.15)",
               display: "flex", flexDirection: "column",
+              overflowY: "auto", WebkitOverflowScrolling: "touch",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -2213,28 +2249,35 @@ export default function SegurosCRM() {
                 <X size={18} />
               </button>
             </div>
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (NAV_EXTERNAL_LINKS[item.id]) {
-                    window.open(NAV_EXTERNAL_LINKS[item.id], "_blank", "noopener");
-                    setMenuOpen(false);
-                    return;
-                  }
-                  setTab(item.id);
-                  setMenuOpen(false);
-                }}
-                style={{
-                  textAlign: "left", background: tab === item.id ? "#1B2A41" : "none",
-                  color: tab === item.id ? "#F7F5F0" : "#1B2A41",
-                  border: "none", borderRadius: 6, padding: "12px 14px", fontSize: 14, fontWeight: 600,
-                  marginBottom: 4,
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const externalUrl = NAV_EXTERNAL_LINKS[item.id];
+              const itemStyle = {
+                textAlign: "left", background: tab === item.id ? "#1B2A41" : "none",
+                color: tab === item.id ? "#F7F5F0" : "#1B2A41",
+                border: "none", borderRadius: 6, padding: "12px 14px", fontSize: 14, fontWeight: 600,
+                marginBottom: 4, textDecoration: "none", display: "block",
+              };
+              if (externalUrl) {
+                return (
+                  <a
+                    key={item.id} href={externalUrl} target="_blank" rel="noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                    style={itemStyle}
+                  >
+                    {item.label}
+                  </a>
+                );
+              }
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setTab(item.id); setMenuOpen(false); }}
+                  style={itemStyle}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
             <div style={{ flex: 1 }} />
             <button
               onClick={() => { handleExportExcel(); setMenuOpen(false); }}
@@ -2257,17 +2300,18 @@ export default function SegurosCRM() {
             >
               <LogOut size={15} /> Cerrar sesión
             </button>
-            <button
-              onClick={() => { window.open("https://paypal.me/JoshuaLep13", "_blank", "noopener"); setMenuOpen(false); }}
+            <a
+              href="https://paypal.me/JoshuaLep13" target="_blank" rel="noreferrer"
+              onClick={() => setMenuOpen(false)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#8A8574",
+                textAlign: "left", background: "none", color: "#8A8574", textDecoration: "none",
                 border: "none", borderRadius: 6, padding: "10px 14px", fontSize: 12, fontWeight: 500,
                 marginTop: 10,
               }}
             >
               <Heart size={13} /> Agradecimientos al desarrollador
-            </button>
+            </a>
           </div>
         </div>
       )}
