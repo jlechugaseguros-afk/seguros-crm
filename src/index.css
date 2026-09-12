@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Paleta de marca — tomada del logo de MCBrokers y del logo personal de Joshua */
+  --ink: #0B2A44;      /* azul marino, texto principal y fondos oscuros */
+  --ink-2: #082032;    /* azul marino más oscuro, para degradados */
+  --gold: #C9971E;     /* dorado, acento — se usa con moderación */
+  --emerald: #1E5C4C;  /* verde, estados positivos (pólizas al corriente, etc.) */
+  --stone: #8A8574;    /* gris cálido, texto secundario */
+  --line: #DAD5C7;     /* líneas y bordes sutiles */
+  --cream: #F7F5F0;    /* fondo base */
+  --cream-2: #F1EDE1;  /* fondo secundario, ligeramente más oscuro */
+}
+
+.serif {
+  font-family: 'Fraunces', serif;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,7 +23,8 @@
 }
 
 body {
-  background: #F7F5F0;
+  background: var(--cream);
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 /* Altura de pantalla correcta en móviles: la barra de direcciones del navegador
