@@ -2200,12 +2200,12 @@ export default function SegurosCRM() {
       }}>
         {baseStyles}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-          padding: "8px 16px", borderBottom: "1px solid var(--line)", background: "#FFFFFF",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 18,
+          padding: "16px", background: "var(--cream)",
         }}>
-          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 18, objectFit: "contain" }} />
-          <div style={{ width: 1, height: 14, background: "var(--line)" }} />
-          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 22, objectFit: "contain" }} />
+          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 40, objectFit: "contain" }} />
+          <div style={{ width: 1, height: 30, background: "var(--line)" }} />
+          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 52, objectFit: "contain" }} />
         </div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <form onSubmit={saveProfile} style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -2272,19 +2272,11 @@ export default function SegurosCRM() {
     }}>
       {baseStyles}
 
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-        padding: "8px 16px", borderBottom: "1px solid var(--line)", background: "#FFFFFF",
-      }}>
-        <img src={MC_LOGO} alt="MCBrokers" style={{ height: 18, objectFit: "contain" }} />
-        <div style={{ width: 1, height: 14, background: "var(--line)" }} />
-        <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 22, objectFit: "contain" }} />
-      </div>
-
       <header style={{
-        padding: "16px 20px",
-        borderBottom: "1px solid #DAD5C7",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 20px",
+        borderBottom: "1px solid var(--line)",
+        display: "flex", flexWrap: "wrap", rowGap: 12,
+        alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
@@ -2304,6 +2296,14 @@ export default function SegurosCRM() {
         >
           {profile.nombre}
         </button>
+        <div style={{
+          order: 3, flex: "1 1 100%",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
+        }}>
+          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 38, objectFit: "contain" }} />
+          <div style={{ width: 1, height: 28, background: "var(--line)" }} />
+          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 48, objectFit: "contain" }} />
+        </div>
       </header>
 
       {menuOpen && (

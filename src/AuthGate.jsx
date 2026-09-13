@@ -76,14 +76,14 @@ export default function AuthGate({ children }) {
           }
         `}</style>
 
-        {/* Franja superior discreta con ambos logos */}
+        {/* Franja superior con ambos logos, sin corte de color con el fondo */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18,
-          padding: '14px 20px', borderBottom: '1px solid var(--line)', background: '#FFFFFF',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
+          padding: '18px 20px', background: 'var(--cream)',
         }}>
-          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 26, objectFit: 'contain' }} />
-          <div style={{ width: 1, height: 22, background: 'var(--line)' }} />
-          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 34, objectFit: 'contain' }} />
+          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 52, objectFit: 'contain' }} />
+          <div style={{ width: 1, height: 40, background: 'var(--line)' }} />
+          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 68, objectFit: 'contain' }} />
         </div>
 
         <div className="auth-split">
