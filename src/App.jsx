@@ -65,19 +65,32 @@ const DOC_TYPES = [
   "Constancia de situación fiscal",
 ];
 
-const emptyForm = {
+const MONEDAS = ["MXN", "UDIS", "DÓLARES", "OTRO"];
+const CLASIFICACIONES_POLIZA = ["Nueva", "Renovación"];
+const METODOS_PAGO = ["Tarjeta de crédito", "Tarjeta de débito", "Domiciliado", "Transferencia", "Efectivo", "Cheque", "Otro"];
+
+const emptyClientForm = {
   nombre: "",
   telefono: "",
   correo: "",
   requiereFactura: false,
+  fechaCumple: "",
+};
+
+const emptyPolicyForm = {
   aseguradora: "Zurich",
   ramo: "Autos",
   numeroPoliza: "",
   primaAnual: "",
+  metodoPago: METODOS_PAGO[0],
+  moneda: "MXN",
+  clasificacion: "Nueva",
+  inicioVigencia: "",
+  finVigencia: "",
   fechaAlta: "",
   fechaPago: "",
   fechaRenovacion: "",
-  fechaCumple: "",
+  documento: null, // { name, path }
 };
 
 const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, Hogar: 0 };
@@ -282,7 +295,7 @@ function Field({ label, children, style }) {
   );
 }
 
-function ClientFields({ data, onChange }) {
+function ClientPersonalFields({ data, onChange }) {
   return (
     <div>
       <Field label="Nombre completo">
@@ -303,6 +316,16 @@ function ClientFields({ data, onChange }) {
         />
         Requiere factura
       </label>
+      <Field label="Cumpleaños">
+        <DateWithFallback value={data.fechaCumple} onChange={(v) => onChange("fechaCumple", v)} />
+      </Field>
+    </div>
+  );
+}
+
+function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
+  return (
+    <div>
       <div style={{ display: "flex", gap: 10 }}>
         <Field label="Aseguradora" style={{ flex: 1 }}>
           <select value={data.aseguradora} onChange={(e) => onChange("aseguradora", e.target.value)} style={inputStyle}>
@@ -319,7 +342,7 @@ function ClientFields({ data, onChange }) {
         <input value={data.numeroPoliza} onChange={(e) => onChange("numeroPoliza", e.target.value)} style={inputStyle} />
       </Field>
       <div style={{ display: "flex", gap: 10 }}>
-        <Field label="Prima anual (MXN)" style={{ flex: 1 }}>
+        <Field label="Prima anual" style={{ flex: 1 }}>
           <input
             type="number" min="0" step="0.01"
             value={data.primaAnual}
@@ -328,34 +351,81 @@ function ClientFields({ data, onChange }) {
             placeholder="Ej. 12000"
           />
         </Field>
-        <Field label="Fecha de contratación" style={{ flex: 1 }}>
-          <DateWithFallback value={data.fechaAlta} onChange={(v) => onChange("fechaAlta", v)} />
+        <Field label="Moneda" style={{ flex: 1 }}>
+          <select value={data.moneda} onChange={(e) => onChange("moneda", e.target.value)} style={inputStyle}>
+            {MONEDAS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
         </Field>
       </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Field label="Método de pago" style={{ flex: 1 }}>
+          <select value={data.metodoPago} onChange={(e) => onChange("metodoPago", e.target.value)} style={inputStyle}>
+            {METODOS_PAGO.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+        <Field label="Clasificación" style={{ flex: 1 }}>
+          <select value={data.clasificacion} onChange={(e) => onChange("clasificacion", e.target.value)} style={inputStyle}>
+            {CLASIFICACIONES_POLIZA.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Field label="Inicio de vigencia" style={{ flex: 1 }}>
+          <DateWithFallback value={data.inicioVigencia} onChange={(v) => onChange("inicioVigencia", v)} />
+        </Field>
+        <Field label="Fin de vigencia" style={{ flex: 1 }}>
+          <DateWithFallback value={data.finVigencia} onChange={(v) => onChange("finVigencia", v)} />
+        </Field>
+      </div>
+      <Field label="Fecha de contratación">
+        <DateWithFallback value={data.fechaAlta} onChange={(v) => onChange("fechaAlta", v)} />
+      </Field>
       <Field label="Próxima fecha de pago">
         <DateWithFallback value={data.fechaPago} onChange={(v) => onChange("fechaPago", v)} />
       </Field>
       <Field label="Fecha de renovación">
         <DateWithFallback value={data.fechaRenovacion} onChange={(v) => onChange("fechaRenovacion", v)} />
       </Field>
-      <Field label="Cumpleaños">
-        <DateWithFallback value={data.fechaCumple} onChange={(v) => onChange("fechaCumple", v)} />
-      </Field>
+      {onFileChange && (
+        <Field label="Foto o PDF de la póliza">
+          <label style={{
+            display: "block", background: "#FFFFFF", border: "1px solid var(--line)", color: "var(--ink)",
+            borderRadius: 6, padding: "10px 12px", fontSize: 13, cursor: "pointer",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {file ? file.name : existingDoc ? `✓ ${existingDoc.name} (toca para reemplazar)` : "Elegir archivo (foto o PDF)..."}
+            <input
+              type="file" accept="image/*,.pdf" style={{ display: "none" }}
+              onChange={(e) => onFileChange(e.target.files[0] || null)}
+            />
+          </label>
+        </Field>
+      )}
     </div>
   );
 }
 
-const ESTADOS_PROSPECTO = ["No contactado", "Llamada", "Cita", "Se envía propuesta", "En proceso", "No interesado"];
+const ESTADOS_PROSPECTO = ["Nuevo prospecto", "Contactado", "Seguimiento", "Cita", "Cotización enviada", "Solicitud en trámite", "Cliente", "Perdido"];
 const ESTADO_COLOR = {
-  "No contactado": "var(--stone)",
-  "Llamada": "#4A6FA5",
+  "Nuevo prospecto": "var(--stone)",
+  "Contactado": "#4A6FA5",
+  "Seguimiento": "#9C7A3C",
   "Cita": "var(--gold)",
-  "Se envía propuesta": "#9C7A3C",
-  "En proceso": "var(--emerald)",
-  "No interesado": "#B23A2E",
+  "Cotización enviada": "#6B7A8F",
+  "Solicitud en trámite": "#7A5C6E",
+  "Cliente": "var(--emerald)",
+  "Perdido": "#B23A2E",
 };
+const MOTIVOS_PERDIDO = [
+  "No tiene presupuesto",
+  "Ya tiene seguro",
+  "No respondió",
+  "No calificó",
+  "Lo pensará",
+  "Eligió otra aseguradora",
+];
 
-const emptyProspecto = { nombre: "", telefono: "", correo: "", estado: ESTADOS_PROSPECTO[0], notas: "" };
+const emptyProspecto = { nombre: "", telefono: "", correo: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "" };
 
 function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
   const [showForm, setShowForm] = useState(false);
@@ -364,9 +434,32 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
   const [expandedId, setExpandedId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [filter, setFilter] = useState(null);
+  const [perdidoTarget, setPerdidoTarget] = useState(null); // "edit" | "new" | null
+  const [motivoPerdido, setMotivoPerdido] = useState(MOTIVOS_PERDIDO[0]);
+  const [comentarioPerdido, setComentarioPerdido] = useState("");
 
   const funnelData = ESTADOS_PROSPECTO.map((e) => [e, prospectos.filter((p) => p.estado === e).length]);
   const visible = filter ? prospectos.filter((p) => p.estado === filter) : prospectos;
+
+  function handleEstadoSelect(value, target) {
+    if (value === "Perdido") {
+      setMotivoPerdido(MOTIVOS_PERDIDO[0]);
+      setComentarioPerdido("");
+      setPerdidoTarget(target);
+      return;
+    }
+    if (target === "edit") setEditDraft((d) => ({ ...d, estado: value, motivoPerdido: "", comentarioPerdido: "" }));
+    else setForm((f) => ({ ...f, estado: value, motivoPerdido: "", comentarioPerdido: "" }));
+  }
+
+  function confirmPerdido() {
+    if (perdidoTarget === "edit") {
+      setEditDraft((d) => ({ ...d, estado: "Perdido", motivoPerdido, comentarioPerdido }));
+    } else {
+      setForm((f) => ({ ...f, estado: "Perdido", motivoPerdido, comentarioPerdido }));
+    }
+    setPerdidoTarget(null);
+  }
 
   function submitAdd(e) {
     e.preventDefault();
@@ -405,7 +498,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
               style={{
                 display: "flex", alignItems: "center", gap: 6, fontSize: 12,
                 border: filter === estado ? `1.5px solid ${ESTADO_COLOR[estado]}` : "1px solid var(--line)",
-                background: filter === estado ? "#FFFFFF" : "#FFFFFF",
+                background: "#FFFFFF",
                 borderRadius: 20, padding: "6px 10px",
               }}
             >
@@ -443,7 +536,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
                 <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[p.estado] }} />
-                  <span style={{ fontSize: 12, color: "#5B5646" }}>{p.estado}</span>
+                  <span style={{ fontSize: 12, color: "#5B5646" }}>{p.estado}{p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}</span>
                 </div>
               </div>
               <ChevronDown size={18} color="var(--stone)" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
@@ -461,10 +554,23 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
                   <input type="email" value={editDraft.correo || ""} onChange={(e) => setEditDraft((d) => ({ ...d, correo: e.target.value }))} style={inputStyle} />
                 </Field>
                 <Field label="Estado">
-                  <select value={editDraft.estado} onChange={(e) => setEditDraft((d) => ({ ...d, estado: e.target.value }))} style={inputStyle}>
+                  <select value={editDraft.estado} onChange={(e) => handleEstadoSelect(e.target.value, "edit")} style={inputStyle}>
                     {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
                   </select>
                 </Field>
+                {editDraft.estado === "Perdido" && editDraft.motivoPerdido && (
+                  <div style={{ background: "#FBEAE7", borderRadius: 6, padding: "8px 10px", marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {editDraft.motivoPerdido}</div>
+                    {editDraft.comentarioPerdido && <div style={{ fontSize: 12, color: "#5B5646", marginTop: 2 }}>{editDraft.comentarioPerdido}</div>}
+                    <button
+                      type="button"
+                      onClick={() => { setMotivoPerdido(editDraft.motivoPerdido || MOTIVOS_PERDIDO[0]); setComentarioPerdido(editDraft.comentarioPerdido || ""); setPerdidoTarget("edit"); }}
+                      style={{ background: "none", border: "none", color: "#B23A2E", fontSize: 11, textDecoration: "underline", padding: 0, marginTop: 4 }}
+                    >
+                      Editar motivo
+                    </button>
+                  </div>
+                )}
                 <Field label="Notas">
                   <input value={editDraft.notas || ""} onChange={(e) => setEditDraft((d) => ({ ...d, notas: e.target.value }))} style={inputStyle} />
                 </Field>
@@ -506,10 +612,16 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
               <input type="email" value={form.correo} onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))} style={inputStyle} />
             </Field>
             <Field label="Estado">
-              <select value={form.estado} onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value }))} style={inputStyle}>
+              <select value={form.estado} onChange={(e) => handleEstadoSelect(e.target.value, "new")} style={inputStyle}>
                 {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
               </select>
             </Field>
+            {form.estado === "Perdido" && form.motivoPerdido && (
+              <div style={{ background: "#FBEAE7", borderRadius: 6, padding: "8px 10px", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {form.motivoPerdido}</div>
+                {form.comentarioPerdido && <div style={{ fontSize: 12, color: "#5B5646", marginTop: 2 }}>{form.comentarioPerdido}</div>}
+              </div>
+            )}
             <Field label="Notas">
               <input value={form.notas} onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))} style={inputStyle} />
             </Field>
@@ -517,6 +629,41 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
               Guardar prospecto
             </button>
           </form>
+        </div>
+      )}
+
+      {perdidoTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 20 }}>
+          <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 22, maxWidth: 360, width: "100%" }}>
+            <h3 className="serif" style={{ fontSize: 16, margin: "0 0 14px" }}>¿Por qué se perdió?</h3>
+            <Field label="Motivo">
+              <select value={motivoPerdido} onChange={(e) => setMotivoPerdido(e.target.value)} style={inputStyle}>
+                {MOTIVOS_PERDIDO.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </Field>
+            <Field label="Comentarios (opcional)">
+              <textarea
+                value={comentarioPerdido}
+                onChange={(e) => setComentarioPerdido(e.target.value)}
+                rows={3}
+                style={{ ...inputStyle, resize: "vertical" }}
+              />
+            </Field>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={confirmPerdido}
+                style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => setPerdidoTarget(null)}
+                style={{ background: "none", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 6, padding: "10px 14px", fontSize: 13 }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -844,13 +991,23 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
     setMes(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
 
+  const allPolizas = useMemo(() => {
+    const list = [];
+    clients.forEach((c) => {
+      (c.polizas || []).forEach((p) => {
+        list.push({ ...p, clienteNombre: c.nombre, clienteId: c.id });
+      });
+    });
+    return list;
+  }, [clients]);
+
   const porRamo = useMemo(() => {
     return RAMOS.map((ramo) => {
-      const polizas = clients.filter(
-        (c) => c.ramo === ramo && c.fechaAlta && c.fechaAlta.slice(0, 7) === mes && Number(c.primaAnual) > 0
+      const polizas = allPolizas.filter(
+        (p) => p.ramo === ramo && p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0
       );
       const numPolizas = polizas.length;
-      const primaTotal = polizas.reduce((sum, c) => sum + Number(c.primaAnual || 0), 0);
+      const primaTotal = polizas.reduce((sum, p) => sum + Number(p.primaAnual || 0), 0);
       const pct = Number(porcentajes[ramo] || 0);
       const comision = (primaTotal * pct) / 100;
       const meta = metas[ramo] || { metaPolizas: "", metaPrimaNeta: "" };
@@ -858,7 +1015,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
       const avance = metaPolizas > 0 ? (numPolizas / metaPolizas) * 100 : null;
       return { ramo, polizas, numPolizas, primaTotal, pct, comision, meta, avance };
     });
-  }, [clients, mes, porcentajes, metas]);
+  }, [allPolizas, mes, porcentajes, metas]);
 
   const totalComision = porRamo.reduce((s, r) => s + r.comision, 0);
   const totalPolizas = porRamo.reduce((s, r) => s + r.numPolizas, 0);
@@ -933,10 +1090,10 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           {porRamo.filter((r) => r.numPolizas > 0).map((r) => (
             <div key={r.ramo} style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: "0 0 4px" }}>{r.ramo}</p>
-              {r.polizas.map((c) => (
-                <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#5B5646", padding: "3px 0" }}>
-                  <span>{c.aseguradora} — {c.nombre}</span>
-                  <span>{fmt(c.primaAnual)}</span>
+              {r.polizas.map((p) => (
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#5B5646", padding: "3px 0" }}>
+                  <span>{p.aseguradora} — {p.clienteNombre}</span>
+                  <span>{fmt(p.primaAnual)}</span>
                 </div>
               ))}
             </div>
@@ -1172,6 +1329,101 @@ function Multicotizador() {
   );
 }
 
+function PolizasTab({
+  client, urls, showForm, onOpenForm, onCloseForm,
+  polizaForm, onPolizaFormChange, polizaFormFile, onPolizaFormFile, polizaError,
+  onSubmit, onRemove, onReplaceDoc,
+}) {
+  const polizas = client.polizas || [];
+  return (
+    <div>
+      {polizas.length === 0 && !showForm && (
+        <p style={{ fontSize: 13, color: "var(--stone)", marginBottom: 14 }}>Este cliente todavía no tiene pólizas registradas.</p>
+      )}
+
+      {!showForm && (
+        <>
+          {polizas.map((p) => {
+            const href = p.documento && p.documento.path ? urls[p.documento.path] : null;
+            return (
+              <div key={p.id} style={{ border: "1px solid var(--line)", borderLeft: `3px solid ${insurerColor(p.aseguradora)}`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{p.aseguradora} · {p.ramo}</div>
+                    <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
+                      Póliza {p.numeroPoliza || "—"} · {p.clasificacion} · {p.moneda} {p.primaAnual ? `$${Number(p.primaAnual).toLocaleString("es-MX")}` : ""}
+                    </div>
+                    {(p.inicioVigencia || p.finVigencia) && (
+                      <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
+                        Vigencia: {p.inicioVigencia ? fmtDateFull(p.inicioVigencia) : "—"} a {p.finVigencia ? fmtDateFull(p.finVigencia) : "—"}
+                      </div>
+                    )}
+                    {p.metodoPago && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Pago: {p.metodoPago}</div>}
+                  </div>
+                  <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 8px", flexShrink: 0 }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  {p.documento ? (
+                    href ? (
+                      <a href={href} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--emerald)", textDecoration: "underline" }}>
+                        ✓ {p.documento.name}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--stone)" }}>✓ {p.documento.name} (preparando enlace...)</span>
+                    )
+                  ) : (
+                    <span style={{ fontSize: 12, color: "var(--stone)" }}>Sin foto/PDF de la póliza</span>
+                  )}
+                  <label style={{ marginLeft: 10, fontSize: 12, color: "var(--ink)", textDecoration: "underline", cursor: "pointer" }}>
+                    {p.documento ? "Reemplazar" : "Subir archivo"}
+                    <input
+                      type="file" accept="image/*,.pdf" style={{ display: "none" }}
+                      onChange={(e) => { const f = e.target.files[0]; if (f) onReplaceDoc(p.id, f); e.target.value = ""; }}
+                    />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+          <button
+            onClick={onOpenForm}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              background: "none", border: "1px dashed var(--line)", color: "var(--ink)",
+              borderRadius: 8, padding: "12px", fontSize: 13, fontWeight: 600, marginTop: 4,
+            }}
+          >
+            <Plus size={16} /> Agregar póliza
+          </button>
+        </>
+      )}
+
+      {showForm && (
+        <form onSubmit={onSubmit}>
+          {polizaError && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{polizaError}</p>}
+          <PolicyFields data={polizaForm} onChange={onPolizaFormChange} file={polizaFormFile} onFileChange={onPolizaFormFile} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="submit" style={{
+              flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none",
+              borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600,
+            }}>
+              Guardar póliza
+            </button>
+            <button type="button" onClick={onCloseForm} style={{
+              background: "none", border: "1px solid var(--line)", color: "var(--ink)",
+              borderRadius: 6, padding: "12px 14px", fontSize: 14,
+            }}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
   const clientDocs = docs[clientId] || {};
   return (
@@ -1347,19 +1599,21 @@ function StatChart({ title, data }) {
 function buildCalendarEvents(clients, year, month) {
   // month: 0-indexed. Devuelve { "YYYY-MM-DD": [{tone, client, label}] }
   const events = {};
-  function add(dateStr, tone, client, label) {
+  function add(dateStr, tone, client, label, policy) {
     events[dateStr] = events[dateStr] || [];
-    events[dateStr].push({ tone, client: client.nombre, label });
+    events[dateStr].push({ tone, client: client.nombre, label, clientObj: client, policy: policy || null });
   }
   clients.forEach((c) => {
-    if (c.fechaPago) {
-      const [y, m, d] = c.fechaPago.split("-").map(Number);
-      if (y === year && m - 1 === month) add(c.fechaPago, "pago", c, "Pago");
-    }
-    if (c.fechaRenovacion) {
-      const [y, m, d] = c.fechaRenovacion.split("-").map(Number);
-      if (y === year && m - 1 === month) add(c.fechaRenovacion, "renovacion", c, "Renovación");
-    }
+    (c.polizas || []).forEach((p) => {
+      if (p.fechaPago) {
+        const [y, m] = p.fechaPago.split("-").map(Number);
+        if (y === year && m - 1 === month) add(p.fechaPago, "pago", c, "Pago", p);
+      }
+      if (p.fechaRenovacion) {
+        const [y, m] = p.fechaRenovacion.split("-").map(Number);
+        if (y === year && m - 1 === month) add(p.fechaRenovacion, "renovacion", c, "Renovación", p);
+      }
+    });
     if (c.fechaCumple) {
       const [, m, d] = c.fechaCumple.split("-").map(Number);
       if (m - 1 === month) {
@@ -1474,11 +1728,13 @@ function getRemindersForDate(clients, dateStr) {
   const [, month, day] = dateStr.split("-").map(Number);
   const items = [];
   clients.forEach((c) => {
-    if (c.fechaPago === dateStr) items.push({ tone: "pago", label: "Pago", client: c });
-    if (c.fechaRenovacion === dateStr) items.push({ tone: "renovacion", label: "Renovación", client: c });
+    (c.polizas || []).forEach((p) => {
+      if (p.fechaPago === dateStr) items.push({ tone: "pago", label: "Pago", client: c, policy: p });
+      if (p.fechaRenovacion === dateStr) items.push({ tone: "renovacion", label: "Renovación", client: c, policy: p });
+    });
     if (c.fechaCumple) {
       const [, m, d] = c.fechaCumple.split("-").map(Number);
-      if (m === month && d === day) items.push({ tone: "cumple", label: "Cumpleaños", client: c });
+      if (m === month && d === day) items.push({ tone: "cumple", label: "Cumpleaños", client: c, policy: null });
     }
   });
   return items;
@@ -1621,14 +1877,19 @@ function Planificador({ clients, activities, onAddActivity, onRemoveActivity }) 
 }
 
 function Dashboard({ clients }) {
-  const byRamo = countBy(clients, "ramo");
-  const byAseguradora = countBy(clients, "aseguradora");
+  const allPolizas = useMemo(() => {
+    const list = [];
+    clients.forEach((c) => (c.polizas || []).forEach((p) => list.push(p)));
+    return list;
+  }, [clients]);
+  const byRamo = countBy(allPolizas, "ramo");
+  const byAseguradora = countBy(allPolizas, "aseguradora");
   const topRamo = byRamo[0];
-  const topPercent = topRamo && clients.length ? Math.round((topRamo[1] / clients.length) * 100) : 0;
+  const topPercent = topRamo && allPolizas.length ? Math.round((topRamo[1] / allPolizas.length) * 100) : 0;
   return (
     <div>
       <p style={{ fontSize: 13, color: "#5B5646", marginTop: 0, marginBottom: 20 }}>
-        {clients.length} póliza{clients.length === 1 ? "" : "s"} en total.
+        {clients.length} cliente{clients.length === 1 ? "" : "s"} · {allPolizas.length} póliza{allPolizas.length === 1 ? "" : "s"} en total.
       </p>
 
       {topRamo && (
@@ -1659,9 +1920,10 @@ export default function SegurosCRM() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("planificador");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({ ...emptyClientForm, ...emptyPolicyForm });
   const [error, setError] = useState("");
 
   const [expandedId, setExpandedId] = useState(null);
@@ -1673,15 +1935,26 @@ export default function SegurosCRM() {
   const [docSignedUrls, setDocSignedUrls] = useState({});
 
   useEffect(() => {
-    if (expandedTab !== "documentos" || !expandedId) return;
-    const clientDocs = documents[expandedId] || {};
-    Object.values(clientDocs).forEach((doc) => {
-      if (!doc || !doc.path || docSignedUrls[doc.path]) return;
-      supabase.storage.from(DOCS_BUCKET).createSignedUrl(doc.path, 3600).then(({ data, error }) => {
-        if (!error && data) setDocSignedUrls((u) => ({ ...u, [doc.path]: data.signedUrl }));
+    if (!expandedId) return;
+    if (expandedTab === "documentos") {
+      const clientDocs = documents[expandedId] || {};
+      Object.values(clientDocs).forEach((doc) => {
+        if (!doc || !doc.path || docSignedUrls[doc.path]) return;
+        supabase.storage.from(DOCS_BUCKET).createSignedUrl(doc.path, 3600).then(({ data, error }) => {
+          if (!error && data) setDocSignedUrls((u) => ({ ...u, [doc.path]: data.signedUrl }));
+        });
       });
-    });
-  }, [expandedTab, expandedId, documents]);
+    }
+    if (expandedTab === "polizas") {
+      const client = clients.find((c) => c.id === expandedId);
+      (client?.polizas || []).forEach((p) => {
+        if (!p.documento || !p.documento.path || docSignedUrls[p.documento.path]) return;
+        supabase.storage.from(DOCS_BUCKET).createSignedUrl(p.documento.path, 3600).then(({ data, error }) => {
+          if (!error && data) setDocSignedUrls((u) => ({ ...u, [p.documento.path]: data.signedUrl }));
+        });
+      });
+    }
+  }, [expandedTab, expandedId, documents, clients]);
   const [docsLoaded, setDocsLoaded] = useState(false);
 
   const [profile, setProfile] = useState(null);
@@ -1823,11 +2096,42 @@ export default function SegurosCRM() {
     }
   }
 
+// Migra clientes guardados con el formato anterior (una sola póliza pegada al cliente)
+// al nuevo formato con un arreglo de pólizas.
+function migrateClient(c) {
+  if (Array.isArray(c.polizas)) return c;
+  const teniaPoliza = c.aseguradora || c.ramo || c.numeroPoliza || c.primaAnual;
+  const {
+    aseguradora, ramo, numeroPoliza, primaAnual, metodoPago, moneda, clasificacion,
+    inicioVigencia, finVigencia, fechaAlta, fechaPago, fechaRenovacion,
+    ...personal
+  } = c;
+  return {
+    ...personal,
+    polizas: teniaPoliza ? [{
+      id: c.id + "-p1",
+      aseguradora: aseguradora || "",
+      ramo: ramo || RAMOS[0],
+      numeroPoliza: numeroPoliza || "",
+      primaAnual: primaAnual || "",
+      metodoPago: metodoPago || METODOS_PAGO[0],
+      moneda: moneda || "MXN",
+      clasificacion: clasificacion || "Nueva",
+      inicioVigencia: inicioVigencia || "",
+      finVigencia: finVigencia || "",
+      fechaAlta: fechaAlta || "",
+      fechaPago: fechaPago || "",
+      fechaRenovacion: fechaRenovacion || "",
+      documento: null,
+    }] : [],
+  };
+}
+
   useEffect(() => {
     (async () => {
       try {
         const res = await window.storage.get("clients");
-        if (res && res.value) setClients(JSON.parse(res.value));
+        if (res && res.value) setClients(JSON.parse(res.value).map(migrateClient));
       } catch (e) {
         // no data yet
       }
@@ -1967,10 +2271,11 @@ export default function SegurosCRM() {
 
   function handleConvertProspecto(p) {
     setClients((cs) => [...cs, {
-      ...emptyForm,
+      ...emptyClientForm,
       nombre: p.nombre,
       telefono: p.telefono,
       correo: p.correo || "",
+      polizas: [],
       id: Date.now().toString(),
     }]);
     setProspectos((ps) => ps.filter((x) => x.id !== p.id));
@@ -2013,22 +2318,40 @@ export default function SegurosCRM() {
       Teléfono: c.telefono,
       Correo: c.correo || "",
       "Requiere factura": c.requiereFactura ? "Sí" : "No",
-      Aseguradora: c.aseguradora,
-      Ramo: c.ramo,
-      "Número de póliza": c.numeroPoliza,
-      "Prima anual": c.primaAnual,
-      "Fecha de contratación": c.fechaAlta,
-      "Fecha de pago": c.fechaPago,
-      "Fecha de renovación": c.fechaRenovacion,
       Cumpleaños: c.fechaCumple,
+      "Número de pólizas": (c.polizas || []).length,
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientesRows), "Clientes");
+
+    const polizasRows = [];
+    clients.forEach((c) => {
+      (c.polizas || []).forEach((p) => {
+        polizasRows.push({
+          Cliente: c.nombre,
+          Teléfono: c.telefono,
+          Aseguradora: p.aseguradora,
+          Ramo: p.ramo,
+          "Número de póliza": p.numeroPoliza,
+          "Prima anual": p.primaAnual,
+          Moneda: p.moneda,
+          "Método de pago": p.metodoPago,
+          Clasificación: p.clasificacion,
+          "Inicio de vigencia": p.inicioVigencia,
+          "Fin de vigencia": p.finVigencia,
+          "Fecha de contratación": p.fechaAlta,
+          "Fecha de pago": p.fechaPago,
+          "Fecha de renovación": p.fechaRenovacion,
+        });
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(polizasRows), "Pólizas");
 
     const prospectosRows = prospectos.map((p) => ({
       Nombre: p.nombre,
       Teléfono: p.telefono,
       Correo: p.correo || "",
       Estado: p.estado,
+      "Motivo de pérdida": p.motivoPerdido || "",
       Notas: p.notas || "",
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prospectosRows), "Prospectos");
@@ -2073,27 +2396,45 @@ export default function SegurosCRM() {
   const reminders = useMemo(() => {
     const items = [];
     clients.forEach((c) => {
-      [
-        { key: "fechaPago", label: "Pago", tone: "pago", recurring: false },
-        { key: "fechaRenovacion", label: "Renovación", tone: "renovacion", recurring: false },
-        { key: "fechaCumple", label: "Cumpleaños", tone: "cumple", recurring: true },
-      ].forEach(({ key, label, tone, recurring }) => {
-        const days = daysUntil(c[key], recurring);
-        if (days !== null && days >= 0 && days <= 365) {
-          items.push({ client: c, label, tone, days, date: c[key] });
-        }
+      (c.polizas || []).forEach((p) => {
+        [
+          { key: "fechaPago", label: "Pago", tone: "pago" },
+          { key: "fechaRenovacion", label: "Renovación", tone: "renovacion" },
+        ].forEach(({ key, label, tone }) => {
+          const days = daysUntil(p[key], false);
+          if (days !== null && days >= 0 && days <= 365) {
+            items.push({ client: c, policy: p, label, tone, days, date: p[key] });
+          }
+        });
       });
+      const days = daysUntil(c.fechaCumple, true);
+      if (days !== null && days >= 0 && days <= 365) {
+        items.push({ client: c, policy: null, label: "Cumpleaños", tone: "cumple", days, date: c.fechaCumple });
+      }
     });
     return items.sort((a, b) => a.days - b.days);
   }, [clients]);
 
+  const remindersHoy = useMemo(() => reminders.filter((r) => r.days === 0), [reminders]);
+
   const [showPrimaWarning, setShowPrimaWarning] = useState(false);
+  const [nuevaPolizaFile, setNuevaPolizaFile] = useState(null);
 
   function handleNewChange(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleAddSubmit(e) {
+  async function uploadPolicyFile(clientId, policyId, file) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Sin sesión activa.");
+    const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+    const path = `polizas/${user.id}/${clientId}/${policyId}-${slugifyFileName(file.name)}.${ext}`;
+    const { error: upErr } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { upsert: true });
+    if (upErr) throw upErr;
+    return { name: file.name, path, uploadedAt: Date.now() };
+  }
+
+  async function handleAddSubmit(e) {
     e.preventDefault();
     if (!form.nombre.trim() || !form.telefono.trim()) {
       setError("Nombre y teléfono son obligatorios.");
@@ -2103,8 +2444,47 @@ export default function SegurosCRM() {
       setShowPrimaWarning(true);
       return;
     }
-    setClients((cs) => [...cs, { ...form, id: Date.now().toString() }]);
-    setForm(emptyForm);
+    const clientId = Date.now().toString();
+    const policyId = (Date.now() + 1).toString();
+
+    let documento = null;
+    if (nuevaPolizaFile) {
+      try {
+        documento = await uploadPolicyFile(clientId, policyId, nuevaPolizaFile);
+      } catch (err) {
+        setError(`No se pudo subir el archivo de la póliza: ${err.message}`);
+        return;
+      }
+    }
+
+    const cliente = {
+      id: clientId,
+      nombre: form.nombre,
+      telefono: form.telefono,
+      correo: form.correo,
+      requiereFactura: form.requiereFactura,
+      fechaCumple: form.fechaCumple,
+      polizas: [{
+        id: policyId,
+        aseguradora: form.aseguradora,
+        ramo: form.ramo,
+        numeroPoliza: form.numeroPoliza,
+        primaAnual: form.primaAnual,
+        metodoPago: form.metodoPago,
+        moneda: form.moneda,
+        clasificacion: form.clasificacion,
+        inicioVigencia: form.inicioVigencia,
+        finVigencia: form.finVigencia,
+        fechaAlta: form.fechaAlta,
+        fechaPago: form.fechaPago,
+        fechaRenovacion: form.fechaRenovacion,
+        documento,
+      }],
+    };
+
+    setClients((cs) => [...cs, cliente]);
+    setForm({ ...emptyClientForm, ...emptyPolicyForm });
+    setNuevaPolizaFile(null);
     setError("");
     setShowForm(false);
   }
@@ -2118,7 +2498,8 @@ export default function SegurosCRM() {
       notas: "Venía de alta de cliente, faltó la prima anual.",
       id: Date.now().toString(),
     });
-    setForm(emptyForm);
+    setForm({ ...emptyClientForm, ...emptyPolicyForm });
+    setNuevaPolizaFile(null);
     setError("");
     setShowPrimaWarning(false);
     setShowForm(false);
@@ -2152,23 +2533,96 @@ export default function SegurosCRM() {
       setEditError("Nombre y teléfono son obligatorios.");
       return;
     }
-    if (!editDraft.primaAnual || Number(editDraft.primaAnual) <= 0) {
-      setEditError("Falta la prima anual: es obligatoria para poder guardar al cliente.");
-      return;
-    }
-    setClients((cs) => cs.map((c) => (c.id === id ? { ...editDraft, id } : c)));
+    setClients((cs) => cs.map((c) => (c.id === id ? { ...c, ...editDraft, id } : c)));
     setExpandedId(null);
     setEditDraft(null);
   }
 
-  function waLink(client, label) {
-    const phone = client.telefono.replace(/\D/g, "");
+  // --- Pólizas (varias por cliente) ---
+  const [showPolizaForm, setShowPolizaForm] = useState(false);
+  const [polizaForm, setPolizaForm] = useState(emptyPolicyForm);
+  const [polizaFormFile, setPolizaFormFile] = useState(null);
+  const [polizaError, setPolizaError] = useState("");
+
+  function openNuevaPoliza() {
+    setPolizaForm({ ...emptyPolicyForm, fechaAlta: todayStr() });
+    setPolizaFormFile(null);
+    setPolizaError("");
+    setShowPolizaForm(true);
+  }
+
+  async function handleAddPolizaSubmit(e, clientId) {
+    e.preventDefault();
+    if (!polizaForm.numeroPoliza.trim()) {
+      setPolizaError("El número de póliza es obligatorio.");
+      return;
+    }
+    if (!polizaForm.primaAnual || Number(polizaForm.primaAnual) <= 0) {
+      setPolizaError("La prima anual es obligatoria.");
+      return;
+    }
+    const policyId = Date.now().toString();
+    let documento = null;
+    if (polizaFormFile) {
+      try {
+        documento = await uploadPolicyFile(clientId, policyId, polizaFormFile);
+      } catch (err) {
+        setPolizaError(`No se pudo subir el archivo: ${err.message}`);
+        return;
+      }
+    }
+    const nueva = { id: policyId, ...polizaForm, documento };
+    setClients((cs) => cs.map((c) => (c.id === clientId ? { ...c, polizas: [...(c.polizas || []), nueva] } : c)));
+    setShowPolizaForm(false);
+    setPolizaError("");
+  }
+
+  function handleRemovePoliza(clientId, policyId) {
+    setClients((cs) => cs.map((c) => (
+      c.id === clientId ? { ...c, polizas: (c.polizas || []).filter((p) => p.id !== policyId) } : c
+    )));
+  }
+
+  async function handleReplacePolizaDoc(clientId, policyId, file) {
+    setPolizaError("");
+    try {
+      const documento = await uploadPolicyFile(clientId, policyId, file);
+      setClients((cs) => cs.map((c) => (
+        c.id === clientId
+          ? { ...c, polizas: (c.polizas || []).map((p) => (p.id === policyId ? { ...p, documento } : p)) }
+          : c
+      )));
+    } catch (err) {
+      setPolizaError(`No se pudo subir el archivo: ${err.message}`);
+    }
+  }
+
+  function mensajePredeterminado(client, label, policy) {
     const firma = profile?.nombre ? ` — ${profile.nombre}` : "";
-    let text = "";
-    if (label === "Pago") text = `Hola ${client.nombre}, te recordamos tu próximo pago de la póliza ${client.numeroPoliza || ""} (${client.aseguradora}). Cualquier duda quedo al pendiente.${firma}`;
-    if (label === "Renovación") text = `Hola ${client.nombre}, tu póliza de ${client.ramo} con ${client.aseguradora} está por renovarse. Te contacto para revisar los detalles.${firma}`;
-    if (label === "Cumpleaños") text = `¡Feliz cumpleaños, ${client.nombre}! Te deseo un excelente día.${firma}`;
+    const monto = policy?.primaAnual ? `$${Number(policy.primaAnual).toLocaleString("es-MX")}` : "";
+    const poliza = policy?.numeroPoliza || "";
+    const aseguradora = policy?.aseguradora || "";
+    if (label === "Pago") {
+      return `Hola ${client.nombre}, te recordamos tu próximo pago${poliza ? ` de la póliza ${poliza}` : ""}${aseguradora ? ` (${aseguradora})` : ""}${policy?.fechaPago ? ` con fecha ${fmtDateFull(policy.fechaPago)}` : ""}${monto ? ` por ${monto}` : ""}. Cualquier duda quedo al pendiente.${firma}`;
+    }
+    if (label === "Renovación") {
+      return `Hola ${client.nombre}, tu póliza${poliza ? ` ${poliza}` : ""}${aseguradora ? ` con ${aseguradora}` : ""}${policy?.ramo ? ` de ${policy.ramo}` : ""} está por renovarse${policy?.fechaRenovacion ? ` el ${fmtDateFull(policy.fechaRenovacion)}` : ""}${monto ? ` (prima de ${monto})` : ""}. Te contacto para revisar los detalles.${firma}`;
+    }
+    if (label === "Cumpleaños") {
+      return `¡Feliz cumpleaños, ${client.nombre}! Te deseo un excelente día.${firma}`;
+    }
+    return "";
+  }
+
+  function waLink(client, text) {
+    const phone = client.telefono.replace(/\D/g, "");
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  }
+
+  const [mensajesEditados, setMensajesEditados] = useState({});
+  function mensajePara(i, r) {
+    if (mensajesEditados[i] !== undefined) return mensajesEditados[i];
+    return mensajePredeterminado(r.client, r.label, r.policy);
   }
 
   const toneColor = {
@@ -2290,12 +2744,64 @@ export default function SegurosCRM() {
             {NAV_ITEMS.find((n) => n.id === tab)?.label || "Ledger de pólizas"}
           </h1>
         </div>
-        <button
-          onClick={() => { setProfileForm({}); setShowEditProfile(true); }}
-          style={{ background: "none", border: "none", fontSize: 12, color: "#5B5646", padding: "4px 0" }}
-        >
-          {profile.nombre}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
+          <button
+            onClick={() => setShowNotifs((s) => !s)}
+            style={{ background: "none", border: "none", padding: 4, display: "flex", position: "relative" }}
+            aria-label="Notificaciones"
+          >
+            <Bell size={19} color="var(--ink)" />
+            {remindersHoy.length > 0 && (
+              <span style={{
+                position: "absolute", top: -2, right: -2, background: "#B23A2E", color: "#fff",
+                fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 15, height: 15,
+                display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
+              }}>
+                {remindersHoy.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { setProfileForm({}); setShowEditProfile(true); }}
+            style={{ background: "none", border: "none", fontSize: 12, color: "#5B5646", padding: "4px 0" }}
+          >
+            {profile.nombre}
+          </button>
+
+          {showNotifs && (
+            <div style={{
+              position: "absolute", top: "100%", right: 0, marginTop: 8, width: 280,
+              background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 10,
+              boxShadow: "0 8px 24px rgba(11,42,68,.12)", zIndex: 25, overflow: "hidden",
+            }}>
+              <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)", fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>
+                Para hoy
+              </div>
+              {remindersHoy.length === 0 ? (
+                <p style={{ fontSize: 12, color: "var(--stone)", padding: 14, margin: 0 }}>No tienes pendientes para hoy.</p>
+              ) : (
+                <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                  {remindersHoy.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setTab("recordatorios"); setShowNotifs(false); }}
+                      style={{
+                        width: "100%", textAlign: "left", background: "none", border: "none",
+                        padding: "10px 14px", borderBottom: "1px solid var(--line)", display: "flex", gap: 8, alignItems: "center",
+                      }}
+                    >
+                      <span style={{ width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2, flexShrink: 0 }} />
+                      <span>
+                        <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.client.nombre}</span>
+                        <span style={{ display: "block", fontSize: 11, color: "var(--stone)" }}>{r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <div style={{
           order: 3, flex: "1 1 100%",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
@@ -2432,33 +2938,41 @@ export default function SegurosCRM() {
                 key={i}
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 12,
+                  flexDirection: "column",
+                  gap: 8,
                   padding: "14px 4px",
                   borderBottom: "1px solid #E4E0D3",
                 }}
               >
-                <div style={{
-                  width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2,
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
-                  <div style={{ fontSize: 13, color: "#5B5646" }}>
-                    {r.label} · {fmtDate(r.date)} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
+                    <div style={{ fontSize: 13, color: "#5B5646" }}>
+                      {r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
+                    </div>
                   </div>
                 </div>
+                <textarea
+                  value={mensajePara(i, r)}
+                  onChange={(e) => setMensajesEditados((m) => ({ ...m, [i]: e.target.value }))}
+                  rows={3}
+                  style={{ ...inputStyle, fontSize: 12.5, resize: "vertical", marginLeft: 16, width: "calc(100% - 16px)" }}
+                />
                 <a
-                  href={waLink(r.client, r.label)}
+                  href={waLink(r.client, mensajePara(i, r))}
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    display: "flex", alignItems: "center", gap: 6,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     padding: "8px 12px", background: "var(--ink)", color: "var(--cream)",
                     borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: "none",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap", marginLeft: 16, alignSelf: "flex-start",
                   }}
                 >
-                  <Phone size={14} /> Enviar
+                  <Phone size={14} /> Enviar por WhatsApp
                 </a>
               </div>
             ))}
@@ -2470,7 +2984,7 @@ export default function SegurosCRM() {
         {tab === "clientes" && (
           <div>
             <button
-              onClick={() => { setForm({ ...emptyForm, fechaAlta: todayStr() }); setError(""); setShowForm(true); }}
+              onClick={() => { setForm({ ...emptyClientForm, ...emptyPolicyForm, fechaAlta: todayStr() }); setNuevaPolizaFile(null); setError(""); setShowForm(true); }}
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 background: "var(--ink)", color: "var(--cream)", border: "none",
@@ -2496,34 +3010,42 @@ export default function SegurosCRM() {
                       padding: "14px 4px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
                     }}
                   >
-                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", minWidth: 0 }}>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 8, flexShrink: 0, marginTop: 2,
-                        background: insurerColor(c.aseguradora), color: "#fff",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 13,
-                      }}>
-                        {c.aseguradora ? c.aseguradora.charAt(0).toUpperCase() : "?"}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600 }}>{c.nombre}</div>
-                        <div style={{ fontSize: 13, color: "#5B5646", marginTop: 2 }}>
-                          {c.aseguradora} · {c.ramo} {c.numeroPoliza && `· Póliza ${c.numeroPoliza}`}
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
-                          {c.telefono}
-                        </div>
-                        {(c.fechaPago || c.fechaRenovacion || c.fechaCumple) && (
-                          <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 4 }}>
-                            {c.fechaPago && `Pago: ${fmtDateFull(c.fechaPago)}`}
-                            {c.fechaPago && (c.fechaRenovacion || c.fechaCumple) && " · "}
-                            {c.fechaRenovacion && `Renovación: ${fmtDateFull(c.fechaRenovacion)}`}
-                            {c.fechaRenovacion && c.fechaCumple && " · "}
-                            {c.fechaCumple && `Cumpleaños: ${fmtDate(c.fechaCumple)}`}
+                    {(() => {
+                      const polizas = c.polizas || [];
+                      const primaria = polizas[0];
+                      return (
+                        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", minWidth: 0 }}>
+                          <div style={{
+                            width: 30, height: 30, borderRadius: 8, flexShrink: 0, marginTop: 2,
+                            background: insurerColor(primaria?.aseguradora), color: "#fff",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 13,
+                          }}>
+                            {primaria?.aseguradora ? primaria.aseguradora.charAt(0).toUpperCase() : "?"}
                           </div>
-                        )}
-                      </div>
-                    </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 600 }}>{c.nombre}</div>
+                            <div style={{ fontSize: 13, color: "#5B5646", marginTop: 2 }}>
+                              {primaria
+                                ? <>{primaria.aseguradora} · {primaria.ramo} {primaria.numeroPoliza && `· Póliza ${primaria.numeroPoliza}`}{polizas.length > 1 && ` · +${polizas.length - 1} más`}</>
+                                : "Sin pólizas registradas"}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
+                              {c.telefono}
+                            </div>
+                            {(primaria?.fechaPago || primaria?.fechaRenovacion || c.fechaCumple) && (
+                              <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 4 }}>
+                                {primaria?.fechaPago && `Pago: ${fmtDateFull(primaria.fechaPago)}`}
+                                {primaria?.fechaPago && (primaria?.fechaRenovacion || c.fechaCumple) && " · "}
+                                {primaria?.fechaRenovacion && `Renovación: ${fmtDateFull(primaria.fechaRenovacion)}`}
+                                {primaria?.fechaRenovacion && c.fechaCumple && " · "}
+                                {c.fechaCumple && `Cumpleaños: ${fmtDate(c.fechaCumple)}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <ChevronDown
                       size={18}
                       color="var(--stone)"
@@ -2536,6 +3058,7 @@ export default function SegurosCRM() {
                       <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #E4E0D3" }}>
                         {[
                           { id: "datos", label: "Datos" },
+                          { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
                           { id: "documentos", label: "Documentos" },
                         ].map((t) => (
                           <button
@@ -2555,7 +3078,7 @@ export default function SegurosCRM() {
                       {expandedTab === "datos" && (
                         <>
                           {editError && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{editError}</p>}
-                          <ClientFields data={editDraft} onChange={handleEditChange} />
+                          <ClientPersonalFields data={editDraft} onChange={handleEditChange} />
                           <div style={{ display: "flex", gap: 8 }}>
                             <button
                               onClick={() => saveEdit(c.id)}
@@ -2579,6 +3102,24 @@ export default function SegurosCRM() {
                             </button>
                           </div>
                         </>
+                      )}
+
+                      {expandedTab === "polizas" && (
+                        <PolizasTab
+                          client={c}
+                          urls={docSignedUrls}
+                          showForm={showPolizaForm}
+                          onOpenForm={openNuevaPoliza}
+                          onCloseForm={() => setShowPolizaForm(false)}
+                          polizaForm={polizaForm}
+                          onPolizaFormChange={(field, v) => setPolizaForm((f) => ({ ...f, [field]: v }))}
+                          polizaFormFile={polizaFormFile}
+                          onPolizaFormFile={setPolizaFormFile}
+                          polizaError={polizaError}
+                          onSubmit={(e) => handleAddPolizaSubmit(e, c.id)}
+                          onRemove={(policyId) => handleRemovePoliza(c.id, policyId)}
+                          onReplaceDoc={(policyId, file) => handleReplacePolizaDoc(c.id, policyId, file)}
+                        />
                       )}
 
                       {expandedTab === "documentos" && (
@@ -2676,7 +3217,10 @@ export default function SegurosCRM() {
 
             {error && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{error}</p>}
 
-            <ClientFields data={form} onChange={handleNewChange} />
+            <ClientPersonalFields data={form} onChange={handleNewChange} />
+
+            <h3 className="serif" style={{ fontSize: 15, margin: "18px 0 10px", color: "var(--ink)" }}>Datos de la póliza</h3>
+            <PolicyFields data={form} onChange={handleNewChange} file={nuevaPolizaFile} onFileChange={setNuevaPolizaFile} />
 
             <button type="submit" style={{
               width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
@@ -2723,7 +3267,7 @@ export default function SegurosCRM() {
       )}
 
       <p style={{ textAlign: "center", fontSize: 10, color: "#B0AB9A", padding: "16px 10px 24px" }}>
-        Creado por Joshua Lechuga en colaboración con Claude, todos los derechos reservados
+        © 2026 J L Consultoría Patrimonial
       </p>
     </div>
   );

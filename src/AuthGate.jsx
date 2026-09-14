@@ -192,7 +192,7 @@ export default function AuthGate({ children }) {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 10, color: '#B0AB9A', padding: '10px 20px' }}>
-          Creado por Joshua Lechuga en colaboración con Claude, todos los derechos reservados
+          © 2026 J L Consultoría Patrimonial
         </p>
       </div>
     )
