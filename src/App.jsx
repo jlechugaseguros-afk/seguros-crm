@@ -25,7 +25,7 @@ const NAV_ITEMS = [
   { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
 ];
 
-const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar"];
+const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar", "Otro"];
 const ASEGURADORAS = [
   "GNP Seguros",
   "AXA Seguros",
@@ -324,20 +324,50 @@ function ClientPersonalFields({ data, onChange }) {
 }
 
 function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
+  const aseguradoraSel = ASEGURADORAS.includes(data.aseguradora) ? data.aseguradora : "Otra";
+  const ramoSel = RAMOS.includes(data.ramo) ? data.ramo : "Otro";
   return (
     <div>
       <div style={{ display: "flex", gap: 10 }}>
         <Field label="Aseguradora" style={{ flex: 1 }}>
-          <select value={data.aseguradora} onChange={(e) => onChange("aseguradora", e.target.value)} style={inputStyle}>
+          <select
+            value={aseguradoraSel}
+            onChange={(e) => onChange("aseguradora", e.target.value === "Otra" ? "" : e.target.value)}
+            style={inputStyle}
+          >
             {ASEGURADORAS.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </Field>
         <Field label="Ramo" style={{ flex: 1 }}>
-          <select value={data.ramo} onChange={(e) => onChange("ramo", e.target.value)} style={inputStyle}>
+          <select
+            value={ramoSel}
+            onChange={(e) => onChange("ramo", e.target.value === "Otro" ? "" : e.target.value)}
+            style={inputStyle}
+          >
             {RAMOS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </Field>
       </div>
+      {aseguradoraSel === "Otra" && (
+        <Field label="Nombre de la aseguradora">
+          <input
+            value={data.aseguradora}
+            onChange={(e) => onChange("aseguradora", e.target.value)}
+            style={inputStyle}
+            placeholder="Escribe el nombre de la aseguradora"
+          />
+        </Field>
+      )}
+      {ramoSel === "Otro" && (
+        <Field label="Nombre del ramo">
+          <input
+            value={data.ramo}
+            onChange={(e) => onChange("ramo", e.target.value)}
+            style={inputStyle}
+            placeholder="Escribe el ramo"
+          />
+        </Field>
+      )}
       <Field label="Número de póliza">
         <input value={data.numeroPoliza} onChange={(e) => onChange("numeroPoliza", e.target.value)} style={inputStyle} />
       </Field>
@@ -1977,11 +2007,13 @@ export default function SegurosCRM() {
 
   function saveProfile(e) {
     e.preventDefault();
-    if (!profileForm.nombre.trim() || !profileForm.correo.trim()) {
+    const nombre = (profileForm.nombre ?? profile?.nombre ?? "").trim();
+    const correo = (profileForm.correo ?? profile?.correo ?? "").trim();
+    if (!nombre || !correo) {
       setProfileError("Nombre y correo son obligatorios.");
       return;
     }
-    const p = { nombre: profileForm.nombre.trim(), correo: profileForm.correo.trim() };
+    const p = { nombre, correo };
     window.storage.set("agentProfile", JSON.stringify(p)).catch(() => {});
     setProfile(p);
     setProfileError("");
@@ -2416,6 +2448,8 @@ function migrateClient(c) {
   }, [clients]);
 
   const remindersHoy = useMemo(() => reminders.filter((r) => r.days === 0), [reminders]);
+  const [expandedReminderGroups, setExpandedReminderGroups] = useState({});
+  const [expandedClientGroups, setExpandedClientGroups] = useState({});
 
   const [showPrimaWarning, setShowPrimaWarning] = useState(false);
   const [nuevaPolizaFile, setNuevaPolizaFile] = useState(null);
@@ -2762,7 +2796,7 @@ function migrateClient(c) {
             )}
           </button>
           <button
-            onClick={() => { setProfileForm({}); setShowEditProfile(true); }}
+            onClick={() => { setProfileForm({ nombre: profile.nombre, correo: profile.correo }); setShowEditProfile(true); }}
             style={{ background: "none", border: "none", fontSize: 12, color: "#5B5646", padding: "4px 0" }}
           >
             {profile.nombre}
@@ -2933,49 +2967,81 @@ function migrateClient(c) {
                 </p>
               </div>
             )}
-            {reminders.map((r, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  padding: "14px 4px",
-                  borderBottom: "1px solid #E4E0D3",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{
-                    width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2,
-                  }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
-                    <div style={{ fontSize: 13, color: "#5B5646" }}>
-                      {r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
+            {[
+              { tone: "pago", label: "Pagos" },
+              { tone: "renovacion", label: "Renovaciones" },
+              { tone: "cumple", label: "Cumpleaños" },
+            ].map(({ tone, label }) => {
+              const items = reminders
+                .map((r, i) => ({ ...r, _i: i }))
+                .filter((r) => r.tone === tone);
+              if (items.length === 0) return null;
+              const isOpen = !!expandedReminderGroups[tone];
+              return (
+                <div key={tone} style={{ marginBottom: 10 }}>
+                  <button
+                    onClick={() => setExpandedReminderGroups((g) => ({ ...g, [tone]: !g[tone] }))}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                      background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${toneColor[tone]}`,
+                      borderRadius: 8, padding: "12px 14px",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+                      {label} <span style={{ color: "var(--stone)", fontWeight: 500 }}>({items.length})</span>
+                    </span>
+                    <ChevronDown size={16} color="var(--stone)" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                  </button>
+                  {isOpen && (
+                    <div style={{ paddingLeft: 4 }}>
+                      {items.map((r) => (
+                        <div
+                          key={r._i}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8,
+                            padding: "14px 4px",
+                            borderBottom: "1px solid #E4E0D3",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{
+                              width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2,
+                            }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
+                              <div style={{ fontSize: 13, color: "#5B5646" }}>
+                                {r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
+                              </div>
+                            </div>
+                          </div>
+                          <textarea
+                            value={mensajePara(r._i, r)}
+                            onChange={(e) => setMensajesEditados((m) => ({ ...m, [r._i]: e.target.value }))}
+                            rows={3}
+                            style={{ ...inputStyle, fontSize: 12.5, resize: "vertical", marginLeft: 16, width: "calc(100% - 16px)" }}
+                          />
+                          <a
+                            href={waLink(r.client, mensajePara(r._i, r))}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                              padding: "8px 12px", background: "var(--ink)", color: "var(--cream)",
+                              borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: "none",
+                              whiteSpace: "nowrap", marginLeft: 16, alignSelf: "flex-start",
+                            }}
+                          >
+                            <Phone size={14} /> Enviar por WhatsApp
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
-                <textarea
-                  value={mensajePara(i, r)}
-                  onChange={(e) => setMensajesEditados((m) => ({ ...m, [i]: e.target.value }))}
-                  rows={3}
-                  style={{ ...inputStyle, fontSize: 12.5, resize: "vertical", marginLeft: 16, width: "calc(100% - 16px)" }}
-                />
-                <a
-                  href={waLink(r.client, mensajePara(i, r))}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    padding: "8px 12px", background: "var(--ink)", color: "var(--cream)",
-                    borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: "none",
-                    whiteSpace: "nowrap", marginLeft: 16, alignSelf: "flex-start",
-                  }}
-                >
-                  <Phone size={14} /> Enviar por WhatsApp
-                </a>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -2999,7 +3065,35 @@ function migrateClient(c) {
               <p style={{ color: "var(--stone)", fontSize: 14 }}>Aún no has agregado clientes.</p>
             )}
 
-            {clients.map((c) => {
+            {(() => {
+              const grupos = {};
+              clients.forEach((c) => {
+                const asegs = (c.polizas || []).map((p) => p.aseguradora).filter(Boolean);
+                const nombresUnicos = asegs.length ? [...new Set(asegs)] : ["Sin póliza"];
+                nombresUnicos.forEach((a) => {
+                  grupos[a] = grupos[a] || [];
+                  grupos[a].push(c);
+                });
+              });
+              const nombresGrupos = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length);
+              return nombresGrupos.map((nombreGrupo) => {
+                const grupoAbierto = !!expandedClientGroups[nombreGrupo];
+                return (
+                  <div key={nombreGrupo} style={{ marginBottom: 10 }}>
+                    <button
+                      onClick={() => setExpandedClientGroups((g) => ({ ...g, [nombreGrupo]: !g[nombreGrupo] }))}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                        background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${insurerColor(nombreGrupo)}`,
+                        borderRadius: 8, padding: "12px 14px",
+                      }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
+                        {nombreGrupo} <span style={{ color: "var(--stone)", fontWeight: 500 }}>({grupos[nombreGrupo].length})</span>
+                      </span>
+                      <ChevronDown size={16} color="var(--stone)" style={{ transform: grupoAbierto ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                    </button>
+                    {grupoAbierto && grupos[nombreGrupo].map((c) => {
               const isOpen = expandedId === c.id;
               return (
                 <div key={c.id} style={{ borderBottom: "1px solid #E4E0D3" }}>
@@ -3134,8 +3228,12 @@ function migrateClient(c) {
                     </div>
                   )}
                 </div>
-              );
-            })}
+                );
+              })}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
 
