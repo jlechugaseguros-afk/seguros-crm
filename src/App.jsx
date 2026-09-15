@@ -2047,15 +2047,21 @@ export default function SegurosCRM() {
       try {
         const res = await window.storage.get("metasComisiones");
         if (res && res.value) setMetasComisiones((m) => ({ ...m, ...JSON.parse(res.value) }));
-      } catch (e) {}
-      setMetasLoaded(true);
+        setMetasLoaded(true);
+      } catch (e) {
+        console.error("No se pudieron cargar las metas de comisiones:", e);
+        // No activamos metasLoaded: así evitamos que el guardado automático
+        // sobrescriba datos reales con el estado vacío por defecto.
+      }
     })();
     (async () => {
       try {
         const res = await window.storage.get("porcentajesComision");
         if (res && res.value) setPorcentajes((p) => ({ ...p, ...JSON.parse(res.value) }));
-      } catch (e) {}
-      setPorcentajesLoaded(true);
+        setPorcentajesLoaded(true);
+      } catch (e) {
+        console.error("No se pudieron cargar los porcentajes de comisión:", e);
+      }
     })();
   }, []);
 
@@ -2087,10 +2093,10 @@ export default function SegurosCRM() {
       try {
         const res = await window.storage.get("tarjetaDigital");
         if (res && res.value) setTarjeta((t) => ({ ...t, ...JSON.parse(res.value) }));
+        setTarjetaLoaded(true);
       } catch (e) {
-        // sin tarjeta todavía
+        console.error("No se pudo cargar la tarjeta digital:", e);
       }
-      setTarjetaLoaded(true);
     })();
   }, []);
 
@@ -2178,10 +2184,10 @@ function migrateClient(c) {
       try {
         const res = await window.storage.get("clients");
         if (res && res.value) setClients(JSON.parse(res.value).map(migrateClient));
+        setLoaded(true);
       } catch (e) {
-        // no data yet
+        console.error("No se pudieron cargar los clientes:", e);
       }
-      setLoaded(true);
     })();
   }, []);
 
@@ -2195,10 +2201,10 @@ function migrateClient(c) {
       try {
         const res = await window.storage.get("documents");
         if (res && res.value) setDocuments(JSON.parse(res.value));
+        setDocsLoaded(true);
       } catch (e) {
-        // sin documentos todavía
+        console.error("No se pudieron cargar los documentos:", e);
       }
-      setDocsLoaded(true);
     })();
   }, []);
 
@@ -2253,10 +2259,10 @@ function migrateClient(c) {
       try {
         const res = await window.storage.get("conditionDocs");
         if (res && res.value) setConditionDocs(JSON.parse(res.value));
+        setCondDocsLoaded(true);
       } catch (e) {
-        // sin condiciones generales todavía
+        console.error("No se pudieron cargar las condiciones generales:", e);
       }
-      setCondDocsLoaded(true);
     })();
   }, []);
 
@@ -2291,10 +2297,10 @@ function migrateClient(c) {
       try {
         const res = await window.storage.get("prospectos");
         if (res && res.value) setProspectos(JSON.parse(res.value));
+        setProspectosLoaded(true);
       } catch (e) {
-        // sin prospectos todavía
+        console.error("No se pudieron cargar los prospectos:", e);
       }
-      setProspectosLoaded(true);
     })();
   }, []);
 
@@ -2336,10 +2342,10 @@ function migrateClient(c) {
       try {
         const res = await window.storage.get("activities");
         if (res && res.value) setActivities(JSON.parse(res.value));
+        setActivitiesLoaded(true);
       } catch (e) {
-        // sin actividades todavía
+        console.error("No se pudieron cargar las actividades:", e);
       }
-      setActivitiesLoaded(true);
     })();
   }, []);
 
