@@ -1549,6 +1549,20 @@ function polarPoint(cx, cy, r, angleDeg) {
 function PieChart({ data, size = 180 }) {
   const total = data.reduce((s, [, n]) => s + n, 0) || 1;
   const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+  const conValor = data.filter(([, n]) => n > 0);
+
+  // Si solo hay una categoría (100%), un arco de 360° no se puede dibujar como arco
+  // (el punto de inicio y fin coinciden y queda invisible) — se dibuja como círculo completo.
+  if (conValor.length === 1) {
+    const idx = data.findIndex(([label]) => label === conValor[0][0]);
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={cx} cy={cy} r={r} fill={CHART_COLORS[idx % CHART_COLORS.length]} stroke="var(--cream)" strokeWidth="1.5" />
+        <circle cx={cx} cy={cy} r={r * 0.55} fill="var(--cream)" />
+      </svg>
+    );
+  }
+
   let angle = 0;
   const slices = data.map(([label, count], i) => {
     const sliceAngle = (count / total) * 360;
