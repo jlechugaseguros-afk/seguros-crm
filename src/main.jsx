@@ -9,6 +9,10 @@ import TarjetaPublica from './TarjetaPublica.jsx'
 const path = window.location.pathname
 const publicMatch = path.match(/^\/t\/([^/]+)\/?$/)
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {})
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     {publicMatch ? (

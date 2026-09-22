@@ -97,6 +97,15 @@ const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, H
 
 const MULTICOTIZADOR_PIN = "081115";
 
+const VAPID_PUBLIC_KEY = "BLdEb7gA1qb0ZZXckV0X3206SY474OiqZ58R8PtK87fEhC-_ak994Yl9PAuwoVyxO1L-tZFafg-jXGwYzXEDo6k";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
 const MULTICOTIZADOR_MENU = [
   {
     label: "Sindicatos",
@@ -2088,6 +2097,67 @@ export default function SegurosCRM() {
     });
   }, []);
 
+  // --- Notificaciones push ---
+  const [notifEstado, setNotifEstado] = useState("verificando"); // verificando | no-soportado | inactivo | activo | error
+  const [notifError, setNotifError] = useState("");
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setNotifEstado("no-soportado");
+      return;
+    }
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.pushManager.getSubscription().then((sub) => {
+        setNotifEstado(sub ? "activo" : "inactivo");
+      });
+    });
+  }, []);
+
+  async function activarNotificaciones() {
+    setNotifError("");
+    try {
+      const permiso = await Notification.requestPermission();
+      if (permiso !== "granted") {
+        setNotifError("No diste permiso de notificaciones. Actívalo desde los ajustes del navegador/celular.");
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      const json = sub.toJSON();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sin sesión activa.");
+      const { error } = await supabase.from("push_subscriptions").upsert({
+        agent_id: user.id,
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
+      }, { onConflict: "endpoint" });
+      if (error) throw error;
+      setNotifEstado("activo");
+    } catch (e) {
+      setNotifError("No se pudieron activar: " + e.message);
+      setNotifEstado("error");
+    }
+  }
+
+  async function desactivarNotificaciones() {
+    setNotifError("");
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        await sub.unsubscribe();
+      }
+      setNotifEstado("inactivo");
+    } catch (e) {
+      setNotifError("No se pudo desactivar: " + e.message);
+    }
+  }
+
   useEffect(() => {
     (async () => {
       try {
@@ -2853,6 +2923,31 @@ function migrateClient(c) {
                   ))}
                 </div>
               )}
+              <div style={{ padding: "10px 14px", borderTop: "1px solid var(--line)", background: "var(--cream-2)" }}>
+                {notifEstado === "no-soportado" && (
+                  <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>Este navegador no soporta notificaciones push.</p>
+                )}
+                {notifEstado === "inactivo" && (
+                  <button
+                    onClick={activarNotificaciones}
+                    style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "8px", fontSize: 12, fontWeight: 600 }}
+                  >
+                    Activar notificaciones en este dispositivo
+                  </button>
+                )}
+                {notifEstado === "activo" && (
+                  <button
+                    onClick={desactivarNotificaciones}
+                    style={{ width: "100%", background: "none", color: "var(--stone)", border: "1px solid var(--line)", borderRadius: 6, padding: "8px", fontSize: 12, fontWeight: 600 }}
+                  >
+                    ✓ Notificaciones activas — desactivar
+                  </button>
+                )}
+                {notifEstado === "verificando" && (
+                  <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>Verificando...</p>
+                )}
+                {notifError && <p style={{ fontSize: 11, color: "#B23A2E", margin: "6px 0 0" }}>{notifError}</p>}
+              </div>
             </div>
           )}
         </div>
