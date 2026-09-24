@@ -538,6 +538,8 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
         descripcion: `Seguimiento a prospecto: ${form.nombre.trim()}`,
         clienteId: "",
         prospectoId: id,
+        prospectoNombre: form.nombre.trim(),
+        prospectoTelefono: form.telefono.trim(),
       });
     }
     setForm(emptyProspecto);
@@ -2113,6 +2115,33 @@ export default function SegurosCRM() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
 
+  const [vistosHoy, setVistosHoy] = useState([]);
+  const [vistosLoaded, setVistosLoaded] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await window.storage.get("notifsVistas");
+        if (res && res.value) {
+          const saved = JSON.parse(res.value);
+          if (saved.fecha === toISODate(new Date())) setVistosHoy(saved.ids || []);
+        }
+      } catch (e) {
+        // sin notificaciones vistas guardadas todavía
+      }
+      setVistosLoaded(true);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!vistosLoaded) return;
+    window.storage.set("notifsVistas", JSON.stringify({ fecha: toISODate(new Date()), ids: vistosHoy })).catch(() => {});
+  }, [vistosHoy, vistosLoaded]);
+
+  function marcarNotifVista(key) {
+    setVistosHoy((v) => (v.includes(key) ? v : [...v, key]));
+  }
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyClientForm, ...emptyPolicyForm });
   const [error, setError] = useState("");
@@ -2672,10 +2701,26 @@ function migrateClient(c) {
         items.push({ client: c, policy: null, label: "Cumpleaños", tone: "cumple", days, date: c.fechaCumple });
       }
     });
-    return items.sort((a, b) => a.days - b.days);
-  }, [clients]);
+    activities.forEach((a) => {
+      if (!a.prospectoId || !a.fecha) return;
+      const days = daysUntil(a.fecha, false);
+      if (days === null || days < 0 || days > 365) return;
+      const pr = prospectos.find((x) => x.id === a.prospectoId);
+      const client = pr
+        ? { id: pr.id, nombre: pr.nombre, telefono: pr.telefono }
+        : { id: a.prospectoId, nombre: a.prospectoNombre || "Prospecto", telefono: a.prospectoTelefono || "" };
+      items.push({ client, policy: null, label: a.tipo, tone: "seguimiento", days, date: a.fecha, hora: a.hora || "", actId: a.id });
+    });
+    return items.sort((a, b) => a.days - b.days || (a.hora || "").localeCompare(b.hora || ""));
+  }, [clients, activities, prospectos]);
 
-  const remindersHoy = useMemo(() => reminders.filter((r) => r.days === 0), [reminders]);
+  function reminderKey(r) {
+    return r.actId ? `${r.tone}-${r.actId}` : `${r.tone}-${r.client.id}-${r.date}`;
+  }
+  const remindersHoy = useMemo(
+    () => reminders.filter((r) => r.days === 0 && !vistosHoy.includes(reminderKey(r))),
+    [reminders, vistosHoy]
+  );
   const [expandedReminderGroups, setExpandedReminderGroups] = useState({});
   const [expandedClientGroups, setExpandedClientGroups] = useState({});
 
@@ -2884,6 +2929,9 @@ function migrateClient(c) {
   const [mensajesEditados, setMensajesEditados] = useState({});
   function mensajePara(i, r) {
     if (mensajesEditados[i] !== undefined) return mensajesEditados[i];
+    if (r.tone === "seguimiento") {
+      return `Hola ${r.client.nombre}, te escribo para dar seguimiento a tu solicitud de seguro. ¿Tienes un momento para platicar?`;
+    }
     return mensajePredeterminado(r.client, r.label, r.policy);
   }
 
@@ -2891,6 +2939,7 @@ function migrateClient(c) {
     pago: "#B23A2E",
     renovacion: "var(--gold)",
     cumple: "var(--emerald)",
+    seguimiento: "#4A6FA5",
   };
 
   const baseStyles = (
@@ -3046,7 +3095,7 @@ function migrateClient(c) {
                   {remindersHoy.map((r, i) => (
                     <button
                       key={i}
-                      onClick={() => { setTab("recordatorios"); setShowNotifs(false); }}
+                      onClick={() => { marcarNotifVista(reminderKey(r)); setTab("recordatorios"); setShowNotifs(false); }}
                       style={{
                         width: "100%", textAlign: "left", background: "none", border: "none",
                         padding: "10px 14px", borderBottom: "1px solid var(--line)", display: "flex", gap: 8, alignItems: "center",
@@ -3055,7 +3104,7 @@ function migrateClient(c) {
                       <span style={{ width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2, flexShrink: 0 }} />
                       <span>
                         <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.client.nombre}</span>
-                        <span style={{ display: "block", fontSize: 11, color: "var(--stone)" }}>{r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""}</span>
+                        <span style={{ display: "block", fontSize: 11, color: "var(--stone)" }}>{r.label}{r.hora ? ` · ${r.hora}` : ""}{r.tone === "seguimiento" ? " · prospecto" : ""}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""}</span>
                       </span>
                     </button>
                   ))}
@@ -3225,6 +3274,7 @@ function migrateClient(c) {
               { tone: "pago", label: "Pagos" },
               { tone: "renovacion", label: "Renovaciones" },
               { tone: "cumple", label: "Cumpleaños" },
+              { tone: "seguimiento", label: "Seguimientos de prospectos" },
             ].map(({ tone, label }) => {
               const items = reminders
                 .map((r, i) => ({ ...r, _i: i }))
@@ -3266,7 +3316,7 @@ function migrateClient(c) {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
                               <div style={{ fontSize: 13, color: "#5B5646" }}>
-                                {r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
+                                {r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)}{r.hora ? ` ${r.hora}` : ""} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
                               </div>
                             </div>
                           </div>
