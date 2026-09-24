@@ -95,7 +95,13 @@ const emptyPolicyForm = {
 
 const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, Hogar: 0 };
 
-const MULTICOTIZADOR_PIN = "081115";
+const SINDICATOS_PIN_DEFAULT = "12345";
+
+async function hashPin(userId, pin) {
+  const data = new TextEncoder().encode(`${userId}:${pin}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 const VAPID_PUBLIC_KEY = "BLdEb7gA1qb0ZZXckV0X3206SY474OiqZ58R8PtK87fEhC-_ak994Yl9PAuwoVyxO1L-tZFafg-jXGwYzXEDo6k";
 
@@ -110,6 +116,7 @@ const MULTICOTIZADOR_MENU = [
   {
     label: "Sindicatos",
     color: "var(--ink)",
+    pin: true,
     children: [
       { label: "Telmex", url: "https://mcbrokers.dora.com.mx/", color: "#E4032E" },
       { label: "SNTE 23", url: "https://mcbrokers.dora.com.mx/", color: "#1B6EC2" },
@@ -132,9 +139,14 @@ const MULTICOTIZADOR_MENU = [
       { label: "ANA Seguros", url: "https://www.anaseguros.com.mx/anaweb/", color: "#E30613" },
       { label: "Plan Seguro", url: "https://oficina.planseguro.com.mx/", color: "#0E7C66" },
       { label: "GMX", url: "https://www.gmx.com.mx/soy-agente/", color: "#0A2A43" },
+      { label: "Mapfre", url: "https://zonaliados.mapfre.com.mx/zonaliados/login.aspx", color: "#D81E05" },
+      { label: "Zurich", url: "https://www.zurich.com.mx/PortalAgentes/index", color: "#2167AE" },
+      { label: "Clupp", url: "https://cotizador-clupp.web.app/agentes/inicio-de-sesion", color: "#7B2CBF" },
+      { label: "Crabi", url: "https://partner.crabi.com", color: "#FF5A5F" },
+      { label: "El Águila", url: "https://www.elaguila.com.mx/Agentes/Account/Login?ReturnUrl=%2fagentes&AspxAutoDetectCookieSupport=1", color: "#C8102E" },
+      { label: "Click Seguros", url: "https://v4.clickseguros.lat/login", color: "#5B5646" },
     ],
   },
-  { label: "Otros", url: "https://v4.clickseguros.lat/login", pin: true, color: "var(--stone)" },
 ];
 
 const NAV_EXTERNAL_LINKS = {
@@ -464,9 +476,14 @@ const MOTIVOS_PERDIDO = [
   "Eligió otra aseguradora",
 ];
 
-const emptyProspecto = { nombre: "", telefono: "", correo: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "" };
+const ACCIONES_SEGUIMIENTO = ["Correo", "Llamada", "Whatsapp", "Reunión Virtual", "Cita Presencial"];
 
-function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
+const emptyProspecto = {
+  nombre: "", telefono: "", correo: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "",
+  requiereSeguimiento: false, accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "",
+};
+
+function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddActivity }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyProspecto);
   const [error, setError] = useState("");
@@ -506,7 +523,23 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
       setError("Nombre y teléfono son obligatorios.");
       return;
     }
-    onAdd({ ...form, id: Date.now().toString() });
+    if (form.requiereSeguimiento && (!form.accionSeguimiento || !form.horaSeguimiento || !form.fechaSeguimiento)) {
+      setError("Para el seguimiento, la acción, el horario y la fecha son obligatorios.");
+      return;
+    }
+    const id = Date.now().toString();
+    onAdd({ ...form, id });
+    if (form.requiereSeguimiento) {
+      onAddActivity({
+        id: (Date.now() + 1).toString(),
+        fecha: form.fechaSeguimiento,
+        hora: form.horaSeguimiento,
+        tipo: form.accionSeguimiento,
+        descripcion: `Seguimiento a prospecto: ${form.nombre.trim()}`,
+        clienteId: "",
+        prospectoId: id,
+      });
+    }
     setForm(emptyProspecto);
     setError("");
     setShowForm(false);
@@ -650,6 +683,60 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert }) {
             <Field label="Correo electrónico">
               <input type="email" value={form.correo} onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))} style={inputStyle} />
             </Field>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, marginBottom: form.requiereSeguimiento ? 10 : 14, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={form.requiereSeguimiento}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setForm((f) => ({
+                    ...f,
+                    requiereSeguimiento: checked,
+                    ...(checked ? {} : { accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "" }),
+                  }));
+                }}
+              />
+              Requiere seguimiento
+            </label>
+            {form.requiereSeguimiento && (
+              <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 12, marginBottom: 14 }}>
+                <Field label="Acción">
+                  <select
+                    value={form.accionSeguimiento}
+                    onChange={(e) => setForm((f) => ({ ...f, accionSeguimiento: e.target.value }))}
+                    required={form.requiereSeguimiento}
+                    style={inputStyle}
+                  >
+                    <option value="" disabled>Selecciona una acción</option>
+                    {ACCIONES_SEGUIMIENTO.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </Field>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Horario">
+                      <input
+                        type="time"
+                        value={form.horaSeguimiento}
+                        onChange={(e) => setForm((f) => ({ ...f, horaSeguimiento: e.target.value }))}
+                        required={form.requiereSeguimiento}
+                        style={inputStyle}
+                      />
+                    </Field>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Fecha">
+                      <input
+                        type="date"
+                        value={form.fechaSeguimiento}
+                        onChange={(e) => setForm((f) => ({ ...f, fechaSeguimiento: e.target.value }))}
+                        required={form.requiereSeguimiento}
+                        style={inputStyle}
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+            )}
             <Field label="Estado">
               <select value={form.estado} onChange={(e) => handleEstadoSelect(e.target.value, "new")} style={inputStyle}>
                 {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
@@ -1204,9 +1291,13 @@ function SectionTitle({ children }) {
 function Multicotizador() {
   const [path, setPath] = useState([]);
   const [pendingItem, setPendingItem] = useState(null);
-  const [unlockedUrl, setUnlockedUrl] = useState(null);
+  const [unlocked, setUnlocked] = useState([]);
+  const [stage, setStage] = useState("enter"); // enter | change
   const [pin, setPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [newPin2, setNewPin2] = useState("");
   const [pinError, setPinError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   function getChildren(p) {
     let level = MULTICOTIZADOR_MENU;
@@ -1220,7 +1311,27 @@ function Multicotizador() {
 
   const items = getChildren(path);
 
+  function resetGate() {
+    setPendingItem(null);
+    setStage("enter");
+    setPin("");
+    setNewPin("");
+    setNewPin2("");
+    setPinError("");
+  }
+
+  function unlockAndOpen(item) {
+    setUnlocked([...unlocked, item.label]);
+    setPath([...path, item.label]);
+    resetGate();
+  }
+
   function handleSelect(item) {
+    if (item.pin && !unlocked.includes(item.label)) {
+      resetGate();
+      setPendingItem(item);
+      return;
+    }
     if (item.children) {
       setPath([...path, item.label]);
       return;
@@ -1229,49 +1340,89 @@ function Multicotizador() {
       alert("Este enlace todavía no está configurado. Avísale a tu administrador.");
       return;
     }
-    if (item.pin) {
-      setPendingItem(item);
-      setPin("");
-      setPinError("");
-      return;
-    }
     window.open(item.url, "_blank", "noopener");
   }
 
-  function handlePinSubmit(e) {
+  async function handlePinSubmit(e) {
     e.preventDefault();
-    if (pin === MULTICOTIZADOR_PIN) {
-      setUnlockedUrl(pendingItem.url);
-      setPendingItem(null);
-      setPin("");
-      setPinError("");
-    } else {
-      setPinError("PIN incorrecto, ponte en contacto con tu administrador.");
-      setPin("");
+    setBusy(true);
+    setPinError("");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const stored = user && user.user_metadata ? user.user_metadata.sindicatos_pin_hash : null;
+      if (stored) {
+        const h = await hashPin(user.id, pin);
+        if (h === stored) unlockAndOpen(pendingItem);
+        else setPinError("PIN incorrecto.");
+      } else if (pin === SINDICATOS_PIN_DEFAULT) {
+        setStage("change");
+      } else {
+        setPinError("PIN incorrecto, ponte en contacto con tu administrador.");
+      }
+    } catch (err) {
+      setPinError("No se pudo validar el PIN. Intenta de nuevo.");
     }
+    setPin("");
+    setBusy(false);
   }
 
-  if (unlockedUrl) {
+  async function handleChangeSubmit(e) {
+    e.preventDefault();
+    setPinError("");
+    if (!/^\d{4,8}$/.test(newPin)) {
+      setPinError("Tu PIN debe tener de 4 a 8 números.");
+      return;
+    }
+    if (newPin === SINDICATOS_PIN_DEFAULT) {
+      setPinError("Elige un PIN distinto al inicial.");
+      return;
+    }
+    if (newPin !== newPin2) {
+      setPinError("Los PIN no coinciden.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const h = await hashPin(user.id, newPin);
+      const { error } = await supabase.auth.updateUser({ data: { sindicatos_pin_hash: h } });
+      if (error) setPinError("No se pudo guardar tu PIN: " + error.message);
+      else unlockAndOpen(pendingItem);
+    } catch (err) {
+      setPinError("No se pudo guardar tu PIN. Intenta de nuevo.");
+    }
+    setBusy(false);
+  }
+
+  const btnStyle = {
+    width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
+    borderRadius: 7, padding: "10px", fontSize: 13, fontWeight: 600,
+  };
+  const linkBtn = { marginTop: 16, background: "none", border: "none", fontSize: 12, color: "var(--stone)", textDecoration: "underline" };
+  const pinInput = { ...inputStyle, textAlign: "center", letterSpacing: 4, fontSize: 16, marginBottom: 12 };
+
+  if (pendingItem && stage === "change") {
     return (
       <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>PIN correcto.</p>
-        <a
-          href={unlockedUrl} target="_blank" rel="noreferrer"
-          style={{
-            display: "inline-block", background: "var(--ink)", color: "var(--cream)", borderRadius: 7,
-            padding: "10px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none",
-          }}
-        >
-          Abrir Otros
-        </a>
-        <div>
-          <button
-            onClick={() => setUnlockedUrl(null)}
-            style={{ marginTop: 20, background: "none", border: "none", fontSize: 12, color: "var(--stone)", textDecoration: "underline" }}
-          >
-            Volver al menú
-          </button>
-        </div>
+        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 6 }}>PIN correcto.</p>
+        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
+          Por seguridad, crea tu PIN personal (4 a 8 números). Lo usarás en adelante.
+        </p>
+        <form onSubmit={handleChangeSubmit}>
+          <input
+            type="password" inputMode="numeric" value={newPin}
+            onChange={(e) => setNewPin(e.target.value)}
+            style={pinInput} placeholder="Nuevo PIN" autoFocus
+          />
+          <input
+            type="password" inputMode="numeric" value={newPin2}
+            onChange={(e) => setNewPin2(e.target.value)}
+            style={pinInput} placeholder="Repite el nuevo PIN"
+          />
+          <button type="submit" disabled={busy} style={btnStyle}>Guardar y entrar</button>
+        </form>
+        {pinError && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{pinError}</p>}
+        <button onClick={resetGate} style={linkBtn}>Cancelar</button>
       </div>
     );
   }
@@ -1286,27 +1437,12 @@ function Multicotizador() {
           <input
             type="password" inputMode="numeric" value={pin}
             onChange={(e) => setPin(e.target.value)}
-            style={{ ...inputStyle, textAlign: "center", letterSpacing: 4, fontSize: 16, marginBottom: 12 }}
-            placeholder="PIN"
-            autoFocus
+            style={pinInput} placeholder="PIN" autoFocus
           />
-          <button
-            type="submit"
-            style={{
-              width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
-              borderRadius: 7, padding: "10px", fontSize: 13, fontWeight: 600,
-            }}
-          >
-            Entrar
-          </button>
+          <button type="submit" disabled={busy} style={btnStyle}>Entrar</button>
         </form>
         {pinError && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{pinError}</p>}
-        <button
-          onClick={() => setPendingItem(null)}
-          style={{ marginTop: 16, background: "none", border: "none", fontSize: 12, color: "var(--stone)", textDecoration: "underline" }}
-        >
-          Cancelar
-        </button>
+        <button onClick={resetGate} style={linkBtn}>Cancelar</button>
       </div>
     );
   }
@@ -1793,7 +1929,7 @@ function getRemindersForDate(clients, dateStr) {
   return items;
 }
 
-function Planificador({ clients, activities, onAddActivity, onRemoveActivity }) {
+function Planificador({ clients, prospectos, activities, onAddActivity, onRemoveActivity }) {
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
   const [addingFor, setAddingFor] = useState(null);
   const [draft, setDraft] = useState({ hora: "", tipo: TIPOS_ACTIVIDAD[0], descripcion: "", clienteId: "" });
@@ -1870,11 +2006,13 @@ function Planificador({ clients, activities, onAddActivity, onRemoveActivity }) 
 
             {dayActivities.map((a) => {
               const client = clients.find((c) => c.id === a.clienteId);
+              const prospecto = !client && a.prospectoId ? (prospectos || []).find((p) => p.id === a.prospectoId) : null;
+              const relacionado = client ? client.nombre : (prospecto ? `${prospecto.nombre} · prospecto` : null);
               return (
                 <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 8, background: "#4A6FA5", flexShrink: 0 }} />
                   <span style={{ flex: 1 }}>
-                    {a.hora && `${a.hora} · `}{a.tipo}: {a.descripcion}{client ? ` (${client.nombre})` : ""}
+                    {a.hora && `${a.hora} · `}{a.tipo}: {a.descripcion}{relacionado ? ` (${relacionado})` : ""}
                   </span>
                   <button onClick={() => onRemoveActivity(a.id)} style={{ background: "none", border: "none", color: "#B0AB9A" }}>
                     <X size={13} />
@@ -3066,6 +3204,7 @@ function migrateClient(c) {
         {tab === "planificador" && (
           <Planificador
             clients={clients}
+            prospectos={prospectos}
             activities={activities}
             onAddActivity={handleAddActivity}
             onRemoveActivity={handleRemoveActivity}
@@ -3359,6 +3498,7 @@ function migrateClient(c) {
             onUpdate={handleUpdateProspecto}
             onRemove={handleRemoveProspecto}
             onConvert={handleConvertProspecto}
+            onAddActivity={handleAddActivity}
           />
         )}
 
