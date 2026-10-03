@@ -67,6 +67,7 @@ const DOC_TYPES = [
 
 const MONEDAS = ["MXN", "UDIS", "DÓLARES", "OTRO"];
 const CLASIFICACIONES_POLIZA = ["Nueva", "Renovación"];
+const PAGOS_FRACCIONADOS = ["Mensual", "Trimestral", "Semestral", "Anual"];
 const METODOS_PAGO = ["Tarjeta de crédito", "Tarjeta de débito", "Domiciliado", "Transferencia", "Efectivo", "Cheque", "Otro"];
 
 const emptyClientForm = {
@@ -82,6 +83,7 @@ const emptyPolicyForm = {
   ramo: "Autos",
   numeroPoliza: "",
   primaAnual: "",
+  pagoFraccionado: "",
   metodoPago: METODOS_PAGO[0],
   moneda: "MXN",
   clasificacion: "Nueva",
@@ -402,24 +404,30 @@ function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
             placeholder="Ej. 12000"
           />
         </Field>
+        <Field label="Pago fraccionado" style={{ flex: 1 }}>
+          <select value={data.pagoFraccionado || ""} onChange={(e) => onChange("pagoFraccionado", e.target.value)} style={inputStyle}>
+            <option value="">Seleccionar</option>
+            {PAGOS_FRACCIONADOS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
         <Field label="Moneda" style={{ flex: 1 }}>
           <select value={data.moneda} onChange={(e) => onChange("moneda", e.target.value)} style={inputStyle}>
             {MONEDAS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </Field>
-      </div>
-      <div style={{ display: "flex", gap: 10 }}>
         <Field label="Método de pago" style={{ flex: 1 }}>
           <select value={data.metodoPago} onChange={(e) => onChange("metodoPago", e.target.value)} style={inputStyle}>
             {METODOS_PAGO.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </Field>
-        <Field label="Clasificación" style={{ flex: 1 }}>
-          <select value={data.clasificacion} onChange={(e) => onChange("clasificacion", e.target.value)} style={inputStyle}>
-            {CLASIFICACIONES_POLIZA.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </Field>
       </div>
+      <Field label="Clasificación">
+        <select value={data.clasificacion} onChange={(e) => onChange("clasificacion", e.target.value)} style={inputStyle}>
+          {CLASIFICACIONES_POLIZA.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </Field>
       <div style={{ display: "flex", gap: 10 }}>
         <Field label="Inicio de vigencia" style={{ flex: 1 }}>
           <DateWithFallback value={data.inicioVigencia} onChange={(v) => onChange("inicioVigencia", v)} />
@@ -1535,6 +1543,7 @@ function PolizasTab({
                         Vigencia: {p.inicioVigencia ? fmtDateFull(p.inicioVigencia) : "—"} a {p.finVigencia ? fmtDateFull(p.finVigencia) : "—"}
                       </div>
                     )}
+                    {p.pagoFraccionado && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Pago fraccionado: {p.pagoFraccionado}</div>}
                     {p.metodoPago && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Pago: {p.metodoPago}</div>}
                   </div>
                   <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 8px", flexShrink: 0 }}>
@@ -2149,7 +2158,7 @@ export default function SegurosCRM() {
   const [expandedId, setExpandedId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editError, setEditError] = useState("");
-  const [expandedTab, setExpandedTab] = useState("datos");
+  const [expandedTab, setExpandedTab] = useState("polizas");
 
   const [documents, setDocuments] = useState({});
   const [docSignedUrls, setDocSignedUrls] = useState({});
@@ -2623,6 +2632,7 @@ function migrateClient(c) {
           "Número de póliza": p.numeroPoliza,
           "Prima anual": p.primaAnual,
           Moneda: p.moneda,
+          "Pago fraccionado": p.pagoFraccionado,
           "Método de pago": p.metodoPago,
           Clasificación: p.clasificacion,
           "Inicio de vigencia": p.inicioVigencia,
@@ -2777,6 +2787,7 @@ function migrateClient(c) {
         ramo: form.ramo,
         numeroPoliza: form.numeroPoliza,
         primaAnual: form.primaAnual,
+        pagoFraccionado: form.pagoFraccionado,
         metodoPago: form.metodoPago,
         moneda: form.moneda,
         clasificacion: form.clasificacion,
@@ -2827,7 +2838,7 @@ function migrateClient(c) {
     const { id, ...rest } = client;
     setEditDraft(rest);
     setEditError("");
-    setExpandedTab("datos");
+    setExpandedTab("polizas");
     setExpandedId(client.id);
   }
 
@@ -3521,19 +3532,30 @@ function migrateClient(c) {
 
                   {isOpen && editDraft && (
                     <div style={{ padding: "4px 4px 20px" }}>
-                      <button
-                        onClick={() => openEditModal(c)}
-                        style={{
-                          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                          background: "none", border: "1px solid var(--ink)", color: "var(--ink)",
-                          borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600, marginBottom: 14,
-                        }}
-                      >
-                        <Pencil size={15} /> Editar
-                      </button>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                        <button
+                          onClick={() => openEditModal(c)}
+                          style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                            background: "none", border: "1px solid var(--ink)", color: "var(--ink)",
+                            borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
+                          }}
+                        >
+                          <Pencil size={15} /> Editar
+                        </button>
+                        <button
+                          onClick={() => removeClient(c.id)}
+                          style={{
+                            background: "none", border: "1px solid #DAD5C7", color: "#B23A2E",
+                            borderRadius: 6, padding: "10px 14px",
+                          }}
+                          aria-label="Eliminar cliente"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                       <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #E4E0D3" }}>
                         {[
-                          { id: "datos", label: "Datos" },
                           { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
                           { id: "documentos", label: "Documentos" },
                         ].map((t) => (
@@ -3550,35 +3572,6 @@ function migrateClient(c) {
                           </button>
                         ))}
                       </div>
-
-                      {expandedTab === "datos" && (
-                        <>
-                          {editError && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{editError}</p>}
-                          <ClientPersonalFields data={editDraft} onChange={handleEditChange} />
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <button
-                              onClick={() => saveEdit(c.id)}
-                              style={{
-                                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                                background: "var(--ink)", color: "var(--cream)", border: "none",
-                                borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600,
-                              }}
-                            >
-                              <Check size={16} /> Guardar cambios
-                            </button>
-                            <button
-                              onClick={() => removeClient(c.id)}
-                              style={{
-                                background: "none", border: "1px solid #DAD5C7", color: "#B23A2E",
-                                borderRadius: 6, padding: "12px 14px",
-                              }}
-                              aria-label="Eliminar cliente"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </>
-                      )}
 
                       {expandedTab === "polizas" && (
                         <PolizasTab
