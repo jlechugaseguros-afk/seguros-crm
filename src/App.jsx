@@ -163,6 +163,42 @@ function todayStr() {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
+// --- Pagos fraccionados ---
+// La "fecha del primer pago" es el ancla; de ahí se generan los pagos de la vigencia
+// según la periodicidad (Mensual 12, Trimestral 4, Semestral 2, Anual 1).
+const PAGOS_POR_ANIO = { Mensual: 12, Trimestral: 4, Semestral: 2, Anual: 1 };
+const MESES_ENTRE_PAGOS = { Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
+
+function addMonthsStr(dateStr, months) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const total = (m - 1) + months;
+  const ny = y + Math.floor(total / 12);
+  const nm = ((total % 12) + 12) % 12;
+  const last = new Date(ny, nm + 1, 0).getDate(); // evita 31 de feb, etc.
+  return `${ny}-${String(nm + 1).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
+}
+
+// Devuelve [{ date, numero, total, monto }] con todos los pagos de la póliza.
+function pagosDePoliza(p) {
+  if (!p || !p.fechaPago) return [];
+  const total = PAGOS_POR_ANIO[p.pagoFraccionado] || 1;
+  const paso = MESES_ENTRE_PAGOS[p.pagoFraccionado] || 12;
+  const prima = Number(p.primaAnual) || 0;
+  const monto = prima > 0 ? Math.round((prima / total) * 100) / 100 : 0;
+  const limite = p.finVigencia || p.fechaRenovacion || "";
+  const pagos = [];
+  for (let k = 0; k < total; k++) {
+    const date = addMonthsStr(p.fechaPago, k * paso);
+    if (k > 0 && limite && date >= limite) break;
+    pagos.push({ date, numero: k + 1, total, monto });
+  }
+  return pagos;
+}
+
+function fmtMonto(n) {
+  return n ? `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : "";
+}
+
 function daysUntil(dateStr, recurring) {
   if (!dateStr) return null;
   const today = new Date();
@@ -439,7 +475,7 @@ function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
       <Field label="Fecha de contratación">
         <DateWithFallback value={data.fechaAlta} onChange={(v) => onChange("fechaAlta", v)} />
       </Field>
-      <Field label="Próxima fecha de pago">
+      <Field label="Fecha del primer pago">
         <DateWithFallback value={data.fechaPago} onChange={(v) => onChange("fechaPago", v)} />
       </Field>
       <Field label="Fecha de renovación">
@@ -1905,10 +1941,12 @@ function buildCalendarEvents(clients, year, month) {
   }
   clients.forEach((c) => {
     (c.polizas || []).forEach((p) => {
-      if (p.fechaPago) {
-        const [y, m] = p.fechaPago.split("-").map(Number);
-        if (y === year && m - 1 === month) add(p.fechaPago, "pago", c, "Pago", p);
-      }
+      pagosDePoliza(p).forEach((pg) => {
+        const [y, m] = pg.date.split("-").map(Number);
+        if (y === year && m - 1 === month) {
+          add(pg.date, "pago", c, pg.total > 1 ? `Pago ${pg.numero} de ${pg.total}` : "Pago", p);
+        }
+      });
       if (p.fechaRenovacion) {
         const [y, m] = p.fechaRenovacion.split("-").map(Number);
         if (y === year && m - 1 === month) add(p.fechaRenovacion, "renovacion", c, "Renovación", p);
@@ -2029,7 +2067,9 @@ function getRemindersForDate(clients, dateStr) {
   const items = [];
   clients.forEach((c) => {
     (c.polizas || []).forEach((p) => {
-      if (p.fechaPago === dateStr) items.push({ tone: "pago", label: "Pago", client: c, policy: p });
+      pagosDePoliza(p).forEach((pg) => {
+        if (pg.date === dateStr) items.push({ tone: "pago", label: "Pago", client: c, policy: p, pago: pg });
+      });
       if (p.fechaRenovacion === dateStr) items.push({ tone: "renovacion", label: "Renovación", client: c, policy: p });
     });
     if (c.fechaCumple) {
@@ -2805,15 +2845,16 @@ function migrateClient(c) {
     const items = [];
     clients.forEach((c) => {
       (c.polizas || []).forEach((p) => {
-        [
-          { key: "fechaPago", label: "Pago", tone: "pago" },
-          { key: "fechaRenovacion", label: "Renovación", tone: "renovacion" },
-        ].forEach(({ key, label, tone }) => {
-          const days = daysUntil(p[key], false);
+        pagosDePoliza(p).forEach((pg) => {
+          const days = daysUntil(pg.date, false);
           if (days !== null && days >= 0 && days <= 365) {
-            items.push({ client: c, policy: p, label, tone, days, date: p[key] });
+            items.push({ client: c, policy: p, label: "Pago", tone: "pago", days, date: pg.date, pago: pg });
           }
         });
+        const daysRen = daysUntil(p.fechaRenovacion, false);
+        if (daysRen !== null && daysRen >= 0 && daysRen <= 365) {
+          items.push({ client: c, policy: p, label: "Renovación", tone: "renovacion", days: daysRen, date: p.fechaRenovacion });
+        }
       });
       const days = daysUntil(c.fechaCumple, true);
       if (days !== null && days >= 0 && days <= 365) {
@@ -2834,7 +2875,7 @@ function migrateClient(c) {
   }, [clients, activities, prospectos]);
 
   function reminderKey(r) {
-    return r.actId ? `${r.tone}-${r.actId}` : `${r.tone}-${r.client.id}-${r.date}`;
+    return r.actId ? `${r.tone}-${r.actId}` : `${r.tone}-${r.client.id}-${r.policy?.id || ""}-${r.date}`;
   }
   const remindersHoy = useMemo(
     () => reminders.filter((r) => r.days === 0 && !vistosHoy.includes(reminderKey(r))),
@@ -3136,13 +3177,17 @@ function migrateClient(c) {
     }
   }
 
-  function mensajePredeterminado(client, label, policy) {
+  function mensajePredeterminado(client, label, policy, pago) {
     const firma = profile?.nombre ? ` — ${profile.nombre}` : "";
-    const monto = policy?.primaAnual ? `$${Number(policy.primaAnual).toLocaleString("es-MX")}` : "";
+    // Pago: monto de la parcialidad; Renovación: prima anual completa.
+    const monto = label === "Pago" && pago
+      ? fmtMonto(pago.monto)
+      : (policy?.primaAnual ? `$${Number(policy.primaAnual).toLocaleString("es-MX")}` : "");
+    const parcialidad = label === "Pago" && pago && pago.total > 1 ? ` (pago ${pago.numero} de ${pago.total}, ${String(policy.pagoFraccionado).toLowerCase()})` : "";
     const poliza = policy?.numeroPoliza || "";
     const aseguradora = policy?.aseguradora || "";
     if (label === "Pago") {
-      return `Hola ${client.nombre}, te recordamos tu próximo pago${poliza ? ` de la póliza ${poliza}` : ""}${aseguradora ? ` (${aseguradora})` : ""}${policy?.fechaPago ? ` con fecha ${fmtDateFull(policy.fechaPago)}` : ""}${monto ? ` por ${monto}` : ""}. Cualquier duda quedo al pendiente.${firma}`;
+      return `Hola ${client.nombre}, te recordamos tu próximo pago${poliza ? ` de la póliza ${poliza}` : ""}${aseguradora ? ` (${aseguradora})` : ""}${pago ? ` con fecha ${fmtDateFull(pago.date)}` : (policy?.fechaPago ? ` con fecha ${fmtDateFull(policy.fechaPago)}` : "")}${monto ? ` por ${monto}` : ""}${parcialidad}. Cualquier duda quedo al pendiente.${firma}`;
     }
     if (label === "Renovación") {
       return `Hola ${client.nombre}, tu póliza${poliza ? ` ${poliza}` : ""}${aseguradora ? ` con ${aseguradora}` : ""}${policy?.ramo ? ` de ${policy.ramo}` : ""} está por renovarse${policy?.fechaRenovacion ? ` el ${fmtDateFull(policy.fechaRenovacion)}` : ""}${monto ? ` (prima de ${monto})` : ""}. Te contacto para revisar los detalles.${firma}`;
@@ -3164,7 +3209,7 @@ function migrateClient(c) {
     if (r.tone === "seguimiento") {
       return `Hola ${r.client.nombre}, te escribo para dar seguimiento a tu solicitud de seguro. ¿Tienes un momento para platicar?`;
     }
-    return mensajePredeterminado(r.client, r.label, r.policy);
+    return mensajePredeterminado(r.client, r.label, r.policy, r.pago);
   }
 
   const toneColor = {
@@ -3336,7 +3381,7 @@ function migrateClient(c) {
                       <span style={{ width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2, flexShrink: 0 }} />
                       <span>
                         <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{r.client.nombre}</span>
-                        <span style={{ display: "block", fontSize: 11, color: "var(--stone)" }}>{r.label}{r.hora ? ` · ${r.hora}` : ""}{r.tone === "seguimiento" ? " · prospecto" : ""}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""}</span>
+                        <span style={{ display: "block", fontSize: 11, color: "var(--stone)" }}>{r.label}{r.hora ? ` · ${r.hora}` : ""}{r.tone === "seguimiento" ? " · prospecto" : ""}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""}{r.pago ? ` · ${r.pago.total > 1 ? `${r.pago.numero}/${r.pago.total} · ` : ""}${fmtMonto(r.pago.monto)}` : ""}</span>
                       </span>
                     </button>
                   ))}
@@ -3548,7 +3593,7 @@ function migrateClient(c) {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
                               <div style={{ fontSize: 13, color: "#5B5646" }}>
-                                {r.label}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)}{r.hora ? ` ${r.hora}` : ""} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
+                                {r.label}{r.pago && r.pago.total > 1 ? ` ${r.pago.numero} de ${r.pago.total}` : ""}{r.pago && r.pago.monto ? ` · ${fmtMonto(r.pago.monto)}` : ""}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)}{r.hora ? ` ${r.hora}` : ""} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
                               </div>
                             </div>
                           </div>
