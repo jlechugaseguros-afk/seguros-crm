@@ -1509,7 +1509,7 @@ function Multicotizador() {
 function PolizasTab({
   client, urls, showForm, onOpenForm, onCloseForm,
   polizaForm, onPolizaFormChange, polizaFormFile, onPolizaFormFile, polizaError,
-  onSubmit, onRemove, onReplaceDoc, onEdit, editing,
+  onSubmit, onRemove, onReplaceDoc,
 }) {
   const polizas = client.polizas || [];
   return (
@@ -1535,23 +1535,11 @@ function PolizasTab({
                         Vigencia: {p.inicioVigencia ? fmtDateFull(p.inicioVigencia) : "—"} a {p.finVigencia ? fmtDateFull(p.finVigencia) : "—"}
                       </div>
                     )}
-                    {p.metodoPago && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Método de pago: {p.metodoPago}</div>}
-                    {p.fechaAlta && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Contratación: {fmtDateFull(p.fechaAlta)}</div>}
-                    {p.fechaPago && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Próximo pago: {fmtDateFull(p.fechaPago)}</div>}
-                    {p.fechaRenovacion && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Renovación: {fmtDateFull(p.fechaRenovacion)}</div>}
+                    {p.metodoPago && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Pago: {p.metodoPago}</div>}
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                    <button
-                      onClick={() => onEdit(p)}
-                      aria-label="Editar póliza"
-                      style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "var(--ink)", padding: "6px 10px", fontSize: 12, fontWeight: 600 }}
-                    >
-                      <Pencil size={13} /> Editar
-                    </button>
-                    <button onClick={() => onRemove(p.id)} aria-label="Eliminar póliza" style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 8px" }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 8px", flexShrink: 0 }}>
+                    <Trash2 size={14} />
+                  </button>
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {p.documento ? (
@@ -1592,16 +1580,13 @@ function PolizasTab({
       {showForm && (
         <form onSubmit={onSubmit}>
           {polizaError && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{polizaError}</p>}
-          <PolicyFields
-            data={polizaForm} onChange={onPolizaFormChange} file={polizaFormFile} onFileChange={onPolizaFormFile}
-            existingDoc={editing ? polizaForm.documento : null}
-          />
+          <PolicyFields data={polizaForm} onChange={onPolizaFormChange} file={polizaFormFile} onFileChange={onPolizaFormFile} />
           <div style={{ display: "flex", gap: 8 }}>
             <button type="submit" style={{
               flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none",
               borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600,
             }}>
-              {editing ? "Guardar cambios de la póliza" : "Guardar póliza"}
+              Guardar póliza
             </button>
             <button type="button" onClick={onCloseForm} style={{
               background: "none", border: "1px solid var(--line)", color: "var(--ink)",
@@ -2180,7 +2165,7 @@ export default function SegurosCRM() {
         });
       });
     }
-    if (expandedTab === "datos") {
+    if (expandedTab === "polizas") {
       const client = clients.find((c) => c.id === expandedId);
       (client?.polizas || []).forEach((p) => {
         if (!p.documento || !p.documento.path || docSignedUrls[p.documento.path]) return;
@@ -2843,8 +2828,6 @@ function migrateClient(c) {
     setEditDraft(rest);
     setEditError("");
     setExpandedTab("datos");
-    setShowPolizaForm(false);
-    setEditingPolizaId(null);
     setExpandedId(client.id);
   }
 
@@ -2857,9 +2840,75 @@ function migrateClient(c) {
       setEditError("Nombre y teléfono son obligatorios.");
       return;
     }
-    // Las pólizas se editan por separado; no se sobreescriben con la copia del borrador.
     const { polizas: _ignorar, ...datosPersonales } = editDraft;
     setClients((cs) => cs.map((c) => (c.id === id ? { ...c, ...datosPersonales, id } : c)));
+    setExpandedId(null);
+    setEditDraft(null);
+  }
+
+  // --- Editar cliente completo (misma información que se captura en el alta) ---
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editModalId, setEditModalId] = useState(null);
+  const [editClientForm, setEditClientForm] = useState(emptyClientForm);
+  const [editPolizas, setEditPolizas] = useState([]);
+  const [editPolizaIdx, setEditPolizaIdx] = useState(0);
+  const [editPolizaFiles, setEditPolizaFiles] = useState({});
+  const [editModalError, setEditModalError] = useState("");
+
+  function openEditModal(c) {
+    const { id, polizas, ...personal } = c;
+    setEditModalId(id);
+    setEditClientForm({ ...emptyClientForm, ...personal });
+    setEditPolizas((polizas || []).map((p) => ({ ...emptyPolicyForm, ...p })));
+    setEditPolizaIdx(0);
+    setEditPolizaFiles({});
+    setEditModalError("");
+    setShowEditModal(true);
+  }
+
+  function closeEditModal() {
+    setShowEditModal(false);
+    setEditModalId(null);
+    setEditModalError("");
+  }
+
+  function handleEditPolizaChange(field, value) {
+    setEditPolizas((ps) => ps.map((p, i) => (i === editPolizaIdx ? { ...p, [field]: value } : p)));
+  }
+
+  async function handleEditModalSubmit(e) {
+    e.preventDefault();
+    if (!editClientForm.nombre.trim() || !editClientForm.telefono.trim()) {
+      setEditModalError("Nombre y teléfono son obligatorios.");
+      return;
+    }
+    for (let i = 0; i < editPolizas.length; i++) {
+      const p = editPolizas[i];
+      if (!p.primaAnual || Number(p.primaAnual) <= 0) {
+        setEditPolizaIdx(i);
+        setEditModalError("La prima anual es obligatoria" + (editPolizas.length > 1 ? ` (póliza ${i + 1}).` : "."));
+        return;
+      }
+    }
+    const clientId = editModalId;
+    const polizasFinales = [];
+    for (const p of editPolizas) {
+      let documento = p.documento || null;
+      const nuevoArchivo = editPolizaFiles[p.id];
+      if (nuevoArchivo) {
+        try {
+          documento = await uploadPolicyFile(clientId, p.id, nuevoArchivo);
+        } catch (err) {
+          setEditModalError(`No se pudo subir el archivo de la póliza: ${err.message}`);
+          return;
+        }
+      }
+      polizasFinales.push({ ...p, documento });
+    }
+    setClients((cs) => cs.map((c) => (
+      c.id === clientId ? { ...c, ...editClientForm, id: clientId, polizas: polizasFinales } : c
+    )));
+    closeEditModal();
     setExpandedId(null);
     setEditDraft(null);
   }
@@ -2870,59 +2919,15 @@ function migrateClient(c) {
   const [polizaFormFile, setPolizaFormFile] = useState(null);
   const [polizaError, setPolizaError] = useState("");
 
-  const [editingPolizaId, setEditingPolizaId] = useState(null);
-
   function openNuevaPoliza() {
-    setEditingPolizaId(null);
     setPolizaForm({ ...emptyPolicyForm, fechaAlta: todayStr() });
     setPolizaFormFile(null);
     setPolizaError("");
     setShowPolizaForm(true);
   }
 
-  function openEditPoliza(poliza) {
-    setEditingPolizaId(poliza.id);
-    setPolizaForm({ ...emptyPolicyForm, ...poliza });
-    setPolizaFormFile(null);
-    setPolizaError("");
-    setShowPolizaForm(true);
-  }
-
-  function closePolizaForm() {
-    setShowPolizaForm(false);
-    setEditingPolizaId(null);
-    setPolizaError("");
-  }
-
   async function handleAddPolizaSubmit(e, clientId) {
     e.preventDefault();
-    if (editingPolizaId) {
-      if (!polizaForm.numeroPoliza.trim()) {
-        setPolizaError("El número de póliza es obligatorio.");
-        return;
-      }
-      if (!polizaForm.primaAnual || Number(polizaForm.primaAnual) <= 0) {
-        setPolizaError("La prima anual es obligatoria.");
-        return;
-      }
-      let documento = polizaForm.documento || null;
-      if (polizaFormFile) {
-        try {
-          documento = await uploadPolicyFile(clientId, editingPolizaId, polizaFormFile);
-        } catch (err) {
-          setPolizaError(`No se pudo subir el archivo: ${err.message}`);
-          return;
-        }
-      }
-      const actualizada = { ...polizaForm, id: editingPolizaId, documento };
-      setClients((cs) => cs.map((c) => (
-        c.id === clientId
-          ? { ...c, polizas: (c.polizas || []).map((p) => (p.id === editingPolizaId ? actualizada : p)) }
-          : c
-      )));
-      closePolizaForm();
-      return;
-    }
     if (!polizaForm.numeroPoliza.trim()) {
       setPolizaError("El número de póliza es obligatorio.");
       return;
@@ -2943,7 +2948,8 @@ function migrateClient(c) {
     }
     const nueva = { id: policyId, ...polizaForm, documento };
     setClients((cs) => cs.map((c) => (c.id === clientId ? { ...c, polizas: [...(c.polizas || []), nueva] } : c)));
-    closePolizaForm();
+    setShowPolizaForm(false);
+    setPolizaError("");
   }
 
   function handleRemovePoliza(clientId, policyId) {
@@ -3515,9 +3521,20 @@ function migrateClient(c) {
 
                   {isOpen && editDraft && (
                     <div style={{ padding: "4px 4px 20px" }}>
+                      <button
+                        onClick={() => openEditModal(c)}
+                        style={{
+                          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          background: "none", border: "1px solid var(--ink)", color: "var(--ink)",
+                          borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600, marginBottom: 14,
+                        }}
+                      >
+                        <Pencil size={15} /> Editar
+                      </button>
                       <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #E4E0D3" }}>
                         {[
-                          { id: "datos", label: "Información" },
+                          { id: "datos", label: "Datos" },
+                          { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
                           { id: "documentos", label: "Documentos" },
                         ].map((t) => (
                           <button
@@ -3560,28 +3577,25 @@ function migrateClient(c) {
                               <Trash2 size={16} />
                             </button>
                           </div>
-
-                          <h3 className="serif" style={{ fontSize: 15, margin: "22px 0 10px", color: "var(--ink)" }}>
-                            Pólizas ({(c.polizas || []).length})
-                          </h3>
-                          <PolizasTab
-                            client={c}
-                            urls={docSignedUrls}
-                            showForm={showPolizaForm}
-                            editing={!!editingPolizaId}
-                            onOpenForm={openNuevaPoliza}
-                            onCloseForm={closePolizaForm}
-                            onEdit={openEditPoliza}
-                            polizaForm={polizaForm}
-                            onPolizaFormChange={(field, v) => setPolizaForm((f) => ({ ...f, [field]: v }))}
-                            polizaFormFile={polizaFormFile}
-                            onPolizaFormFile={setPolizaFormFile}
-                            polizaError={polizaError}
-                            onSubmit={(e) => handleAddPolizaSubmit(e, c.id)}
-                            onRemove={(policyId) => handleRemovePoliza(c.id, policyId)}
-                            onReplaceDoc={(policyId, file) => handleReplacePolizaDoc(c.id, policyId, file)}
-                          />
                         </>
+                      )}
+
+                      {expandedTab === "polizas" && (
+                        <PolizasTab
+                          client={c}
+                          urls={docSignedUrls}
+                          showForm={showPolizaForm}
+                          onOpenForm={openNuevaPoliza}
+                          onCloseForm={() => setShowPolizaForm(false)}
+                          polizaForm={polizaForm}
+                          onPolizaFormChange={(field, v) => setPolizaForm((f) => ({ ...f, [field]: v }))}
+                          polizaFormFile={polizaFormFile}
+                          onPolizaFormFile={setPolizaFormFile}
+                          polizaError={polizaError}
+                          onSubmit={(e) => handleAddPolizaSubmit(e, c.id)}
+                          onRemove={(policyId) => handleRemovePoliza(c.id, policyId)}
+                          onReplaceDoc={(policyId, file) => handleReplacePolizaDoc(c.id, policyId, file)}
+                        />
                       )}
 
                       {expandedTab === "documentos" && (
@@ -3696,6 +3710,84 @@ function migrateClient(c) {
             }}>
               <Check size={16} /> Guardar cliente
             </button>
+          </form>
+        </div>
+      )}
+
+      {showEditModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)",
+          display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10,
+        }}>
+          <form
+            onSubmit={handleEditModalSubmit}
+            style={{
+              background: "var(--cream)", width: "100%", maxWidth: 480,
+              borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 className="serif" style={{ fontSize: 18, margin: 0 }}>Editar cliente</h2>
+              <button type="button" onClick={closeEditModal} style={{ background: "none", border: "none" }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {editModalError && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{editModalError}</p>}
+
+            <ClientPersonalFields
+              data={editClientForm}
+              onChange={(field, v) => setEditClientForm((f) => ({ ...f, [field]: v }))}
+            />
+
+            <h3 className="serif" style={{ fontSize: 15, margin: "18px 0 10px", color: "var(--ink)" }}>Datos de la póliza</h3>
+            {editPolizas.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--stone)" }}>
+                Este cliente todavía no tiene pólizas. Agrégalas en la pestaña "Pólizas".
+              </p>
+            ) : (
+              <>
+                {editPolizas.length > 1 && (
+                  <Field label="Póliza a editar">
+                    <select
+                      value={editPolizaIdx}
+                      onChange={(e) => setEditPolizaIdx(Number(e.target.value))}
+                      style={inputStyle}
+                    >
+                      {editPolizas.map((p, i) => (
+                        <option key={p.id} value={i}>
+                          {`${p.aseguradora || "Sin aseguradora"} · ${p.ramo || "Sin ramo"}${p.numeroPoliza ? ` · ${p.numeroPoliza}` : ""}`}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+                <PolicyFields
+                  key={editPolizas[editPolizaIdx].id}
+                  data={editPolizas[editPolizaIdx]}
+                  onChange={handleEditPolizaChange}
+                  file={editPolizaFiles[editPolizas[editPolizaIdx].id] || null}
+                  onFileChange={(f) => setEditPolizaFiles((fs) => ({ ...fs, [editPolizas[editPolizaIdx].id]: f }))}
+                  existingDoc={editPolizas[editPolizaIdx].documento}
+                />
+              </>
+            )}
+
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button type="submit" style={{
+                flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none",
+                borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}>
+                <Check size={16} /> Guardar cambios
+              </button>
+              <button type="button" onClick={closeEditModal} style={{
+                background: "none", border: "1px solid var(--line)", color: "var(--ink)",
+                borderRadius: 6, padding: "12px 14px", fontSize: 14,
+              }}>
+                Cancelar
+              </button>
+            </div>
           </form>
         </div>
       )}
