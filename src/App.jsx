@@ -1610,68 +1610,102 @@ function PolizasTab({
   );
 }
 
-const FACTURA_AGENTE_KEY = "Factura Agente";
+const emptyFacturaForm = { fecha: "", descripcion: "" };
 
-function FacturasAgente({ clientId, docs, urls, onUpload, onRemove }) {
-  const uploaded = (docs[clientId] || {})[FACTURA_AGENTE_KEY];
-  const href = uploaded && uploaded.path ? urls[uploaded.path] : null;
+function FacturasAgente({
+  client, urls, showForm, onOpenForm, onCloseForm,
+  form, onFormChange, file, onFile, error, onSubmit, onRemove,
+}) {
+  const facturas = client.facturas || [];
   return (
     <div>
-      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
-        Agrega la factura del agente para este cliente (PDF o imagen). Toca el nombre del archivo para abrirlo.
-      </p>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 0", borderBottom: "1px solid #E4E0D3", gap: 10,
-      }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 500 }}>Factura del agente</div>
-          {uploaded && uploaded.path ? (
-            href ? (
-              <a
-                href={href} target="_blank" rel="noreferrer"
-                style={{
-                  fontSize: 12, color: "var(--emerald)", textDecoration: "underline", maxWidth: 220, overflow: "hidden",
-                  textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block",
-                }}
-              >
-                ✓ {uploaded.name}
-              </a>
-            ) : (
-              <div style={{ fontSize: 12, color: "var(--stone)" }}>✓ {uploaded.name} (preparando enlace...)</div>
-            )
-          ) : (
-            <div style={{ fontSize: 12, color: "#B0AB9A" }}>Pendiente</div>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <label style={{
-            background: "var(--ink)", color: "var(--cream)", borderRadius: 6,
-            padding: "8px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-          }}>
-            {uploaded ? "Reemplazar" : "Subir"}
+      {facturas.length === 0 && !showForm && (
+        <p style={{ fontSize: 13, color: "var(--stone)", marginBottom: 14 }}>Este cliente todavía no tiene facturas del agente registradas.</p>
+      )}
+
+      {!showForm && (
+        <>
+          {facturas.map((f) => {
+            const href = f.archivo && f.archivo.path ? urls[f.archivo.path] : null;
+            return (
+              <div key={f.id} style={{ border: "1px solid var(--line)", borderLeft: "3px solid var(--gold)", borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{f.descripcion || "Factura"}</div>
+                    {f.fecha && <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>Fecha: {fmtDateFull(f.fecha)}</div>}
+                    <div style={{ marginTop: 8 }}>
+                      {href ? (
+                        <a href={href} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--emerald)", textDecoration: "underline", wordBreak: "break-all" }}>
+                          ✓ {f.archivo.name}
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "var(--stone)" }}>✓ {f.archivo?.name} (preparando enlace...)</span>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={() => onRemove(f.id)} aria-label="Eliminar factura" style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 8px", flexShrink: 0 }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <button
+            onClick={onOpenForm}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              background: "none", border: "1px dashed var(--line)", color: "var(--ink)",
+              borderRadius: 8, padding: "12px", fontSize: 13, fontWeight: 600, marginTop: 4,
+            }}
+          >
+            <Plus size={16} /> Agregar factura
+          </button>
+        </>
+      )}
+
+      {showForm && (
+        <form onSubmit={onSubmit}>
+          {error && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{error}</p>}
+          <Field label="Descripción (opcional)">
             <input
-              type="file"
-              accept="image/*,.pdf"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) onUpload(clientId, FACTURA_AGENTE_KEY, file);
-                e.target.value = "";
-              }}
+              value={form.descripcion}
+              onChange={(e) => onFormChange("descripcion", e.target.value)}
+              style={inputStyle}
+              placeholder="Ej. Factura de comisión octubre"
             />
-          </label>
-          {uploaded && (
-            <button
-              onClick={() => onRemove(clientId, FACTURA_AGENTE_KEY)}
-              style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, color: "#B23A2E", padding: "0 10px" }}
-              aria-label="Quitar factura"
-            >
-              <X size={14} />
+          </Field>
+          <Field label="Fecha de la factura (opcional)">
+            <DateWithFallback value={form.fecha} onChange={(v) => onFormChange("fecha", v)} />
+          </Field>
+          <Field label="Archivo de la factura (PDF o imagen)">
+            <label style={{
+              display: "block", background: "#FFFFFF", border: "1px solid var(--line)", color: "var(--ink)",
+              borderRadius: 6, padding: "10px 12px", fontSize: 13, cursor: "pointer",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {file ? file.name : "Elegir archivo (foto o PDF)..."}
+              <input
+                type="file" accept="image/*,.pdf" style={{ display: "none" }}
+                onChange={(e) => onFile(e.target.files[0] || null)}
+              />
+            </label>
+          </Field>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="submit" style={{
+              flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none",
+              borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600,
+            }}>
+              Guardar factura
             </button>
-          )}
-        </div>
-      </div>
+            <button type="button" onClick={onCloseForm} style={{
+              background: "none", border: "1px solid var(--line)", color: "var(--ink)",
+              borderRadius: 6, padding: "12px 14px", fontSize: 14,
+            }}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
@@ -2231,7 +2265,16 @@ export default function SegurosCRM() {
 
   useEffect(() => {
     if (!expandedId) return;
-    if (expandedTab === "documentos" || expandedTab === "facturas") {
+    if (expandedTab === "facturas") {
+      const client = clients.find((c) => c.id === expandedId);
+      (client?.facturas || []).forEach((f) => {
+        if (!f.archivo || !f.archivo.path || docSignedUrls[f.archivo.path]) return;
+        supabase.storage.from(DOCS_BUCKET).createSignedUrl(f.archivo.path, 3600).then(({ data, error }) => {
+          if (!error && data) setDocSignedUrls((u) => ({ ...u, [f.archivo.path]: data.signedUrl }));
+        });
+      });
+    }
+    if (expandedTab === "documentos") {
       const clientDocs = documents[expandedId] || {};
       Object.values(clientDocs).forEach((doc) => {
         if (!doc || !doc.path || docSignedUrls[doc.path]) return;
@@ -2905,6 +2948,7 @@ function migrateClient(c) {
     setEditDraft(rest);
     setEditError("");
     setExpandedTab("polizas");
+    setShowFacturaForm(false);
     setExpandedId(client.id);
   }
 
@@ -2933,7 +2977,7 @@ function migrateClient(c) {
   const [editModalError, setEditModalError] = useState("");
 
   function openEditModal(c) {
-    const { id, polizas, ...personal } = c;
+    const { id, polizas, facturas, ...personal } = c;
     setEditModalId(id);
     setEditClientForm({ ...emptyClientForm, ...personal });
     setEditPolizas((polizas || []).map((p) => ({ ...emptyPolicyForm, ...p })));
@@ -2983,11 +3027,54 @@ function migrateClient(c) {
       polizasFinales.push({ ...p, documento });
     }
     setClients((cs) => cs.map((c) => (
-      c.id === clientId ? { ...c, ...editClientForm, id: clientId, polizas: polizasFinales } : c
+      c.id === clientId ? { ...c, ...editClientForm, id: clientId, polizas: polizasFinales, facturas: c.facturas || [] } : c
     )));
     closeEditModal();
     setExpandedId(null);
     setEditDraft(null);
+  }
+
+  // --- Facturas del agente (varias por cliente) ---
+  const [showFacturaForm, setShowFacturaForm] = useState(false);
+  const [facturaForm, setFacturaForm] = useState(emptyFacturaForm);
+  const [facturaFile, setFacturaFile] = useState(null);
+  const [facturaError, setFacturaError] = useState("");
+
+  function openNuevaFactura() {
+    setFacturaForm({ ...emptyFacturaForm, fecha: todayStr() });
+    setFacturaFile(null);
+    setFacturaError("");
+    setShowFacturaForm(true);
+  }
+
+  function closeFacturaForm() {
+    setShowFacturaForm(false);
+    setFacturaError("");
+  }
+
+  async function handleAddFacturaSubmit(e, clientId) {
+    e.preventDefault();
+    if (!facturaFile) {
+      setFacturaError("Elige el archivo de la factura (PDF o imagen).");
+      return;
+    }
+    const facturaId = Date.now().toString();
+    let archivo;
+    try {
+      archivo = await uploadPolicyFile(clientId, `factura-${facturaId}`, facturaFile);
+    } catch (err) {
+      setFacturaError(`No se pudo subir el archivo: ${err.message}`);
+      return;
+    }
+    const nueva = { id: facturaId, fecha: facturaForm.fecha, descripcion: facturaForm.descripcion.trim(), archivo };
+    setClients((cs) => cs.map((c) => (c.id === clientId ? { ...c, facturas: [...(c.facturas || []), nueva] } : c)));
+    closeFacturaForm();
+  }
+
+  function handleRemoveFactura(clientId, facturaId) {
+    setClients((cs) => cs.map((c) => (
+      c.id === clientId ? { ...c, facturas: (c.facturas || []).filter((f) => f.id !== facturaId) } : c
+    )));
   }
 
   // --- Pólizas (varias por cliente) ---
@@ -3660,11 +3747,18 @@ function migrateClient(c) {
 
                       {expandedTab === "facturas" && (
                         <FacturasAgente
-                          clientId={c.id}
-                          docs={documents}
+                          client={c}
                           urls={docSignedUrls}
-                          onUpload={handleUploadDoc}
-                          onRemove={handleRemoveDoc}
+                          showForm={showFacturaForm}
+                          onOpenForm={openNuevaFactura}
+                          onCloseForm={closeFacturaForm}
+                          form={facturaForm}
+                          onFormChange={(field, v) => setFacturaForm((f) => ({ ...f, [field]: v }))}
+                          file={facturaFile}
+                          onFile={setFacturaFile}
+                          error={facturaError}
+                          onSubmit={(e) => handleAddFacturaSubmit(e, c.id)}
+                          onRemove={(facturaId) => handleRemoveFactura(c.id, facturaId)}
                         />
                       )}
 
