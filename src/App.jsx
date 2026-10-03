@@ -1610,6 +1610,72 @@ function PolizasTab({
   );
 }
 
+const FACTURA_AGENTE_KEY = "Factura Agente";
+
+function FacturasAgente({ clientId, docs, urls, onUpload, onRemove }) {
+  const uploaded = (docs[clientId] || {})[FACTURA_AGENTE_KEY];
+  const href = uploaded && uploaded.path ? urls[uploaded.path] : null;
+  return (
+    <div>
+      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
+        Agrega la factura del agente para este cliente (PDF o imagen). Toca el nombre del archivo para abrirlo.
+      </p>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "10px 0", borderBottom: "1px solid #E4E0D3", gap: 10,
+      }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 500 }}>Factura del agente</div>
+          {uploaded && uploaded.path ? (
+            href ? (
+              <a
+                href={href} target="_blank" rel="noreferrer"
+                style={{
+                  fontSize: 12, color: "var(--emerald)", textDecoration: "underline", maxWidth: 220, overflow: "hidden",
+                  textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block",
+                }}
+              >
+                ✓ {uploaded.name}
+              </a>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--stone)" }}>✓ {uploaded.name} (preparando enlace...)</div>
+            )
+          ) : (
+            <div style={{ fontSize: 12, color: "#B0AB9A" }}>Pendiente</div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <label style={{
+            background: "var(--ink)", color: "var(--cream)", borderRadius: 6,
+            padding: "8px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>
+            {uploaded ? "Reemplazar" : "Subir"}
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) onUpload(clientId, FACTURA_AGENTE_KEY, file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {uploaded && (
+            <button
+              onClick={() => onRemove(clientId, FACTURA_AGENTE_KEY)}
+              style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, color: "#B23A2E", padding: "0 10px" }}
+              aria-label="Quitar factura"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
   const clientDocs = docs[clientId] || {};
   return (
@@ -2165,7 +2231,7 @@ export default function SegurosCRM() {
 
   useEffect(() => {
     if (!expandedId) return;
-    if (expandedTab === "documentos") {
+    if (expandedTab === "documentos" || expandedTab === "facturas") {
       const clientDocs = documents[expandedId] || {};
       Object.values(clientDocs).forEach((doc) => {
         if (!doc || !doc.path || docSignedUrls[doc.path]) return;
@@ -3557,7 +3623,8 @@ function migrateClient(c) {
                       <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #E4E0D3" }}>
                         {[
                           { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
-                          { id: "documentos", label: "Documentos" },
+                          { id: "documentos", label: "Documentos Artículo 492" },
+                          { id: "facturas", label: "Facturas Agente" },
                         ].map((t) => (
                           <button
                             key={t.id}
@@ -3588,6 +3655,16 @@ function migrateClient(c) {
                           onSubmit={(e) => handleAddPolizaSubmit(e, c.id)}
                           onRemove={(policyId) => handleRemovePoliza(c.id, policyId)}
                           onReplaceDoc={(policyId, file) => handleReplacePolizaDoc(c.id, policyId, file)}
+                        />
+                      )}
+
+                      {expandedTab === "facturas" && (
+                        <FacturasAgente
+                          clientId={c.id}
+                          docs={documents}
+                          urls={docSignedUrls}
+                          onUpload={handleUploadDoc}
+                          onRemove={handleRemoveDoc}
                         />
                       )}
 
