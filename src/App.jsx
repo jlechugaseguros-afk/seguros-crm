@@ -2882,6 +2882,7 @@ function migrateClient(c) {
     [reminders, vistosHoy]
   );
   const [expandedReminderGroups, setExpandedReminderGroups] = useState({});
+  const [expandedPagosFuturos, setExpandedPagosFuturos] = useState({});
   const [expandedClientGroups, setExpandedClientGroups] = useState({});
 
   const [showPrimaWarning, setShowPrimaWarning] = useState(false);
@@ -3553,9 +3554,22 @@ function migrateClient(c) {
               { tone: "cumple", label: "Cumpleaños" },
               { tone: "seguimiento", label: "Seguimientos de prospectos" },
             ].map(({ tone, label }) => {
-              const items = reminders
+              let items = reminders
                 .map((r, i) => ({ ...r, _i: i }))
                 .filter((r) => r.tone === tone);
+              if (tone === "pago") {
+                // Pagos fraccionados: una sola tarjeta por póliza con el pago más cercano;
+                // los siguientes se ven en un desplegable. Los pagos ya vencidos no aparecen.
+                const vistos = {};
+                const agrupados = [];
+                items.forEach((r) => {
+                  if (!r.pago || r.pago.total <= 1) { agrupados.push(r); return; }
+                  const k = `${r.client.id}-${r.policy?.id || ""}`;
+                  if (vistos[k]) vistos[k].proximos.push(r);
+                  else { vistos[k] = { ...r, groupKey: k, proximos: [] }; agrupados.push(vistos[k]); }
+                });
+                items = agrupados;
+              }
               if (items.length === 0) return null;
               const isOpen = !!expandedReminderGroups[tone];
               return (
@@ -3616,6 +3630,29 @@ function migrateClient(c) {
                           >
                             <Phone size={14} /> Enviar por WhatsApp
                           </a>
+                          {r.proximos && r.proximos.length > 0 && (
+                            <div style={{ marginLeft: 16 }}>
+                              <button
+                                onClick={() => setExpandedPagosFuturos((g) => ({ ...g, [r.groupKey]: !g[r.groupKey] }))}
+                                style={{
+                                  background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 600,
+                                  color: "var(--emerald)", display: "flex", alignItems: "center", gap: 4,
+                                }}
+                              >
+                                <ChevronDown size={14} style={{ transform: expandedPagosFuturos[r.groupKey] ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                                {expandedPagosFuturos[r.groupKey] ? "Ocultar" : "Ver"} {r.proximos.length} pago{r.proximos.length === 1 ? "" : "s"} más
+                              </button>
+                              {expandedPagosFuturos[r.groupKey] && (
+                                <div style={{ marginTop: 6 }}>
+                                  {r.proximos.map((f) => (
+                                    <div key={f.date} style={{ fontSize: 12, color: "#5B5646", padding: "3px 0" }}>
+                                      Pago {f.pago.numero} de {f.pago.total} · {fmtDate(f.date)} · {fmtMonto(f.pago.monto)}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
