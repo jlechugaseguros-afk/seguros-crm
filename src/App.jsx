@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil } from "lucide-react";
+import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
@@ -3137,6 +3137,7 @@ function migrateClient(c) {
   const [expandedReminderGroups, setExpandedReminderGroups] = useState({});
   const [expandedPagosFuturos, setExpandedPagosFuturos] = useState({});
   const [expandedClientGroups, setExpandedClientGroups] = useState({});
+  const [clientSearch, setClientSearch] = useState("");
 
   const [showPrimaWarning, setShowPrimaWarning] = useState(false);
   const [nuevaPolizaFile, setNuevaPolizaFile] = useState(null);
@@ -3924,25 +3925,91 @@ function migrateClient(c) {
 
         {tab === "clientes" && (
           <div>
-            <button
-              onClick={() => { setForm({ ...emptyClientForm, ...emptyPolicyForm, fechaAlta: todayStr() }); setNuevaPolizaFile(null); setError(""); setShowForm(true); }}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                background: "var(--ink)", color: "var(--cream)", border: "none",
-                borderRadius: 6, padding: "10px 16px", fontSize: 14, fontWeight: 600,
-                marginBottom: 16,
-              }}
-            >
-              <Plus size={16} /> Nuevo cliente
-            </button>
+            {(() => {
+              const totalPolizas = clients.reduce((n, c) => n + (c.polizas || []).length, 0);
+              return (
+                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+                  <div>
+                    <div className="eyebrow" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold-deep, #B07F12)" }}>Cartera</div>
+                    <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, fontSize: 30, color: "var(--ink)", margin: "4px 0 2px" }}>Clientes</h2>
+                    <div style={{ fontSize: 13.5, color: "var(--muted)" }}>
+                      {clients.length} cliente{clients.length === 1 ? "" : "s"} · {totalPolizas} póliza{totalPolizas === 1 ? "" : "s"}
+                    </div>
+                  </div>
+                  <button
+                    className="lift"
+                    onClick={() => { setForm({ ...emptyClientForm, ...emptyPolicyForm, fechaAlta: todayStr() }); setNuevaPolizaFile(null); setError(""); setShowForm(true); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      background: "var(--gold)", color: "#fff", border: "none",
+                      borderRadius: 12, padding: "11px 18px", fontSize: 14, fontWeight: 700,
+                      boxShadow: "0 6px 16px -6px rgba(201,151,30,0.6)",
+                    }}
+                  >
+                    <Plus size={16} /> Nuevo cliente
+                  </button>
+                </div>
+              );
+            })()}
+
+            <div style={{ position: "relative", marginBottom: 18 }}>
+              <Search size={16} color="var(--stone)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <input
+                type="search"
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                placeholder="Buscar por nombre, apellido, teléfono o número de póliza"
+                aria-label="Buscar cliente"
+                style={{
+                  width: "100%", boxSizing: "border-box", background: "#fff", border: "1px solid var(--line)",
+                  borderRadius: 12, padding: "12px 40px 12px 40px", fontSize: 14, color: "var(--ink)",
+                  boxShadow: "var(--shadow)", outline: "none",
+                }}
+              />
+              {clientSearch && (
+                <button
+                  onClick={() => setClientSearch("")}
+                  aria-label="Limpiar búsqueda"
+                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 6, display: "grid", placeItems: "center" }}
+                >
+                  <X size={16} color="var(--stone)" />
+                </button>
+              )}
+            </div>
 
             {clients.length === 0 && (
-              <p style={{ color: "var(--stone)", fontSize: 14 }}>Aún no has agregado clientes.</p>
+              <div className="panel" style={{ padding: 28, textAlign: "center", color: "var(--stone)", fontSize: 14 }}>
+                Aún no has agregado clientes. Empieza con “Nuevo cliente”.
+              </div>
             )}
 
             {(() => {
+              const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+              const digits = (t) => String(t || "").replace(/\D/g, "");
+              const q = norm(clientSearch).trim();
+              const qDigits = digits(clientSearch);
+              const tokens = q.split(/\s+/).filter(Boolean);
+              const compact = (t) => norm(t).replace(/[\s-]/g, "");
+              const coincide = (c) => {
+                if (!tokens.length) return true;
+                const nombre = norm(c.nombre);
+                const porNombre = tokens.every((t) => nombre.includes(t));
+                const porTel = qDigits.length >= 3 && digits(c.telefono).includes(qDigits);
+                const porPoliza = (c.polizas || []).some((p) => p.numeroPoliza && compact(p.numeroPoliza).includes(compact(clientSearch)));
+                return porNombre || porTel || porPoliza;
+              };
+              const buscando = tokens.length > 0;
+              const visibles = clients.filter(coincide);
+              if (buscando && visibles.length === 0) {
+                return (
+                  <div className="panel" style={{ padding: 28, textAlign: "center" }}>
+                    <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, color: "var(--ink)", marginBottom: 4 }}>Sin resultados</div>
+                    <div style={{ fontSize: 13.5, color: "var(--muted)" }}>No encontré clientes con “{clientSearch}”. Prueba con otro nombre, teléfono o número de póliza.</div>
+                  </div>
+                );
+              }
               const grupos = {};
-              clients.forEach((c) => {
+              visibles.forEach((c) => {
                 const asegs = (c.polizas || []).map((p) => p.aseguradora).filter(Boolean);
                 const nombresUnicos = asegs.length ? [...new Set(asegs)] : ["Sin póliza"];
                 nombresUnicos.forEach((a) => {
@@ -3952,38 +4019,45 @@ function migrateClient(c) {
               });
               const nombresGrupos = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length);
               return nombresGrupos.map((nombreGrupo) => {
-                const grupoAbierto = !!expandedClientGroups[nombreGrupo];
+                const grupoAbierto = buscando || !!expandedClientGroups[nombreGrupo];
                 return (
-                  <div key={nombreGrupo} style={{ marginBottom: 10 }}>
+                  <div key={nombreGrupo} className="rise" style={{ marginBottom: 12 }}>
                     <button
+                      className="lift"
                       onClick={() => setExpandedClientGroups((g) => ({ ...g, [nombreGrupo]: !g[nombreGrupo] }))}
                       style={{
                         width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
                         background: "#FFFFFF", border: "1px solid var(--line)",
-                        borderRadius: 14, padding: "11px 14px", boxShadow: "var(--shadow)",
+                        borderRadius: 14, padding: "12px 16px", boxShadow: "var(--shadow)",
                       }}
                     >
                       <span style={{
-                        width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: insurerColor(nombreGrupo), color: "#fff",
-                        display: "grid", placeItems: "center", fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15,
+                        width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: insurerColor(nombreGrupo), color: "#fff",
+                        display: "grid", placeItems: "center", fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 16,
                       }}>
                         {nombreGrupo.charAt(0).toUpperCase()}
                       </span>
-                      <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: "var(--ink)" }}>
-                        {nombreGrupo} <span style={{ color: "var(--stone)", fontWeight: 500 }}>· {grupos[nombreGrupo].length} cliente{grupos[nombreGrupo].length === 1 ? "" : "s"}</span>
+                      <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                        {nombreGrupo}
+                        <span style={{ marginLeft: 8, background: "var(--gold-soft, #F6EBCB)", color: "#8A6410", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>
+                          {grupos[nombreGrupo].length}
+                        </span>
                       </span>
-                      <ChevronDown size={16} color="var(--stone)" style={{ transform: grupoAbierto ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                      <ChevronDown size={16} color="var(--stone)" style={{ transform: grupoAbierto ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                     </button>
                     {grupoAbierto && grupos[nombreGrupo].map((c) => {
               const isOpen = expandedId === c.id;
               return (
-                <div key={c.id} className="expand" style={{ borderBottom: "1px solid var(--line)" }}>
+                <div key={c.id} className="expand" style={{
+                  background: "#fff", border: "1px solid " + (isOpen ? "var(--gold)" : "var(--line)"), borderRadius: 14,
+                  margin: "8px 0 0 14px", boxShadow: isOpen ? "var(--shadow)" : "none", transition: "border-color .2s, box-shadow .2s",
+                }}>
                   <button
                     onClick={() => toggleExpand(c)}
                     className="row-hover"
                     style={{
-                      width: "100%", background: "none", border: "none", textAlign: "left", borderRadius: 12,
-                      padding: "14px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                      width: "100%", background: "none", border: "none", textAlign: "left", borderRadius: 14,
+                      padding: "14px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
                     }}
                   >
                     {(() => {
@@ -4006,9 +4080,11 @@ function migrateClient(c) {
                                 ? <>{primaria.aseguradora} · {primaria.ramo} {primaria.numeroPoliza && `· Póliza ${primaria.numeroPoliza}`}{polizas.length > 1 && ` · +${polizas.length - 1} más`}</>
                                 : "Sin pólizas registradas"}
                             </div>
-                            <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
-                              {c.telefono}
-                            </div>
+                            {c.telefono && (
+                              <div style={{ fontSize: 12.5, color: "var(--stone)", marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                                <Phone size={12} /> {c.telefono}
+                              </div>
+                            )}
                             {(primaria?.fechaPago || primaria?.fechaRenovacion || c.fechaCumple) && (
                               <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 4 }}>
                                 {primaria?.fechaPago && `Pago: ${fmtDateFull(primaria.fechaPago)}`}
