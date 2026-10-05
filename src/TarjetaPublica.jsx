@@ -31,7 +31,7 @@ export default function TarjetaPublica({ agentId }) {
     return (
       <div className="min-h-dvh" style={{
         background: "#F7F5F0", display: "flex", alignItems: "center",
-        justifyContent: "center", fontFamily: "'Inter', system-ui, sans-serif", padding: 20, textAlign: "center",
+        justifyContent: "center", fontFamily: "'Manrope', system-ui, sans-serif", padding: 20, textAlign: "center",
       }}>
         <div>
           <p style={{ fontSize: 16, color: "#1B2A41", fontWeight: 600 }}>Esta tarjeta no está disponible.</p>
@@ -49,7 +49,7 @@ export default function TarjetaPublica({ agentId }) {
   return (
     <div className="min-h-dvh" style={{
       background: "#F7F5F0", display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: 20, fontFamily: "'Inter', system-ui, sans-serif",
+      justifyContent: "center", padding: 20, fontFamily: "'Manrope', system-ui, sans-serif",
     }}>
       <div style={{ width: 320, maxWidth: "100%", position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.18)", aspectRatio: "1080 / 1920" }}>
         <img src={plantilla.bg} alt={plantilla.nombre} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />

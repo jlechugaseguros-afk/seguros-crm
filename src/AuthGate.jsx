@@ -57,7 +57,7 @@ export default function AuthGate({ children }) {
   if (!session) {
     return (
       <div className="min-h-dvh" style={{
-        fontFamily: "'Inter', system-ui, sans-serif", background: 'var(--cream)',
+        fontFamily: "'Manrope', system-ui, sans-serif", background: 'var(--cream)',
         display: 'flex', flexDirection: 'column',
       }}>
         <style>{`

@@ -146,9 +146,15 @@ const MULTICOTIZADOR_MENU = [
       { label: "Clupp", url: "https://cotizador-clupp.web.app/agentes/inicio-de-sesion", color: "#7B2CBF" },
       { label: "Crabi", url: "https://partner.crabi.com", color: "#FF5A5F" },
       { label: "El Águila", url: "https://www.elaguila.com.mx/Agentes/Account/Login?ReturnUrl=%2fagentes&AspxAutoDetectCookieSupport=1", color: "#C8102E" },
-      { label: "Click Seguros", url: "https://v4.clickseguros.lat/login", color: "#5B5646" },
+      { label: "Click Seguros", url: "https://v4.clickseguros.lat/login", color: "var(--muted)" },
     ],
   },
+];
+
+const NAV_GROUPS = [
+  { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "multicotizador"] },
+  { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
 const NAV_EXTERNAL_LINKS = {
@@ -241,8 +247,8 @@ function slugifyFileName(str) {
 }
 
 const inputStyle = {
-  width: "100%", padding: "10px 12px", border: "1px solid #DAD5C7",
-  borderRadius: 6, fontSize: 14, background: "#FFFFFF", color: "var(--ink)",
+  width: "100%", padding: "11px 13px", border: "1px solid var(--line)",
+  borderRadius: 10, fontSize: 14, background: "#FFFFFF", color: "var(--ink)",
 };
 
 function isoToDMY(iso) {
@@ -346,7 +352,7 @@ function DateSelect({ value, onChange, yearsBack = 1, yearsForward = 10 }) {
 function Field({ label, children, style }) {
   return (
     <div style={{ marginBottom: 12, ...style }}>
-      <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 4, fontWeight: 500 }}>
+      <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>
         {label}
       </label>
       {children}
@@ -621,7 +627,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
               }}
             >
               <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[estado] }} />
-              {estado} <span style={{ color: "#5B5646", fontWeight: 600 }}>{count}</span>
+              {estado} <span style={{ color: "var(--muted)", fontWeight: 600 }}>{count}</span>
             </button>
           ))}
         </div>
@@ -644,7 +650,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
       {visible.map((p) => {
         const isOpen = expandedId === p.id;
         return (
-          <div key={p.id} style={{ borderBottom: "1px solid #E4E0D3" }}>
+          <div key={p.id} style={{ borderBottom: "1px solid var(--line)" }}>
             <button
               onClick={() => toggleExpand(p)}
               style={{ width: "100%", background: "none", border: "none", textAlign: "left", padding: "14px 4px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
@@ -654,7 +660,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[p.estado] }} />
-                  <span style={{ fontSize: 12, color: "#5B5646" }}>{p.estado}{p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}</span>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.estado}{p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}</span>
                 </div>
               </div>
               <ChevronDown size={18} color="var(--stone)" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
@@ -679,7 +685,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 {editDraft.estado === "Perdido" && editDraft.motivoPerdido && (
                   <div style={{ background: "#FBEAE7", borderRadius: 6, padding: "8px 10px", marginBottom: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {editDraft.motivoPerdido}</div>
-                    {editDraft.comentarioPerdido && <div style={{ fontSize: 12, color: "#5B5646", marginTop: 2 }}>{editDraft.comentarioPerdido}</div>}
+                    {editDraft.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{editDraft.comentarioPerdido}</div>}
                     <button
                       type="button"
                       onClick={() => { setMotivoPerdido(editDraft.motivoPerdido || MOTIVOS_PERDIDO[0]); setComentarioPerdido(editDraft.comentarioPerdido || ""); setPerdidoTarget("edit"); }}
@@ -696,7 +702,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                   <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
                     Guardar cambios
                   </button>
-                  <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid #DAD5C7", color: "#B23A2E", borderRadius: 6, padding: "12px 14px" }}>
+                  <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid var(--line)", color: "#B23A2E", borderRadius: 6, padding: "12px 14px" }}>
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -745,7 +751,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
               Requiere seguimiento
             </label>
             {form.requiereSeguimiento && (
-              <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 12, marginBottom: 14 }}>
+              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
                 <Field label="Acción">
                   <select
                     value={form.accionSeguimiento}
@@ -791,7 +797,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
             {form.estado === "Perdido" && form.motivoPerdido && (
               <div style={{ background: "#FBEAE7", borderRadius: 6, padding: "8px 10px", marginBottom: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {form.motivoPerdido}</div>
-                {form.comentarioPerdido && <div style={{ fontSize: 12, color: "#5B5646", marginTop: 2 }}>{form.comentarioPerdido}</div>}
+                {form.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{form.comentarioPerdido}</div>}
               </div>
             )}
             <Field label="Notas">
@@ -870,16 +876,16 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
         Sube aquí las condiciones generales por ramo y compañía. Toca el nombre para abrir el PDF.
       </p>
 
-      <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 14, marginBottom: 20 }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 14, marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 4, fontWeight: 500 }}>Ramo</label>
+            <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Ramo</label>
             <select value={ramo} onChange={(e) => setRamo(e.target.value)} style={inputStyle}>
               {RAMOS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div style={{ flex: 1 }}>
-            <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 4, fontWeight: 500 }}>Compañía</label>
+            <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Compañía</label>
             <select value={aseguradora} onChange={(e) => setAseguradora(e.target.value)} style={inputStyle}>
               {ASEGURADORAS.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
@@ -887,7 +893,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <label style={{
-            flex: 1, background: "#FFFFFF", border: "1px solid #DAD5C7", color: "var(--ink)", borderRadius: 6,
+            flex: 1, background: "#FFFFFF", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 6,
             padding: "10px 12px", fontSize: 13, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {pendingFile ? pendingFile.name : "Elegir archivo PDF..."}
@@ -927,7 +933,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
       {filtered.map((d) => (
         <div key={d.id} style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "12px 0", borderBottom: "1px solid #E4E0D3", gap: 10,
+          padding: "12px 0", borderBottom: "1px solid var(--line)", gap: 10,
         }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
             <div style={{
@@ -998,12 +1004,12 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
       </p>
 
       {userId && nombre && (
-        <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 14, marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 6, fontWeight: 500 }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>
             Tu liga pública (compártela con tus clientes)
           </label>
           <div style={{ display: "flex", gap: 8 }}>
-            <input readOnly value={ligaPublica} style={{ ...inputStyle, flex: 1, fontSize: 12, color: "#5B5646" }} onFocus={(e) => e.target.select()} />
+            <input readOnly value={ligaPublica} style={{ ...inputStyle, flex: 1, fontSize: 12, color: "var(--muted)" }} onFocus={(e) => e.target.select()} />
             <button
               onClick={copiarLiga}
               style={{ background: "var(--ink)", color: "var(--cream)", borderRadius: 6, padding: "0 14px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}
@@ -1049,14 +1055,14 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
         })}
       </div>
 
-      <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 14, marginBottom: 20 }}>
-        <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 6, fontWeight: 500 }}>Foto de perfil</label>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 14, marginBottom: 20 }}>
+        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>Foto de perfil</label>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
           {tarjeta.fotoUrl ? (
-            <img src={tarjeta.fotoUrl} alt="foto" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "1px solid #DAD5C7" }} />
+            <img src={tarjeta.fotoUrl} alt="foto" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
           ) : (
             <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#F0EEE6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Camera size={20} color="#B0AB9A" />
+              <Camera size={20} color="#8794A0" />
             </div>
           )}
           <label style={{
@@ -1077,16 +1083,16 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
             />
           </label>
         </div>
-        <p style={{ fontSize: 11, color: "#B0AB9A", marginBottom: 14 }}>Abre la galería o la cámara del teléfono.</p>
+        <p style={{ fontSize: 11, color: "#8794A0", marginBottom: 14 }}>Abre la galería o la cámara del teléfono.</p>
 
-        <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 4, fontWeight: 500 }}>Teléfono</label>
+        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Teléfono</label>
         <input
           value={tarjeta.telefono}
           onChange={(e) => onChange("telefono", e.target.value)}
           placeholder="222 123 4567"
           style={{ ...inputStyle, marginBottom: 10 }}
         />
-        <label style={{ display: "block", fontSize: 12, color: "#5B5646", marginBottom: 4, fontWeight: 500 }}>WhatsApp (con lada, sin espacios)</label>
+        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>WhatsApp (con lada, sin espacios)</label>
         <input
           value={tarjeta.whatsapp}
           onChange={(e) => onChange("whatsapp", e.target.value)}
@@ -1147,7 +1153,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
           )}
         </div>
       </div>
-      <p style={{ textAlign: "center", fontSize: 11, color: "#B0AB9A", marginTop: 10 }}>
+      <p style={{ textAlign: "center", fontSize: 11, color: "#8794A0", marginTop: 10 }}>
         Así la verá el cliente. Los íconos de correo, teléfono y WhatsApp ya son enlaces reales.
       </p>
     </div>
@@ -1224,14 +1230,14 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
       {/* Selector de mes */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 20 }}>
-        <button onClick={() => cambiarMes(-1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "6px 10px" }}>‹</button>
+        <button onClick={() => cambiarMes(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px" }}>‹</button>
         <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", minWidth: 140, textAlign: "center" }}>{mesLabel}</span>
-        <button onClick={() => cambiarMes(1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "6px 10px" }}>›</button>
+        <button onClick={() => cambiarMes(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px" }}>›</button>
       </div>
 
       {/* SECCIÓN 1: Ramo, aseguradora y prima -> comisión */}
       <SectionTitle>Comisiones del mes por ramo</SectionTitle>
-      <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, overflow: "hidden", marginBottom: 24 }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", marginBottom: 24 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>Pólizas</span>
@@ -1240,7 +1246,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           <span>Comisión</span>
         </div>
         {porRamo.map((r) => (
-          <div key={r.ramo} style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "8px 10px", fontSize: 12, borderTop: "1px solid #EDEAE0", alignItems: "center" }}>
+          <div key={r.ramo} style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "8px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center" }}>
             <span style={{ fontWeight: 500 }}>{r.ramo}</span>
             <span>{r.numPolizas}</span>
             <span>{fmt(r.primaTotal)}</span>
@@ -1263,7 +1269,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
             <div key={r.ramo} style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: "0 0 4px" }}>{r.ramo}</p>
               {r.polizas.map((p) => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#5B5646", padding: "3px 0" }}>
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", padding: "3px 0" }}>
                   <span>{p.aseguradora} — {p.clienteNombre}</span>
                   <span>{fmt(p.primaAnual)}</span>
                 </div>
@@ -1277,7 +1283,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
       <SectionTitle>Semáforo de ventas</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 10, marginBottom: 24 }}>
         {porRamo.map((r) => (
-          <div key={r.ramo} style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 12, textAlign: "center" }}>
+          <div key={r.ramo} style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 12, textAlign: "center" }}>
             <div style={{ width: 16, height: 16, borderRadius: "50%", background: semaforoColor(r.avance), margin: "0 auto 8px", transition: "background .4s ease" }} />
             <p style={{ fontSize: 12, fontWeight: 600, margin: "0 0 2px", color: "var(--ink)" }}>{r.ramo}</p>
             <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>
@@ -1286,13 +1292,13 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           </div>
         ))}
       </div>
-      <p style={{ fontSize: 11, color: "#B0AB9A", marginTop: -14, marginBottom: 24 }}>
+      <p style={{ fontSize: 11, color: "#8794A0", marginTop: -14, marginBottom: 24 }}>
         Verde: meta cumplida · Amarillo: a la mitad o más · Rojo: por debajo de la mitad · Gris: sin meta capturada.
       </p>
 
       {/* SECCIÓN 3: Metas manuales y % de comisión */}
       <SectionTitle>Metas mensuales y % de comisión</SectionTitle>
-      <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>% com.</span>
@@ -1300,7 +1306,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           <span>Meta prima neta</span>
         </div>
         {RAMOS.map((ramo) => (
-          <div key={ramo} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", padding: "6px 10px", borderTop: "1px solid #EDEAE0", alignItems: "center", gap: 6 }}>
+          <div key={ramo} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 500 }}>{ramo}</span>
             <input
               type="number" min="0" value={porcentajes[ramo] ?? ""}
@@ -1450,8 +1456,8 @@ function Multicotizador() {
   if (pendingItem && stage === "change") {
     return (
       <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 6 }}>PIN correcto.</p>
-        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>PIN correcto.</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
           Por seguridad, crea tu PIN personal (4 a 8 números). Lo usarás en adelante.
         </p>
         <form onSubmit={handleChangeSubmit}>
@@ -1476,7 +1482,7 @@ function Multicotizador() {
   if (pendingItem) {
     return (
       <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
           "{pendingItem.label}" pide un PIN de acceso.
         </p>
         <form onSubmit={handlePinSubmit}>
@@ -1567,7 +1573,7 @@ function PolizasTab({
           {polizas.map((p) => {
             const href = p.documento && p.documento.path ? urls[p.documento.path] : null;
             return (
-              <div key={p.id} style={{ border: "1px solid var(--line)", borderLeft: `3px solid ${insurerColor(p.aseguradora)}`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+              <div key={p.id} style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: "14px 16px", marginBottom: 10, boxShadow: "var(--shadow)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{p.aseguradora} · {p.ramo}</div>
@@ -1759,7 +1765,7 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
         return (
           <div key={docType} style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "10px 0", borderBottom: "1px solid #E4E0D3", gap: 10,
+            padding: "10px 0", borderBottom: "1px solid var(--line)", gap: 10,
           }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{docType}</div>
@@ -1782,7 +1788,7 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
                   {uploaded.name} — se subió antes de la actualización, vuelve a subirlo para poder abrirlo
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: "#B0AB9A" }}>Pendiente</div>
+                <div style={{ fontSize: 12, color: "#8794A0" }}>Pendiente</div>
 
               )}
             </div>
@@ -1806,7 +1812,7 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
               {uploaded && (
                 <button
                   onClick={() => onRemove(clientId, docType)}
-                  style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, color: "#B23A2E", padding: "0 10px" }}
+                  style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "0 10px" }}
                 >
                   <X size={14} />
                 </button>
@@ -1880,7 +1886,7 @@ function StatChart({ title, data }) {
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h3 className="serif" style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{title}</h3>
-        <div style={{ display: "flex", gap: 2, background: "#E4E0D3", borderRadius: 6, padding: 2 }}>
+        <div style={{ display: "flex", gap: 2, background: "var(--line)", borderRadius: 6, padding: 2 }}>
           {[{ id: "pie", label: "Pastel" }, { id: "bar", label: "Barras" }].map((opt) => (
             <button
               key={opt.id}
@@ -1888,7 +1894,7 @@ function StatChart({ title, data }) {
               style={{
                 border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 600,
                 background: type === opt.id ? "var(--ink)" : "transparent",
-                color: type === opt.id ? "var(--cream)" : "#5B5646",
+                color: type === opt.id ? "var(--cream)" : "var(--muted)",
               }}
             >
               {opt.label}
@@ -1907,7 +1913,7 @@ function StatChart({ title, data }) {
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginBottom: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 8, background: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
                 <span style={{ flex: 1 }}>{label}</span>
-                <span style={{ color: "#5B5646", fontWeight: 600 }}>{count}</span>
+                <span style={{ color: "var(--muted)", fontWeight: 600 }}>{count}</span>
               </div>
             ))}
           </div>
@@ -1918,9 +1924,9 @@ function StatChart({ title, data }) {
         <div key={label} style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
             <span>{label}</span>
-            <span style={{ color: "#5B5646", fontWeight: 600 }}>{count}</span>
+            <span style={{ color: "var(--muted)", fontWeight: 600 }}>{count}</span>
           </div>
-          <div style={{ background: "#E4E0D3", borderRadius: 4, height: 8 }}>
+          <div style={{ background: "var(--line)", borderRadius: 4, height: 8 }}>
             <div style={{
               width: `${(count / max) * 100}%`, background: CHART_COLORS[i % CHART_COLORS.length],
               height: "100%", borderRadius: 4,
@@ -1995,9 +2001,9 @@ function Calendar({ clients }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <button onClick={() => changeMonth(-1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>‹</button>
+        <button onClick={() => changeMonth(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>‹</button>
         <h3 className="serif" style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{MESES_LARGO[viewMonth]} {viewYear}</h3>
-        <button onClick={() => changeMonth(1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>›</button>
+        <button onClick={() => changeMonth(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>›</button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
         {DIAS_SEMANA.map((d, i) => (
@@ -2034,7 +2040,7 @@ function Calendar({ clients }) {
       </div>
 
       {selectedEvents.length > 0 && (
-        <div style={{ marginTop: 16, borderTop: "1px solid #E4E0D3", paddingTop: 12 }}>
+        <div style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
           {selectedEvents.map((ev, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
               <span style={{ width: 8, height: 8, borderRadius: 8, background: TONE_COLOR[ev.tone], flexShrink: 0 }} />
@@ -2115,9 +2121,9 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "4px 10px" }}>‹</button>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#5B5646" }}>{rangeLabel}</span>
-        <button onClick={() => changeWeek(1)} style={{ background: "none", border: "1px solid #DAD5C7", borderRadius: 6, padding: "4px 10px" }}>›</button>
+        <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px" }}>‹</button>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{rangeLabel}</span>
+        <button onClick={() => changeWeek(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px" }}>›</button>
       </div>
 
       {weekDates.map((date, i) => {
@@ -2128,7 +2134,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
         const isAdding = addingFor === dateStr;
 
         return (
-          <div key={dateStr} style={{ marginBottom: 18, borderBottom: "1px solid #E4E0D3", paddingBottom: 14 }}>
+          <div key={dateStr} style={{ marginBottom: 18, borderBottom: "1px solid var(--line)", paddingBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="serif" style={{ fontSize: 14, fontWeight: 700, color: isToday ? "var(--gold)" : "var(--ink)" }}>
@@ -2145,7 +2151,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
             </div>
 
             {reminders.length === 0 && dayActivities.length === 0 && !isAdding && (
-              <p style={{ fontSize: 12, color: "#B0AB9A", margin: 0 }}>Sin actividades.</p>
+              <p style={{ fontSize: 12, color: "#8794A0", margin: 0 }}>Sin actividades.</p>
             )}
 
             {reminders.map((r, j) => (
@@ -2165,7 +2171,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
                   <span style={{ flex: 1 }}>
                     {a.hora && `${a.hora} · `}{a.tipo}: {a.descripcion}{relacionado ? ` (${relacionado})` : ""}
                   </span>
-                  <button onClick={() => onRemoveActivity(a.id)} style={{ background: "none", border: "none", color: "#B0AB9A" }}>
+                  <button onClick={() => onRemoveActivity(a.id)} style={{ background: "none", border: "none", color: "#8794A0" }}>
                     <X size={13} />
                   </button>
                 </div>
@@ -2173,7 +2179,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
             })}
 
             {isAdding && (
-              <div style={{ background: "#FFFFFF", border: "1px solid #DAD5C7", borderRadius: 8, padding: 12, marginTop: 8 }}>
+              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 12, marginTop: 8 }}>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <input
                     type="time"
@@ -2218,6 +2224,63 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
   );
 }
 
+function PanelHoy({ nombre, items, tonos, onVer }) {
+  const h = new Date().getHours();
+  const saludo = h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches";
+  const fecha = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  const primer = (nombre || "").trim().split(" ")[0];
+  const pagos = items.filter((r) => r.tone === "pago").length;
+  const ren = items.filter((r) => r.tone === "renovacion").length;
+  const seg = items.filter((r) => r.tone === "seguimiento").length;
+  const partes = [
+    pagos && `${pagos} pago${pagos === 1 ? "" : "s"}`,
+    ren && `${ren} renovaci${ren === 1 ? "ón" : "ones"}`,
+    seg && `${seg} seguimiento${seg === 1 ? "" : "s"}`,
+  ].filter(Boolean);
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--gold-text)", marginBottom: 8 }}>
+        {fecha}
+      </div>
+      <h2 className="serif" style={{ fontSize: "clamp(26px, 5vw, 34px)", fontWeight: 500, lineHeight: 1.1 }}>
+        {saludo}{primer ? `, ${primer}` : ""}
+      </h2>
+      <p style={{ margin: "8px 0 16px", color: "var(--muted)", fontSize: 14 }}>
+        {items.length === 0 ? "No tienes pendientes para hoy. Buen momento para prospectar." : `Hoy tienes ${partes.join(", ")}${items.length > partes.length && !partes.length ? "" : ""}.`}
+      </p>
+      {items.length > 0 && (
+        <div className="panel" style={{ padding: 6 }}>
+          {items.slice(0, 5).map((r, i) => {
+            const TI = tonos.icon[r.tone] || Bell;
+            return (
+              <button key={i} onClick={onVer} className="row-hover" style={{
+                width: "100%", display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center",
+                background: "none", border: "none", textAlign: "left", padding: "10px 10px", borderRadius: 12,
+              }}>
+                <span style={{ width: 38, height: 38, borderRadius: 11, background: tonos.soft[r.tone], color: tonos.color[r.tone], display: "grid", placeItems: "center" }}>
+                  <TI size={18} />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <b style={{ display: "block", fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.client.nombre}</b>
+                  <small style={{ display: "block", color: "var(--stone)", fontSize: 12.5 }}>
+                    {r.label}{r.pago && r.pago.total > 1 ? ` ${r.pago.numero} de ${r.pago.total}` : ""}{r.pago && r.pago.monto ? ` · ${fmtMonto(r.pago.monto)}` : ""}{r.hora ? ` · ${r.hora}` : ""}
+                  </small>
+                </span>
+                <ChevronDown size={16} color="var(--stone)" style={{ transform: "rotate(-90deg)" }} />
+              </button>
+            );
+          })}
+          {items.length > 5 && (
+            <button onClick={onVer} style={{ width: "100%", background: "none", border: "none", padding: "8px", fontSize: 12.5, fontWeight: 600, color: "var(--info, #2B5C86)" }}>
+              Ver {items.length - 5} más
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({ clients }) {
   const allPolizas = useMemo(() => {
     const list = [];
@@ -2230,14 +2293,14 @@ function Dashboard({ clients }) {
   const topPercent = topRamo && allPolizas.length ? Math.round((topRamo[1] / allPolizas.length) * 100) : 0;
   return (
     <div>
-      <p style={{ fontSize: 13, color: "#5B5646", marginTop: 0, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 0, marginBottom: 20 }}>
         {clients.length} cliente{clients.length === 1 ? "" : "s"} · {allPolizas.length} póliza{allPolizas.length === 1 ? "" : "s"} en total.
       </p>
 
       {topRamo && (
         <div style={{
-          background: "var(--ink)", color: "var(--cream)", borderRadius: 10,
-          padding: "16px 18px", marginBottom: 24,
+          background: "radial-gradient(120% 140% at 0% 0%, #123B5C 0%, var(--ink) 55%, var(--ink-2) 100%)", color: "var(--cream)", borderRadius: 16,
+          padding: "18px 20px", marginBottom: 24, boxShadow: "0 14px 30px -18px rgba(11,42,68,.8)",
         }}>
           <div style={{ fontSize: 11, letterSpacing: 0.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase" }}>
             Tu ramo líder
@@ -3214,11 +3277,18 @@ function migrateClient(c) {
   }
 
   const toneColor = {
-    pago: "#B23A2E",
-    renovacion: "var(--gold)",
+    pago: "#A33A2D",
+    renovacion: "#8F5E0B",
     cumple: "var(--emerald)",
-    seguimiento: "#4A6FA5",
+    seguimiento: "#2B5C86",
   };
+  const toneSoft = {
+    pago: "#F6DEDA",
+    renovacion: "#F8E9C8",
+    cumple: "#DCEEE7",
+    seguimiento: "#DDE9F4",
+  };
+  const toneIcon = { pago: CreditCard, renovacion: CalendarClock, cumple: Heart, seguimiento: UserPlus };
 
   const baseStyles = (
     <style>{`
@@ -3238,7 +3308,7 @@ function migrateClient(c) {
   if (!profile || showEditProfile) {
     return (
       <div className="min-h-dvh" style={{
-        fontFamily: "'Inter', system-ui, sans-serif", background: "var(--cream)",
+        fontFamily: "'Manrope', system-ui, sans-serif", background: "var(--cream)",
         color: "var(--ink)", display: "flex", flexDirection: "column",
       }}>
         {baseStyles}
@@ -3259,7 +3329,7 @@ function migrateClient(c) {
           <h1 className="serif" style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
             {profile ? "Editar perfil" : "Bienvenido"}
           </h1>
-          <p style={{ fontSize: 13, color: "#5B5646", marginTop: 0, marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 0, marginBottom: 20 }}>
             {profile
               ? "Actualiza tus datos de agente."
               : "Ingresa tus datos para identificarte como agente. Se usarán para firmar tus mensajes de recordatorio."}
@@ -3290,14 +3360,14 @@ function migrateClient(c) {
             <button
               type="button"
               onClick={() => { setShowEditProfile(false); setProfileError(""); }}
-              style={{ width: "100%", background: "none", border: "none", color: "#5B5646", padding: "10px", fontSize: 13, marginTop: 4 }}
+              style={{ width: "100%", background: "none", border: "none", color: "var(--muted)", padding: "10px", fontSize: 13, marginTop: 4 }}
             >
               Cancelar
             </button>
           )}
           </div>
           {!profile && (
-            <p style={{ fontSize: 11, color: "#B0AB9A", marginTop: 32, textAlign: "center" }}>
+            <p style={{ fontSize: 11, color: "#8794A0", marginTop: 32, textAlign: "center" }}>
               Desarrollado por Joshua Lechuga en colaboración con Claude
             </p>
           )}
@@ -3309,40 +3379,119 @@ function migrateClient(c) {
 
   return (
     <div className="min-h-dvh" style={{
-      fontFamily: "'Inter', system-ui, sans-serif",
+      fontFamily: "'Manrope', system-ui, sans-serif",
       background: "var(--cream)",
       color: "var(--ink)",
     }}>
       {baseStyles}
 
-      <header style={{
-        padding: "14px 20px",
-        borderBottom: "1px solid var(--line)",
-        display: "flex", flexWrap: "wrap", rowGap: 12,
-        alignItems: "center", justifyContent: "space-between",
-      }}>
+      <div className="app-shell">
+        <aside className={"app-side" + (menuOpen ? " on" : "")} aria-label="Menú principal">
+          <div className="side-brand">
+            <div className="side-mono">JL</div>
+            <div style={{ flex: 1 }}>
+              <b>J L Consultoría<br />Patrimonial</b>
+              <small>CREAMOS TRANQUILIDAD</small>
+            </div>
+            <button className="side-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" style={{ background: "none", border: "none", color: "#8EA3B6", alignSelf: "flex-start" }}>
+              <X size={18} />
+            </button>
+          </div>
+          {NAV_GROUPS.map((g) => (
+            <div className="side-group" key={g.title}>
+              <h4>{g.title}</h4>
+              {g.ids.map((id) => {
+                const item = NAV_ITEMS.find((n) => n.id === id);
+                if (!item) return null;
+                const externalUrl = NAV_EXTERNAL_LINKS[item.id];
+                const isActive = tab === item.id;
+                const Icon = item.icon;
+                const inner = (
+                  <>
+                    {Icon && <Icon size={18} style={{ flexShrink: 0 }} />}
+                    <span>{item.label}</span>
+                    {item.id === "recordatorios" && remindersHoy.length > 0 && (
+                      <span className="side-badge">{remindersHoy.length}</span>
+                    )}
+                  </>
+                );
+                if (externalUrl) {
+                  return (
+                    <a key={item.id} href={externalUrl} target="_blank" rel="noreferrer"
+                      onClick={() => setMenuOpen(false)} className="side-link">
+                      {inner}
+                    </a>
+                  );
+                }
+                return (
+                  <button key={item.id} onClick={() => { setTab(item.id); setMenuOpen(false); }}
+                    className={"side-link" + (isActive ? " active" : "")} aria-current={isActive ? "page" : undefined}>
+                    {inner}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+          <div style={{ flex: 1, minHeight: 16 }} />
+          <div style={{ borderTop: "1px solid rgba(255,255,255,.1)", margin: "8px 0 12px" }} />
+          <button
+            onClick={() => { handleExportExcel(); setMenuOpen(false); }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              background: "rgba(143,217,196,.08)", color: "#8FD9C4",
+              border: "1px solid rgba(143,217,196,.35)", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <Download size={15} /> Exportar a Excel
+          </button>
+          <button
+            onClick={() => { supabase.auth.signOut(); setMenuOpen(false); }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              background: "none", color: "#E7A08F",
+              border: "1px solid rgba(231,160,143,.35)", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 600,
+              marginTop: 8,
+            }}
+          >
+            <LogOut size={15} /> Cerrar sesión
+          </button>
+          <a
+            href="https://paypal.me/JoshuaLep13" target="_blank" rel="noreferrer"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              color: "#8EA3B6", textDecoration: "none", borderRadius: 6, padding: "10px 14px", fontSize: 12, fontWeight: 500, marginTop: 10,
+            }}
+          >
+            <Heart size={13} /> Agradecimientos al desarrollador
+          </a>
+        </aside>
+        {menuOpen && <div className="app-scrim" onClick={() => setMenuOpen(false)} />}
+
+        <div className="app-main">
+      <header className="app-top">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
             onClick={() => setMenuOpen(true)}
-            style={{ background: "none", border: "none", padding: 4, display: "flex" }}
+            className="icon-btn menu-btn"
             aria-label="Abrir menú"
           >
             <Menu size={22} />
           </button>
-          <h1 className="serif" style={{ fontSize: 19, fontWeight: 700, margin: 0 }}>
+          <h1 className="serif top-title">
             {NAV_ITEMS.find((n) => n.id === tab)?.label || "Ledger de pólizas"}
           </h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
           <button
             onClick={() => setShowNotifs((s) => !s)}
-            style={{ background: "none", border: "none", padding: 4, display: "flex", position: "relative" }}
+            className="icon-btn"
             aria-label="Notificaciones"
           >
-            <Bell size={19} color="var(--ink)" />
+            <Bell size={18} color="var(--ink)" />
             {remindersHoy.length > 0 && (
               <span style={{
-                position: "absolute", top: -2, right: -2, background: "#B23A2E", color: "#fff",
+                position: "absolute", top: -5, right: -5, background: "#B23A2E", color: "#fff", border: "2px solid var(--cream)",
                 fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 15, height: 15,
                 display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
               }}>
@@ -3352,7 +3501,7 @@ function migrateClient(c) {
           </button>
           <button
             onClick={() => { setProfileForm({ nombre: profile.nombre, correo: profile.correo }); setShowEditProfile(true); }}
-            style={{ background: "none", border: "none", fontSize: 12, color: "#5B5646", padding: "4px 0" }}
+            style={{ background: "none", border: "none", fontSize: 13, fontWeight: 600, color: "var(--ink)", padding: "4px 0" }}
           >
             {profile.nombre}
           </button>
@@ -3426,108 +3575,7 @@ function migrateClient(c) {
         </div>
       </header>
 
-      {menuOpen && (
-        <div
-          onClick={() => setMenuOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)", zIndex: 20 }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: "absolute", top: 0, left: 0, bottom: 0, width: 260,
-              background: "var(--ink)", padding: "20px 14px", boxShadow: "2px 0 12px rgba(0,0,0,0.15)",
-              display: "flex", flexDirection: "column",
-              overflowY: "auto", WebkitOverflowScrolling: "touch",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, padding: "0 6px" }}>
-              <h2 className="serif" style={{ fontSize: 17, margin: 0, color: "#F3EFE3", fontWeight: 500 }}>Ledger de pólizas</h2>
-              <button onClick={() => setMenuOpen(false)} style={{ background: "none", border: "none", color: "#B7BCC9" }}>
-                <X size={18} />
-              </button>
-            </div>
-            {NAV_ITEMS.map((item) => {
-              const externalUrl = NAV_EXTERNAL_LINKS[item.id];
-              const isActive = tab === item.id;
-              const Icon = item.icon;
-              const itemStyle = {
-                position: "relative",
-                display: "flex", alignItems: "center", gap: 10,
-                textAlign: "left", background: isActive ? "rgba(255,255,255,.07)" : "none",
-                color: isActive ? "#F7F5EE" : "#B7BCC9",
-                border: "none", borderRadius: 7, padding: "10px 12px", fontSize: 13.5, fontWeight: 500,
-                marginBottom: 2, textDecoration: "none",
-              };
-              const inner = (
-                <>
-                  {isActive && (
-                    <span style={{ position: "absolute", left: 0, top: 8, bottom: 8, width: 3, borderRadius: 2, background: "var(--gold)" }} />
-                  )}
-                  {Icon && <Icon size={16} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.85 }} />}
-                  <span>{item.label}</span>
-                </>
-              );
-              if (externalUrl) {
-                return (
-                  <a
-                    key={item.id} href={externalUrl} target="_blank" rel="noreferrer"
-                    onClick={() => setMenuOpen(false)}
-                    style={itemStyle}
-                  >
-                    {inner}
-                  </a>
-                );
-              }
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => { setTab(item.id); setMenuOpen(false); }}
-                  style={itemStyle}
-                >
-                  {inner}
-                </button>
-              );
-            })}
-            <div style={{ flex: 1 }} />
-            <div style={{ borderTop: "1px solid rgba(255,255,255,.1)", margin: "8px 0 12px" }} />
-            <button
-              onClick={() => { handleExportExcel(); setMenuOpen(false); }}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#8FD9C4",
-                border: "1px solid rgba(143,217,196,.4)", borderRadius: 6, padding: "12px 14px", fontSize: 13, fontWeight: 600,
-              }}
-            >
-              <Download size={15} /> Exportar a Excel
-            </button>
-            <button
-              onClick={() => { supabase.auth.signOut(); setMenuOpen(false); }}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#E7A08F",
-                border: "1px solid rgba(231,160,143,.4)", borderRadius: 6, padding: "12px 14px", fontSize: 13, fontWeight: 600,
-                marginTop: 8,
-              }}
-            >
-              <LogOut size={15} /> Cerrar sesión
-            </button>
-            <a
-              href="https://paypal.me/JoshuaLep13" target="_blank" rel="noreferrer"
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                textAlign: "left", background: "none", color: "#8991A3", textDecoration: "none",
-                border: "none", borderRadius: 6, padding: "10px 14px", fontSize: 12, fontWeight: 500,
-                marginTop: 10,
-              }}
-            >
-              <Heart size={13} /> Agradecimientos al desarrollador
-            </a>
-          </div>
-        </div>
-      )}
-
-      <main style={{ padding: 20, maxWidth: 640, margin: "0 auto" }}>
+      <main className="app-content">
         {tab === "planificador" && (
           <Planificador
             clients={clients}
@@ -3577,13 +3625,18 @@ function migrateClient(c) {
                   <button
                     onClick={() => setExpandedReminderGroups((g) => ({ ...g, [tone]: !g[tone] }))}
                     style={{
-                      width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                      background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${toneColor[tone]}`,
-                      borderRadius: 8, padding: "12px 14px",
+                      width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+                      background: "#FFFFFF", border: "1px solid var(--line)",
+                      borderRadius: 14, padding: "11px 14px", boxShadow: "var(--shadow)",
                     }}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
-                      {label} <span style={{ color: "var(--stone)", fontWeight: 500 }}>({items.length})</span>
+                    {(() => { const TI = toneIcon[tone]; return (
+                      <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: toneSoft[tone], color: toneColor[tone], display: "grid", placeItems: "center" }}>
+                        <TI size={17} />
+                      </span>
+                    ); })()}
+                    <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: "var(--ink)" }}>
+                      {label} <span style={{ color: "var(--stone)", fontWeight: 500 }}>· {items.length}</span>
                     </span>
                     <ChevronDown size={16} color="var(--stone)" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
                   </button>
@@ -3597,16 +3650,18 @@ function migrateClient(c) {
                             flexDirection: "column",
                             gap: 8,
                             padding: "14px 4px",
-                            borderBottom: "1px solid #E4E0D3",
+                            borderBottom: "1px solid var(--line)",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{
-                              width: 4, alignSelf: "stretch", background: toneColor[r.tone], borderRadius: 2,
-                            }} />
+                            {(() => { const TI = toneIcon[r.tone] || Bell; return (
+                              <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: toneSoft[r.tone], color: toneColor[r.tone], display: "grid", placeItems: "center" }}>
+                                <TI size={18} />
+                              </div>
+                            ); })()}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 15, fontWeight: 600 }}>{r.client.nombre}</div>
-                              <div style={{ fontSize: 13, color: "#5B5646" }}>
+                              <div style={{ fontSize: 13, color: "var(--muted)" }}>
                                 {r.label}{r.pago && r.pago.total > 1 ? ` ${r.pago.numero} de ${r.pago.total}` : ""}{r.pago && r.pago.monto ? ` · ${fmtMonto(r.pago.monto)}` : ""}{r.policy?.numeroPoliza ? ` · Póliza ${r.policy.numeroPoliza}` : ""} · {fmtDate(r.date)}{r.hora ? ` ${r.hora}` : ""} · {r.days === 0 ? "hoy" : `en ${r.days} día${r.days === 1 ? "" : "s"}`}
                               </div>
                             </div>
@@ -3645,7 +3700,7 @@ function migrateClient(c) {
                               {expandedPagosFuturos[r.groupKey] && (
                                 <div style={{ marginTop: 6 }}>
                                   {r.proximos.map((f) => (
-                                    <div key={f.date} style={{ fontSize: 12, color: "#5B5646", padding: "3px 0" }}>
+                                    <div key={f.date} style={{ fontSize: 12, color: "var(--muted)", padding: "3px 0" }}>
                                       Pago {f.pago.numero} de {f.pago.total} · {fmtDate(f.date)} · {fmtMonto(f.pago.monto)}
                                     </div>
                                   ))}
@@ -3663,7 +3718,17 @@ function migrateClient(c) {
           </div>
         )}
 
-        {tab === "dashboard" && <Dashboard clients={clients} />}
+        {tab === "dashboard" && (
+          <>
+            <PanelHoy
+              nombre={profile?.nombre}
+              items={reminders.filter((r) => r.days === 0)}
+              tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
+              onVer={() => setTab("recordatorios")}
+            />
+            <Dashboard clients={clients} />
+          </>
+        )}
 
         {tab === "clientes" && (
           <div>
@@ -3701,25 +3766,32 @@ function migrateClient(c) {
                     <button
                       onClick={() => setExpandedClientGroups((g) => ({ ...g, [nombreGrupo]: !g[nombreGrupo] }))}
                       style={{
-                        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                        background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${insurerColor(nombreGrupo)}`,
-                        borderRadius: 8, padding: "12px 14px",
+                        width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+                        background: "#FFFFFF", border: "1px solid var(--line)",
+                        borderRadius: 14, padding: "11px 14px", boxShadow: "var(--shadow)",
                       }}
                     >
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>
-                        {nombreGrupo} <span style={{ color: "var(--stone)", fontWeight: 500 }}>({grupos[nombreGrupo].length})</span>
+                      <span style={{
+                        width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: insurerColor(nombreGrupo), color: "#fff",
+                        display: "grid", placeItems: "center", fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15,
+                      }}>
+                        {nombreGrupo.charAt(0).toUpperCase()}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: "var(--ink)" }}>
+                        {nombreGrupo} <span style={{ color: "var(--stone)", fontWeight: 500 }}>· {grupos[nombreGrupo].length} cliente{grupos[nombreGrupo].length === 1 ? "" : "s"}</span>
                       </span>
                       <ChevronDown size={16} color="var(--stone)" style={{ transform: grupoAbierto ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
                     </button>
                     {grupoAbierto && grupos[nombreGrupo].map((c) => {
               const isOpen = expandedId === c.id;
               return (
-                <div key={c.id} style={{ borderBottom: "1px solid #E4E0D3" }}>
+                <div key={c.id} style={{ borderBottom: "1px solid var(--line)" }}>
                   <button
                     onClick={() => toggleExpand(c)}
+                    className="row-hover"
                     style={{
-                      width: "100%", background: "none", border: "none", textAlign: "left",
-                      padding: "14px 4px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                      width: "100%", background: "none", border: "none", textAlign: "left", borderRadius: 12,
+                      padding: "14px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
                     }}
                   >
                     {(() => {
@@ -3737,7 +3809,7 @@ function migrateClient(c) {
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 600 }}>{c.nombre}</div>
-                            <div style={{ fontSize: 13, color: "#5B5646", marginTop: 2 }}>
+                            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>
                               {primaria
                                 ? <>{primaria.aseguradora} · {primaria.ramo} {primaria.numeroPoliza && `· Póliza ${primaria.numeroPoliza}`}{polizas.length > 1 && ` · +${polizas.length - 1} más`}</>
                                 : "Sin pólizas registradas"}
@@ -3781,7 +3853,7 @@ function migrateClient(c) {
                         <button
                           onClick={() => removeClient(c.id)}
                           style={{
-                            background: "none", border: "1px solid #DAD5C7", color: "#B23A2E",
+                            background: "none", border: "1px solid var(--line)", color: "#B23A2E",
                             borderRadius: 6, padding: "10px 14px",
                           }}
                           aria-label="Eliminar cliente"
@@ -3789,7 +3861,7 @@ function migrateClient(c) {
                           <Trash2 size={16} />
                         </button>
                       </div>
-                      <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #E4E0D3" }}>
+                      <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid var(--line)" }}>
                         {[
                           { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
                           { id: "documentos", label: "Documentos Artículo 492" },
@@ -3922,6 +3994,23 @@ function migrateClient(c) {
           </div>
         )}
       </main>
+        </div>
+      </div>
+
+      <nav className="app-tabbar" aria-label="Accesos rápidos">
+        {[
+          { id: "dashboard", label: "Inicio", Icon: LayoutDashboard },
+          { id: "clientes", label: "Clientes", Icon: Users },
+          { id: "recordatorios", label: "Avisos", Icon: Bell },
+          { id: "prospectos", label: "Prospectos", Icon: UserPlus },
+        ].map(({ id, label, Icon }) => (
+          <button key={id} onClick={() => setTab(id)} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined}>
+            <Icon size={20} />
+            {label}
+            {id === "recordatorios" && remindersHoy.length > 0 && <span className="tb-badge">{remindersHoy.length}</span>}
+          </button>
+        ))}
+      </nav>
 
       {showForm && (
         <div style={{
@@ -4045,7 +4134,7 @@ function migrateClient(c) {
         }}>
           <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 22, maxWidth: 360, width: "100%" }}>
             <h3 className="serif" style={{ fontSize: 16, margin: "0 0 10px" }}>Falta la prima anual</h3>
-            <p style={{ fontSize: 13, color: "#5B5646", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>
               No se ha colocado la información del costo de la prima anual. Puedes corregirlo y llenar ese campo,
               o guardar a esta persona como prospecto mientras consigues el dato.
             </p>
@@ -4061,7 +4150,7 @@ function migrateClient(c) {
             <button
               onClick={guardarComoProspectoDesdeForm}
               style={{
-                width: "100%", background: "none", color: "var(--ink)", border: "1px solid #DAD5C7",
+                width: "100%", background: "none", color: "var(--ink)", border: "1px solid var(--line)",
                 borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600,
               }}
             >
@@ -4071,7 +4160,7 @@ function migrateClient(c) {
         </div>
       )}
 
-      <p style={{ textAlign: "center", fontSize: 10, color: "#B0AB9A", padding: "16px 10px 24px" }}>
+      <p className="app-foot">
         © 2026 J L Consultoría Patrimonial
       </p>
     </div>
