@@ -3,6 +3,7 @@ import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOu
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
+import Comparativo from "./Comparativo.jsx";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
 
 const DOCS_BUCKET = "documentos";
@@ -1346,7 +1347,8 @@ function SectionTitle({ children }) {
   );
 }
 
-function Multicotizador() {
+function Multicotizador({ profile, tarjeta }) {
+  const [vista, setVista] = useState("cotizadores"); // cotizadores | comparativo
   const [path, setPath] = useState([]);
   const [pendingItem, setPendingItem] = useState(null);
   const [unlocked, setUnlocked] = useState([]);
@@ -1505,8 +1507,36 @@ function Multicotizador() {
     );
   }
 
+  const tabsVista = (
+    <div role="tablist" style={{ display: "flex", gap: 6, margin: "0 auto 18px", maxWidth: vista === "comparativo" ? 980 : 640 }}>
+      {[["cotizadores", "Cotizadores"], ["comparativo", "Comparativo"]].map(([id, label]) => (
+        <button
+          key={id} role="tab" aria-selected={vista === id} onClick={() => setVista(id)}
+          style={{
+            padding: "8px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600,
+            border: vista === id ? "1px solid var(--ink)" : "1px solid var(--line)",
+            background: vista === id ? "var(--ink)" : "#FFFFFF",
+            color: vista === id ? "var(--cream)" : "var(--ink)",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (vista === "comparativo") {
+    return (
+      <div>
+        {tabsVista}
+        <Comparativo profile={profile} tarjeta={tarjeta} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      {tabsVista}
       <h3 className="serif" style={{ fontSize: 18, color: "var(--ink)", margin: "0 0 4px", fontWeight: 500 }}>
         {path.length === 0 ? "Multicotizador" : path[path.length - 1]}
       </h3>
@@ -4253,7 +4283,7 @@ function migrateClient(c) {
           />
         )}
 
-        {tab === "multicotizador" && <Multicotizador />}
+        {tab === "multicotizador" && <Multicotizador profile={profile} tarjeta={tarjeta} />}
 
         {docError && (
           <div style={{
