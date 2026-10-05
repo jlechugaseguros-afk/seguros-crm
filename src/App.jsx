@@ -719,8 +719,8 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
       })}
 
       {showForm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10 }}>
-          <form onSubmit={submitAdd} style={{ background: "var(--cream)", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto" }}>
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10 }}>
+          <form className="sheet-up" onSubmit={submitAdd} style={{ background: "var(--cream)", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 className="serif" style={{ fontSize: 18, margin: 0 }}>Nuevo prospecto</h2>
               <button type="button" onClick={() => setShowForm(false)} style={{ background: "none", border: "none" }}><X size={20} /></button>
@@ -811,8 +811,8 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
       )}
 
       {perdidoTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 20 }}>
-          <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 22, maxWidth: 360, width: "100%" }}>
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 20 }}>
+          <div className="dialog-in" style={{ background: "#FFFFFF", borderRadius: 16, padding: 22, maxWidth: 360, width: "100%" }}>
             <h3 className="serif" style={{ fontSize: 16, margin: "0 0 14px" }}>¿Por qué se perdió?</h3>
             <Field label="Motivo">
               <select value={motivoPerdido} onChange={(e) => setMotivoPerdido(e.target.value)} style={inputStyle}>
@@ -1854,7 +1854,7 @@ function PieChart({ data, size = 180 }) {
   if (conValor.length === 1) {
     const idx = data.findIndex(([label]) => label === conValor[0][0]);
     return (
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg className="chart-in" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={cx} cy={cy} r={r} fill={CHART_COLORS[idx % CHART_COLORS.length]} stroke="var(--cream)" strokeWidth="1.5" />
         <circle cx={cx} cy={cy} r={r * 0.55} fill="var(--cream)" />
       </svg>
@@ -1872,7 +1872,7 @@ function PieChart({ data, size = 180 }) {
     return { path, color: CHART_COLORS[i % CHART_COLORS.length], label, count };
   });
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg className="chart-in" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="var(--cream)" strokeWidth="1.5" />)}
       <circle cx={cx} cy={cy} r={r * 0.55} fill="var(--cream)" />
     </svg>
@@ -1927,7 +1927,7 @@ function StatChart({ title, data }) {
             <span style={{ color: "var(--muted)", fontWeight: 600 }}>{count}</span>
           </div>
           <div style={{ background: "var(--line)", borderRadius: 4, height: 8 }}>
-            <div style={{
+            <div className="grow-x" style={{
               width: `${(count / max) * 100}%`, background: CHART_COLORS[i % CHART_COLORS.length],
               height: "100%", borderRadius: 4,
             }} />
@@ -2224,7 +2224,40 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
   );
 }
 
-function PanelHoy({ nombre, items, tonos, onVer }) {
+// Número que sube animado hasta su valor (respeta "reducir movimiento").
+function CountUp({ value, prefix = "", suffix = "", decimals = 0, duration = 900 }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const target = Number(value) || 0;
+    if (reduce || !target) { setN(target); return undefined; }
+    let raf; let start;
+    const tick = (t) => {
+      if (start === undefined) start = t;
+      const k = Math.min(1, (t - start) / duration);
+      setN(target * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <>{prefix}{n.toLocaleString("es-MX", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}</>;
+}
+
+// Comisiones del mes por ramo (misma regla que la pestaña Comisiones).
+function comisionesDelMes(clients, metas, porcentajes, mes) {
+  const polizas = [];
+  clients.forEach((c) => (c.polizas || []).forEach((p) => polizas.push(p)));
+  return RAMOS.map((ramo) => {
+    const del = polizas.filter((p) => p.ramo === ramo && p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0);
+    const prima = del.reduce((s, p) => s + Number(p.primaAnual || 0), 0);
+    const pct = Number(porcentajes[ramo] || 0);
+    const metaP = Number((metas[ramo] || {}).metaPolizas || 0);
+    return { ramo, num: del.length, prima, pct, comision: (prima * pct) / 100, metaP, avance: metaP > 0 ? (del.length / metaP) * 100 : null };
+  });
+}
+
+function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
   const h = new Date().getHours();
   const saludo = h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches";
   const fecha = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
@@ -2232,13 +2265,17 @@ function PanelHoy({ nombre, items, tonos, onVer }) {
   const pagos = items.filter((r) => r.tone === "pago").length;
   const ren = items.filter((r) => r.tone === "renovacion").length;
   const seg = items.filter((r) => r.tone === "seguimiento").length;
+  const cum = items.filter((r) => r.tone === "cumple").length;
   const partes = [
     pagos && `${pagos} pago${pagos === 1 ? "" : "s"}`,
     ren && `${ren} renovaci${ren === 1 ? "ón" : "ones"}`,
     seg && `${seg} seguimiento${seg === 1 ? "" : "s"}`,
+    cum && `${cum} cumpleaños`,
+    agenda.length && `${agenda.length} actividad${agenda.length === 1 ? "" : "es"} en tu agenda`,
   ].filter(Boolean);
+  const total = items.length + agenda.length;
   return (
-    <div style={{ marginBottom: 22 }}>
+    <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--gold-text)", marginBottom: 8 }}>
         {fecha}
       </div>
@@ -2246,10 +2283,10 @@ function PanelHoy({ nombre, items, tonos, onVer }) {
         {saludo}{primer ? `, ${primer}` : ""}
       </h2>
       <p style={{ margin: "8px 0 16px", color: "var(--muted)", fontSize: 14 }}>
-        {items.length === 0 ? "No tienes pendientes para hoy. Buen momento para prospectar." : `Hoy tienes ${partes.join(", ")}${items.length > partes.length && !partes.length ? "" : ""}.`}
+        {total === 0 ? "No tienes pendientes para hoy. Buen momento para prospectar." : `Hoy tienes ${partes.join(", ")}.`}
       </p>
-      {items.length > 0 && (
-        <div className="panel" style={{ padding: 6 }}>
+      {total > 0 && (
+        <div className="panel stagger" style={{ padding: 6 }}>
           {items.slice(0, 5).map((r, i) => {
             const TI = tonos.icon[r.tone] || Bell;
             return (
@@ -2271,17 +2308,41 @@ function PanelHoy({ nombre, items, tonos, onVer }) {
             );
           })}
           {items.length > 5 && (
-            <button onClick={onVer} style={{ width: "100%", background: "none", border: "none", padding: "8px", fontSize: 12.5, fontWeight: 600, color: "var(--info, #2B5C86)" }}>
+            <button onClick={onVer} style={{ width: "100%", background: "none", border: "none", padding: "8px", fontSize: 12.5, fontWeight: 600, color: "#2B5C86" }}>
               Ver {items.length - 5} más
             </button>
           )}
+          {agenda.map((a) => (
+            <div key={a.id} style={{ display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "10px 10px" }}>
+              <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--gold-soft)", color: "var(--gold-text)", display: "grid", placeItems: "center" }}>
+                <CalendarDays size={18} />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <b style={{ display: "block", fontSize: 14, fontWeight: 600 }}>{a.tipo || "Actividad"}</b>
+                <small style={{ display: "block", color: "var(--stone)", fontSize: 12.5 }}>{a.descripcion || "Planificador"}</small>
+              </span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>{a.hora || ""}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function Dashboard({ clients }) {
+function DashPanel({ title, hint, children, action }) {
+  return (
+    <section className="panel lift" style={{ padding: "16px 18px 18px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+        <h3 className="serif" style={{ fontSize: 17, fontWeight: 500 }}>{title}</h3>
+        {action || (hint && <small style={{ color: "var(--stone)", fontSize: 12 }}>{hint}</small>)}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo }) {
   const allPolizas = useMemo(() => {
     const list = [];
     clients.forEach((c) => (c.polizas || []).forEach((p) => list.push(p)));
@@ -2291,31 +2352,160 @@ function Dashboard({ clients }) {
   const byAseguradora = countBy(allPolizas, "aseguradora");
   const topRamo = byRamo[0];
   const topPercent = topRamo && allPolizas.length ? Math.round((topRamo[1] / allPolizas.length) * 100) : 0;
+
+  const hoy = todayStr();
+  const mes = hoy.slice(0, 7);
+  const [, mesNum] = mes.split("-").map(Number);
+  const filas = useMemo(() => comisionesDelMes(clients, metas || {}, porcentajes || {}, mes), [clients, metas, porcentajes, mes]);
+  const totalComision = filas.reduce((s, r) => s + r.comision, 0);
+  const totalNum = filas.reduce((s, r) => s + r.num, 0);
+  const totalPrimaMes = filas.reduce((s, r) => s + r.prima, 0);
+  const metaPolizas = filas.reduce((s, r) => s + r.metaP, 0);
+  const avanceTotal = metaPolizas > 0 ? Math.min(100, (totalNum / metaPolizas) * 100) : null;
+  const primaCartera = allPolizas.reduce((s, p) => s + (Number(p.primaAnual) || 0), 0);
+  const maxPrima = Math.max(1, ...filas.map((r) => r.prima));
+  const semaforo = (r) => (r.avance === null ? "var(--gold)" : r.avance >= 100 ? "var(--emerald)" : r.avance >= 50 ? "var(--gold)" : "#B23A2E");
+
+  const itemsHoy = reminders.filter((r) => r.days === 0);
+  const agenda = (activities || []).filter((a) => a.fecha === hoy && !a.prospectoId).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+  const proximos = reminders.filter((r) => r.days >= 1 && r.days <= 7).slice(0, 8);
+  const pipeline = ESTADOS_PROSPECTO.map((e) => [e, (prospectos || []).filter((p) => p.estado === e).length]).filter(([, n]) => n > 0);
+  const totalProspectos = pipeline.reduce((s, [, n]) => s + n, 0);
+
   return (
-    <div>
-      <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 0, marginBottom: 20 }}>
-        {clients.length} cliente{clients.length === 1 ? "" : "s"} · {allPolizas.length} póliza{allPolizas.length === 1 ? "" : "s"} en total.
-      </p>
+    <div className="dash-grid">
+      <div className="dash-col stagger">
+        <PanelHoy nombre={nombre} items={itemsHoy} agenda={agenda} tonos={tonos} onVer={() => onGo("recordatorios")} />
 
-      {topRamo && (
-        <div style={{
-          background: "radial-gradient(120% 140% at 0% 0%, #123B5C 0%, var(--ink) 55%, var(--ink-2) 100%)", color: "var(--cream)", borderRadius: 16,
-          padding: "18px 20px", marginBottom: 24, boxShadow: "0 14px 30px -18px rgba(11,42,68,.8)",
-        }}>
-          <div style={{ fontSize: 11, letterSpacing: 0.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase" }}>
-            Tu ramo líder
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-            <span className="serif" style={{ fontSize: 22, fontWeight: 700 }}>{topRamo[0]}</span>
-            <span style={{ fontSize: 13, color: "#D8D3C4" }}>{topRamo[1]} póliza{topRamo[1] === 1 ? "" : "s"} · {topPercent}% de tu cartera</span>
-          </div>
-        </div>
-      )}
+        <DashPanel title="Próximos 7 días" hint={proximos.length ? `${proximos.length} aviso${proximos.length === 1 ? "" : "s"}` : ""}>
+          {proximos.length === 0 ? (
+            <p style={{ color: "var(--stone)", fontSize: 13 }}>Nada programado para la próxima semana.</p>
+          ) : proximos.map((r, i) => {
+            const TI = tonos.icon[r.tone] || Bell;
+            return (
+              <button key={i} onClick={() => onGo("recordatorios")} className="row-hover" style={{
+                width: "100%", display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center",
+                background: "none", border: "none", textAlign: "left", padding: "8px 6px", borderRadius: 10,
+              }}>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: tonos.soft[r.tone], color: tonos.color[r.tone], display: "grid", placeItems: "center" }}>
+                  <TI size={16} />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <b style={{ display: "block", fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.client.nombre}</b>
+                  <small style={{ display: "block", color: "var(--stone)", fontSize: 12 }}>
+                    {r.label}{r.pago && r.pago.total > 1 ? ` ${r.pago.numero} de ${r.pago.total}` : ""}{r.pago && r.pago.monto ? ` · ${fmtMonto(r.pago.monto)}` : ""}
+                  </small>
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
+                  {r.days === 1 ? "mañana" : `en ${r.days} días`}
+                </span>
+              </button>
+            );
+          })}
+        </DashPanel>
 
-      <StatChart title="Por ramo" data={byRamo} />
-      <StatChart title="Por aseguradora" data={byAseguradora} />
-      <h3 className="serif" style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Calendario de recordatorios</h3>
-      <Calendar clients={clients} />
+        <DashPanel title="Cartera por ramo y aseguradora" hint={`${allPolizas.length} póliza${allPolizas.length === 1 ? "" : "s"}`}>
+          <StatChart title="Por ramo" data={byRamo} />
+          <StatChart title="Por aseguradora" data={byAseguradora} />
+        </DashPanel>
+
+        <DashPanel title="Calendario de recordatorios">
+          <Calendar clients={clients} />
+        </DashPanel>
+      </div>
+
+      <div className="dash-col stagger">
+        <section className="panel lift" style={{ padding: "18px 20px 20px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--gold-text)" }}>
+            Comisiones de {MESES_LARGO[mesNum - 1].toLowerCase()}
+          </div>
+          <div className="serif" style={{ fontSize: "clamp(34px, 5vw, 44px)", fontWeight: 500, letterSpacing: "-.02em", lineHeight: 1, margin: "8px 0 4px" }}>
+            <CountUp value={totalComision} prefix="$" />
+          </div>
+          <small style={{ color: "var(--muted)" }}>
+            {totalNum === 0
+              ? "Aún no hay pólizas contratadas este mes."
+              : `${totalNum} póliza${totalNum === 1 ? "" : "s"} · prima $${totalPrimaMes.toLocaleString("es-MX")}${avanceTotal !== null ? ` · meta ${metaPolizas} pólizas (${Math.round(avanceTotal)} %)` : ""}`}
+          </small>
+          {avanceTotal !== null && <div className="meter"><i className="grow-x" style={{ width: `${avanceTotal}%` }} /></div>}
+          <div style={{ marginTop: 14 }}>
+            {filas.filter((r) => r.num > 0 || r.metaP > 0).map((r) => (
+              <div key={r.ramo} style={{ display: "grid", gridTemplateColumns: "minmax(70px, 96px) minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "6px 0" }}>
+                <span style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  <i style={{ width: 9, height: 9, borderRadius: "50%", background: semaforo(r), flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.ramo.replace(" (PPR)", "")}</span>
+                </span>
+                <span style={{ height: 8, borderRadius: 99, background: "var(--cream-2)", overflow: "hidden" }}>
+                  <i className="grow-x" style={{ display: "block", height: "100%", borderRadius: 99, background: semaforo(r), width: `${Math.max(4, (r.prima / maxPrima) * 100)}%` }} />
+                </span>
+                <small style={{ color: "var(--muted)", fontWeight: 600, whiteSpace: "nowrap" }}>${Math.round(r.comision).toLocaleString("es-MX")} · {r.pct} %</small>
+              </div>
+            ))}
+            {totalNum === 0 && (
+              <button onClick={() => onGo("clientes")} className="btn-soft" style={{ marginTop: 10 }}>
+                <Plus size={15} /> Registrar un cliente
+              </button>
+            )}
+          </div>
+          <button onClick={() => onGo("comisiones")} className="link-btn" style={{ marginTop: 12 }}>Ver detalle y metas</button>
+        </section>
+
+        <DashPanel title="Mi cartera">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10 }}>
+            {[
+              ["Clientes", clients.length, ""],
+              ["Pólizas", allPolizas.length, ""],
+              ["Prima anual", primaCartera, "$"],
+            ].map(([label, v, pre]) => (
+              <div key={label} style={{ background: "var(--cream)", borderRadius: 12, padding: "12px 12px" }}>
+                <div className="serif" style={{ fontSize: label === "Prima anual" ? 19 : 24, fontWeight: 500, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <CountUp value={v} prefix={pre} />
+                </div>
+                <small style={{ color: "var(--stone)", fontSize: 12 }}>{label}</small>
+              </div>
+            ))}
+          </div>
+          {topRamo && (
+            <div style={{
+              marginTop: 12, color: "#F1F3F2", borderRadius: 14, padding: "14px 16px",
+              background: "radial-gradient(120% 140% at 0% 0%, #123B5C 0%, var(--ink) 55%, var(--ink-2) 100%)",
+            }}>
+              <div style={{ fontSize: 11, letterSpacing: ".1em", color: "#E0B44A", fontWeight: 700, textTransform: "uppercase" }}>Tu ramo líder</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                <span className="serif" style={{ fontSize: 21, fontWeight: 500 }}>{topRamo[0].replace(" (PPR)", "")}</span>
+                <span style={{ fontSize: 12.5, color: "#C7D3DE" }}>{topRamo[1]} póliza{topRamo[1] === 1 ? "" : "s"} · {topPercent} % de tu cartera</span>
+              </div>
+            </div>
+          )}
+        </DashPanel>
+
+        <DashPanel
+          title="Prospectos"
+          hint={totalProspectos ? `${totalProspectos} en seguimiento` : ""}
+          action={<button onClick={() => onGo("prospectos")} className="link-btn">Ver todos</button>}
+        >
+          {pipeline.length === 0 ? (
+            <p style={{ color: "var(--stone)", fontSize: 13 }}>Aún no tienes prospectos. Agrega el primero desde la pestaña Prospectos.</p>
+          ) : (
+            <>
+              <div style={{ display: "flex", height: 10, borderRadius: 99, overflow: "hidden", gap: 2, marginBottom: 12 }}>
+                {pipeline.map(([e, n]) => (
+                  <i key={e} className="grow-x" title={`${e}: ${n}`} style={{ flex: n, background: ESTADO_COLOR[e] || "var(--stone)" }} />
+                ))}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: "6px 14px" }}>
+                {pipeline.map(([e, n]) => (
+                  <div key={e} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, minWidth: 0 }}>
+                    <i style={{ width: 8, height: 8, borderRadius: "50%", background: ESTADO_COLOR[e] || "var(--stone)", flexShrink: 0 }} />
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e}</span>
+                    <b>{n}</b>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </DashPanel>
+      </div>
     </div>
   );
 }
@@ -2323,7 +2513,7 @@ function Dashboard({ clients }) {
 export default function SegurosCRM() {
   const [clients, setClients] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState("planificador");
+  const [tab, setTab] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
 
@@ -3485,7 +3675,7 @@ function migrateClient(c) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
           <button
             onClick={() => setShowNotifs((s) => !s)}
-            className="icon-btn"
+            className={"icon-btn" + (remindersHoy.length > 0 ? " bell-ring" : "")}
             aria-label="Notificaciones"
           >
             <Bell size={18} color="var(--ink)" />
@@ -3507,7 +3697,7 @@ function migrateClient(c) {
           </button>
 
           {showNotifs && (
-            <div style={{
+            <div className="pop" style={{
               position: "absolute", top: "100%", right: 0, marginTop: 8, width: 280,
               background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 10,
               boxShadow: "0 8px 24px rgba(11,42,68,.12)", zIndex: 25, overflow: "hidden",
@@ -3575,7 +3765,7 @@ function migrateClient(c) {
         </div>
       </header>
 
-      <main className="app-content">
+      <main className="app-content page-enter" key={tab}>
         {tab === "planificador" && (
           <Planificador
             clients={clients}
@@ -3641,7 +3831,7 @@ function migrateClient(c) {
                     <ChevronDown size={16} color="var(--stone)" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
                   </button>
                   {isOpen && (
-                    <div style={{ paddingLeft: 4 }}>
+                    <div className="expand" style={{ paddingLeft: 4 }}>
                       {items.map((r) => (
                         <div
                           key={r._i}
@@ -3719,15 +3909,17 @@ function migrateClient(c) {
         )}
 
         {tab === "dashboard" && (
-          <>
-            <PanelHoy
-              nombre={profile?.nombre}
-              items={reminders.filter((r) => r.days === 0)}
-              tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
-              onVer={() => setTab("recordatorios")}
-            />
-            <Dashboard clients={clients} />
-          </>
+          <Dashboard
+            clients={clients}
+            prospectos={prospectos}
+            activities={activities}
+            metas={metasComisiones}
+            porcentajes={porcentajes}
+            reminders={reminders}
+            nombre={profile?.nombre}
+            tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
+            onGo={setTab}
+          />
         )}
 
         {tab === "clientes" && (
@@ -3785,7 +3977,7 @@ function migrateClient(c) {
                     {grupoAbierto && grupos[nombreGrupo].map((c) => {
               const isOpen = expandedId === c.id;
               return (
-                <div key={c.id} style={{ borderBottom: "1px solid var(--line)" }}>
+                <div key={c.id} className="expand" style={{ borderBottom: "1px solid var(--line)" }}>
                   <button
                     onClick={() => toggleExpand(c)}
                     className="row-hover"
@@ -3838,7 +4030,7 @@ function migrateClient(c) {
                   </button>
 
                   {isOpen && editDraft && (
-                    <div style={{ padding: "4px 4px 20px" }}>
+                    <div className="expand" style={{ padding: "4px 4px 20px" }}>
                       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                         <button
                           onClick={() => openEditModal(c)}
@@ -4013,11 +4205,12 @@ function migrateClient(c) {
       </nav>
 
       {showForm && (
-        <div style={{
+        <div className="fade-in" style={{
           position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)",
           display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10,
         }}>
           <form
+            className="sheet-up"
             onSubmit={handleAddSubmit}
             style={{
               background: "var(--cream)", width: "100%", maxWidth: 480,
@@ -4050,11 +4243,12 @@ function migrateClient(c) {
       )}
 
       {showEditModal && (
-        <div style={{
+        <div className="fade-in" style={{
           position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)",
           display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10,
         }}>
           <form
+            className="sheet-up"
             onSubmit={handleEditModalSubmit}
             style={{
               background: "var(--cream)", width: "100%", maxWidth: 480,
@@ -4128,11 +4322,11 @@ function migrateClient(c) {
       )}
 
       {showPrimaWarning && (
-        <div style={{
+        <div className="fade-in" style={{
           position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: 20,
         }}>
-          <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 22, maxWidth: 360, width: "100%" }}>
+          <div className="dialog-in" style={{ background: "#FFFFFF", borderRadius: 16, padding: 22, maxWidth: 360, width: "100%" }}>
             <h3 className="serif" style={{ fontSize: 16, margin: "0 0 10px" }}>Falta la prima anual</h3>
             <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>
               No se ha colocado la información del costo de la prima anual. Puedes corregirlo y llenar ese campo,
