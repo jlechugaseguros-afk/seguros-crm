@@ -291,19 +291,25 @@ function DateWithFallback({ value, onChange }) {
     }
   }
 
+  function formatTyped(raw) {
+    const d = raw.replace(/\D/g, "").slice(0, 8);
+    if (d.length <= 2) return d;
+    if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+    return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+  }
+
   return (
     <div>
-      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} />
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-        <span style={{ fontSize: 11, color: "var(--stone)" }}>o escribe:</span>
-        <input
-          value={manual}
-          onChange={(e) => commitManual(e.target.value)}
-          placeholder="dd/mm/aaaa"
-          style={{ ...inputStyle, padding: "6px 10px", fontSize: 13, flex: 1 }}
-        />
-      </div>
-      {manualError && <p style={{ color: "#B23A2E", fontSize: 11, margin: "4px 0 0" }}>Formato: dd/mm/aaaa</p>}
+      <input
+        value={manual}
+        onChange={(e) => commitManual(formatTyped(e.target.value))}
+        placeholder="dd/mm/aaaa"
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={10}
+        style={inputStyle}
+      />
+      {manualError && manual.length >= 10 && <p style={{ color: "#B23A2E", fontSize: 11, margin: "4px 0 0" }}>Fecha no válida. Formato: dd/mm/aaaa</p>}
     </div>
   );
 }
@@ -719,8 +725,8 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
       })}
 
       {showForm && (
-        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10 }}>
-          <form className="sheet-up" onSubmit={submitAdd} style={{ background: "var(--cream)", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto" }}>
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 30 }}>
+          <form className="sheet-up" onSubmit={submitAdd} style={{ background: "var(--cream)", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(28px + env(safe-area-inset-bottom, 0px))", maxHeight: "92dvh", overflowY: "auto", overscrollBehavior: "contain" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 className="serif" style={{ fontSize: 18, margin: 0 }}>Nuevo prospecto</h2>
               <button type="button" onClick={() => setShowForm(false)} style={{ background: "none", border: "none" }}><X size={20} /></button>
@@ -4283,14 +4289,14 @@ function migrateClient(c) {
       {showForm && (
         <div className="fade-in" style={{
           position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)",
-          display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10,
+          display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 30,
         }}>
           <form
             className="sheet-up"
             onSubmit={handleAddSubmit}
             style={{
               background: "var(--cream)", width: "100%", maxWidth: 480,
-              borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto",
+              borderRadius: "16px 16px 0 0", padding: "20px 20px calc(28px + env(safe-area-inset-bottom, 0px))", maxHeight: "92dvh", overflowY: "auto", overscrollBehavior: "contain",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -4321,14 +4327,14 @@ function migrateClient(c) {
       {showEditModal && (
         <div className="fade-in" style={{
           position: "fixed", inset: 0, background: "rgba(27,42,65,0.4)",
-          display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 10,
+          display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 30,
         }}>
           <form
             className="sheet-up"
             onSubmit={handleEditModalSubmit}
             style={{
               background: "var(--cream)", width: "100%", maxWidth: 480,
-              borderRadius: "16px 16px 0 0", padding: 20, maxHeight: "88vh", overflowY: "auto",
+              borderRadius: "16px 16px 0 0", padding: "20px 20px calc(28px + env(safe-area-inset-bottom, 0px))", maxHeight: "92dvh", overflowY: "auto", overscrollBehavior: "contain",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -4400,7 +4406,7 @@ function migrateClient(c) {
       {showPrimaWarning && (
         <div className="fade-in" style={{
           position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: 20,
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40, padding: 20,
         }}>
           <div className="dialog-in" style={{ background: "#FFFFFF", borderRadius: 16, padding: 22, maxWidth: 360, width: "100%" }}>
             <h3 className="serif" style={{ fontSize: 16, margin: "0 0 10px" }}>Falta la prima anual</h3>
