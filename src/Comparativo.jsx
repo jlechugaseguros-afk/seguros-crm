@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { FileText, Trash2, Plus, Download, X } from "lucide-react";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { MC_LOGO } from "./brandAssets.js";
+import { JL_LOGO } from "./brandAssets.js";
 import { InsurerMark, insurerLogo } from "./insurerLogos.jsx";
 import { MAX_POLIZAS, parsePoliza, construirTabla, indiceMasBarato } from "./comparativoParser.js";
 
@@ -89,7 +89,7 @@ async function generarPdf({ secciones, encabezados, profile, tarjeta }) {
 
   const [foto, logo] = await Promise.all([
     imagenParaPdf(tarjeta?.fotoUrl),
-    imagenParaPdf(MC_LOGO),
+    imagenParaPdf(JL_LOGO),
   ]);
 
   // Encabezado con los datos del agente
@@ -120,11 +120,11 @@ async function generarPdf({ secciones, encabezados, profile, tarjeta }) {
   contacto.forEach((l, i) => doc.text(l, x, 52 + i * 13));
 
   if (logo) {
-    const h = 42;
+    const h = 62;
     const w = h * (logo.w / logo.h);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(W - M - w - 8, 23, w + 16, h + 6, 6, 6, "F");
-    doc.addImage(logo.data, "PNG", W - M - w, 26, w, h);
+    doc.roundedRect(W - M - w - 10, 12, w + 20, h + 8, 6, 6, "F");
+    doc.addImage(logo.data, "PNG", W - M - w, 16, w, h);
   }
 
   // Título
