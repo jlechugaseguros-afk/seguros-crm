@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { FileText, Trash2, Plus, Download, X } from "lucide-react";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { MC_LOGO } from "./brandAssets.js";
+import { InsurerMark } from "./insurerLogos.jsx";
 import { MAX_POLIZAS, parsePoliza, construirTabla, indiceMasBarato } from "./comparativoParser.js";
 
 const MAX_MB = 15;
@@ -385,6 +386,11 @@ export default function Comparativo({ profile, tarjeta }) {
                   <th style={{ textAlign: "left", padding: "10px 12px", width: 190 }}>Concepto</th>
                   {archivos.map((a, i) => (
                     <th key={a.id} style={{ padding: "10px 8px", textAlign: "center" }}>
+                      {aseguradoraRow && aseguradoraRow.values[i] !== "—" && (
+                        <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+                          <InsurerMark name={aseguradoraRow.values[i]} w={64} h={36} radius={8} color="rgba(255,255,255,.18)" fontSize={14} />
+                        </div>
+                      )}
                       {aseguradoraRow && aseguradoraRow.values[i] !== "—" ? aseguradoraRow.values[i] : `Póliza ${i + 1}`}
                     </th>
                   ))}

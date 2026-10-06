@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
 import Comparativo from "./Comparativo.jsx";
+import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
 
 const DOCS_BUCKET = "documentos";
@@ -943,13 +944,8 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
           padding: "12px 0", borderBottom: "1px solid var(--line)", gap: 10,
         }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
-            <div style={{
-              width: 26, height: 26, borderRadius: 7, flexShrink: 0, marginTop: 1,
-              background: insurerColor(d.aseguradora), color: "#fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 12,
-            }}>
-              {d.aseguradora ? d.aseguradora.charAt(0).toUpperCase() : "?"}
+            <div style={{ marginTop: 1, flexShrink: 0 }}>
+              <InsurerMark name={d.aseguradora} w={52} h={30} radius={7} color={insurerColor(d.aseguradora)} fontSize={12} />
             </div>
             <div style={{ minWidth: 0 }}>
               {urls[d.path] ? (
@@ -1551,10 +1547,13 @@ function Multicotizador({ profile, tarjeta }) {
           ‹ Atrás
         </button>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 10 }}>
         {items.map((item) => {
           const brand = item.color || "var(--ink)";
           const mono = item.pin ? "🔒" : item.label.charAt(0).toUpperCase();
+          // Logo por nombre; los hijos (p. ej. Qualitas > Autos) usan el logo de su aseguradora
+          const logoName = insurerKey(item.label) ? item.label : path.join(" ");
+          const tieneLogo = !item.pin && !!insurerKey(logoName);
           const tileStyle = {
             display: "flex", alignItems: "center", gap: 10,
             background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${brand}`,
@@ -1568,7 +1567,9 @@ function Multicotizador({ profile, tarjeta }) {
           };
           const content = (
             <>
-              <div style={monoStyle}>{mono}</div>
+              {tieneLogo
+                ? <InsurerMark name={logoName} w={64} h={40} radius={9} />
+                : <div style={monoStyle}>{mono}</div>}
               <span style={{ fontSize: 13.5, fontWeight: 600, flex: 1 }}>{item.label}</span>
               {item.children && <span style={{ color: "var(--stone)", fontSize: 13 }}>›</span>}
             </>
@@ -4067,12 +4068,7 @@ function migrateClient(c) {
                         borderRadius: 14, padding: "12px 16px", boxShadow: "var(--shadow)",
                       }}
                     >
-                      <span style={{
-                        width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: insurerColor(nombreGrupo), color: "#fff",
-                        display: "grid", placeItems: "center", fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 16,
-                      }}>
-                        {nombreGrupo.charAt(0).toUpperCase()}
-                      </span>
+                      <InsurerMark name={nombreGrupo} w={66} h={38} radius={11} color={insurerColor(nombreGrupo)} fontSize={16} />
                       <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
                         {nombreGrupo}
                         <span style={{ marginLeft: 8, background: "var(--gold-soft, #F6EBCB)", color: "#8A6410", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>
@@ -4101,13 +4097,8 @@ function migrateClient(c) {
                       const primaria = polizas[0];
                       return (
                         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", minWidth: 0 }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: 8, flexShrink: 0, marginTop: 2,
-                            background: insurerColor(primaria?.aseguradora), color: "#fff",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 13,
-                          }}>
-                            {primaria?.aseguradora ? primaria.aseguradora.charAt(0).toUpperCase() : "?"}
+                          <div style={{ marginTop: 2, flexShrink: 0 }}>
+                            <InsurerMark name={primaria?.aseguradora} w={58} h={32} radius={8} color={insurerColor(primaria?.aseguradora)} fontSize={13} />
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 600 }}>{c.nombre}</div>
