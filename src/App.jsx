@@ -39,6 +39,13 @@ const ASEGURADORAS = [
   "Chubb Seguros",
   "Seguros Banorte",
   "HDI Seguros",
+  "ANA Seguros",
+  "Plan Seguro",
+  "GMX Seguros",
+  "Clupp",
+  "Crabi",
+  "El Águila",
+  "Click Seguros",
   "Otra",
 ];
 
