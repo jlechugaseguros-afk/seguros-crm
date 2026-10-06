@@ -136,12 +136,10 @@ input, select, textarea { font-family: inherit; transition: border-color .18s ea
 
 /* Escritorio: menú fijo a la izquierda */
 @media (min-width: 900px) {
-  .app-shell { display: grid; grid-template-columns: 276px minmax(0, 1fr); }
-  .app-side { position: sticky; top: 0; align-self: start; height: 100vh; height: 100dvh; width: auto; transform: none; z-index: 5; box-shadow: none; }
-  .app-scrim, .menu-btn, .side-close, .app-tabbar { display: none !important; }
+  .app-tabbar { display: none !important; }
   .app-top { padding: 22px clamp(20px, 3vw, 40px) 10px; }
   .app-content { max-width: 1000px; padding: 16px clamp(20px, 3vw, 40px) 48px; }
-  .app-foot { padding-bottom: 28px; margin-left: 276px; }
+  .app-foot { padding-bottom: 28px; }
 }
 /* ---------- Movimiento ---------- */
 .dash-grid { display: grid; gap: 20px; align-items: start; }

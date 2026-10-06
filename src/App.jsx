@@ -620,8 +620,17 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <h3 className="serif" style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Embudo de prospectos</h3>
+      <PageHeader
+        eyebrow="Ventas" title="Prospectos"
+        subtitle={`${prospectos.length} prospecto${prospectos.length === 1 ? "" : "s"} en seguimiento`}
+        action={
+          <button className="lift" onClick={() => { setForm(emptyProspecto); setError(""); setShowForm(true); }} style={goldBtn}>
+            <Plus size={16} /> Nuevo prospecto
+          </button>
+        }
+      />
+      <div className="panel" style={{ marginBottom: 20, padding: "14px 16px" }}>
+        <h3 className="serif" style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>Embudo de prospectos</h3>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {funnelData.map(([estado, count]) => (
             <button
@@ -641,27 +650,15 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
         </div>
       </div>
 
-      <button
-        onClick={() => { setForm(emptyProspecto); setError(""); setShowForm(true); }}
-        style={{
-          display: "flex", alignItems: "center", gap: 8,
-          background: "var(--ink)", color: "var(--cream)", border: "none",
-          borderRadius: 6, padding: "10px 16px", fontSize: 14, fontWeight: 600,
-          marginBottom: 16,
-        }}
-      >
-        <Plus size={16} /> Nuevo prospecto
-      </button>
-
       {visible.length === 0 && <p style={{ color: "var(--stone)", fontSize: 14 }}>Sin prospectos{filter ? ` en "${filter}"` : ""}.</p>}
 
       {visible.map((p) => {
         const isOpen = expandedId === p.id;
         return (
-          <div key={p.id} style={{ borderBottom: "1px solid var(--line)" }}>
+          <div key={p.id} className="panel lift" style={{ marginBottom: 10, overflow: "hidden" }}>
             <button
               onClick={() => toggleExpand(p)}
-              style={{ width: "100%", background: "none", border: "none", textAlign: "left", padding: "14px 4px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", background: "none", border: "none", textAlign: "left", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
             >
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{p.nombre}</div>
@@ -675,7 +672,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
             </button>
 
             {isOpen && editDraft && (
-              <div style={{ padding: "4px 4px 20px" }}>
+              <div style={{ padding: "4px 16px 20px" }}>
                 <Field label="Nombre completo">
                   <input value={editDraft.nombre} onChange={(e) => setEditDraft((d) => ({ ...d, nombre: e.target.value }))} style={inputStyle} />
                 </Field>
@@ -691,7 +688,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                   </select>
                 </Field>
                 {editDraft.estado === "Perdido" && editDraft.motivoPerdido && (
-                  <div style={{ background: "#FBEAE7", borderRadius: 6, padding: "8px 10px", marginBottom: 14 }}>
+                  <div style={{ background: "#FBEAE7", borderRadius: 10, padding: "8px 10px", marginBottom: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {editDraft.motivoPerdido}</div>
                     {editDraft.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{editDraft.comentarioPerdido}</div>}
                     <button
@@ -707,16 +704,16 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                   <input value={editDraft.notas || ""} onChange={(e) => setEditDraft((d) => ({ ...d, notas: e.target.value }))} style={inputStyle} />
                 </Field>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
+                  <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600 }}>
                     Guardar cambios
                   </button>
-                  <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid var(--line)", color: "#B23A2E", borderRadius: 6, padding: "12px 14px" }}>
+                  <button onClick={() => onRemove(p.id)} style={{ background: "none", border: "1px solid var(--line)", color: "#B23A2E", borderRadius: 10, padding: "12px 14px" }}>
                     <Trash2 size={16} />
                   </button>
                 </div>
                 <button
                   onClick={() => onConvert(p)}
-                  style={{ width: "100%", background: "none", border: "1px solid #3E6259", color: "var(--emerald)", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
+                  style={{ width: "100%", background: "none", border: "1px solid #3E6259", color: "var(--emerald)", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}
                 >
                   Convertir a cliente
                 </button>
@@ -759,7 +756,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
               Requiere seguimiento
             </label>
             {form.requiereSeguimiento && (
-              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 12, marginBottom: 14 }}>
+              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
                 <Field label="Acción">
                   <select
                     value={form.accionSeguimiento}
@@ -803,7 +800,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
               </select>
             </Field>
             {form.estado === "Perdido" && form.motivoPerdido && (
-              <div style={{ background: "#FBEAE7", borderRadius: 6, padding: "8px 10px", marginBottom: 14 }}>
+              <div style={{ background: "#FBEAE7", borderRadius: 10, padding: "8px 10px", marginBottom: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {form.motivoPerdido}</div>
                 {form.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{form.comentarioPerdido}</div>}
               </div>
@@ -811,7 +808,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
             <Field label="Notas">
               <input value={form.notas} onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))} style={inputStyle} />
             </Field>
-            <button type="submit" style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "12px", fontSize: 14, fontWeight: 600 }}>
+            <button type="submit" style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600 }}>
               Guardar prospecto
             </button>
           </form>
@@ -838,13 +835,13 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={confirmPerdido}
-                style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
+                style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}
               >
                 Guardar
               </button>
               <button
                 onClick={() => setPerdidoTarget(null)}
-                style={{ background: "none", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 6, padding: "10px 14px", fontSize: 13 }}
+                style={{ background: "none", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 10, padding: "10px 14px", fontSize: 13 }}
               >
                 Cancelar
               </button>
@@ -880,11 +877,9 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
-        Sube aquí las condiciones generales por ramo y compañía. Toca el nombre para abrir el PDF.
-      </p>
+      <PageHeader eyebrow="Biblioteca" title="Condiciones generales" subtitle="Sube las condiciones por ramo y compañía. Toca el nombre para abrir el PDF." />
 
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 14, marginBottom: 20 }}>
+      <div className="panel" style={{ padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Ramo</label>
@@ -901,7 +896,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <label style={{
-            flex: 1, background: "#FFFFFF", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 6,
+            flex: 1, background: "#FFFFFF", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 10,
             padding: "10px 12px", fontSize: 13, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {pendingFile ? pendingFile.name : "Elegir archivo PDF..."}
@@ -917,7 +912,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
             disabled={!pendingFile}
             style={{
               background: pendingFile ? "var(--ink)" : "var(--line)", color: "var(--cream)", border: "none",
-              borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 600,
+              borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600,
             }}
           >
             Agregar
@@ -929,7 +924,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Buscar por ramo, compañía o nombre del archivo..."
-        style={{ ...inputStyle, marginBottom: 14 }}
+        style={{ ...inputStyle, borderRadius: 12, padding: "12px 16px", boxShadow: "var(--shadow)", marginBottom: 14 }}
       />
 
       {filtered.length === 0 && (
@@ -972,7 +967,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
           </div>
           <button
             onClick={() => onRemove(d.id)}
-            style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, color: "#B23A2E", padding: "6px 10px", flexShrink: 0 }}
+            style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, color: "#B23A2E", padding: "6px 10px", flexShrink: 0 }}
           >
             <Trash2 size={14} />
           </button>
@@ -1007,7 +1002,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
       </p>
 
       {userId && nombre && (
-        <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>
             Tu liga pública (compártela con tus clientes)
           </label>
@@ -1015,7 +1010,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
             <input readOnly value={ligaPublica} style={{ ...inputStyle, flex: 1, fontSize: 12, color: "var(--muted)" }} onFocus={(e) => e.target.select()} />
             <button
               onClick={copiarLiga}
-              style={{ background: "var(--ink)", color: "var(--cream)", borderRadius: 6, padding: "0 14px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}
+              style={{ background: "var(--ink)", color: "var(--cream)", borderRadius: 10, padding: "0 14px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}
             >
               {copiado ? "¡Copiada!" : "Copiar"}
             </button>
@@ -1058,7 +1053,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
         })}
       </div>
 
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 14, marginBottom: 20 }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 20 }}>
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>Foto de perfil</label>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
           {tarjeta.fotoUrl ? (
@@ -1069,7 +1064,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
             </div>
           )}
           <label style={{
-            background: "var(--ink)", color: "var(--cream)", borderRadius: 6, padding: "8px 12px",
+            background: "var(--ink)", color: "var(--cream)", borderRadius: 10, padding: "8px 12px",
             fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>
             {subiendoFoto ? "Subiendo..." : tarjeta.fotoUrl ? "Cambiar foto" : "Cargar foto"}
@@ -1227,20 +1222,18 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
-        Cálculo automático a partir de la prima anual capturada en cada cliente (Vida 25%, Autos 8%, GMM 8%; ajustable abajo).
-      </p>
+      <PageHeader eyebrow="Ingresos" title="Comisiones" subtitle="Cálculo automático a partir de la prima anual de cada cliente (Vida 25%, Autos 8%, GMM 8%; ajustable abajo)." />
 
       {/* Selector de mes */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 20 }}>
-        <button onClick={() => cambiarMes(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px" }}>‹</button>
+        <button onClick={() => cambiarMes(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "6px 10px" }}>‹</button>
         <span style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", minWidth: 140, textAlign: "center" }}>{mesLabel}</span>
-        <button onClick={() => cambiarMes(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "6px 10px" }}>›</button>
+        <button onClick={() => cambiarMes(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "6px 10px" }}>›</button>
       </div>
 
       {/* SECCIÓN 1: Ramo, aseguradora y prima -> comisión */}
       <SectionTitle>Comisiones del mes por ramo</SectionTitle>
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", marginBottom: 24 }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 24 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>Pólizas</span>
@@ -1286,7 +1279,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
       <SectionTitle>Semáforo de ventas</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 10, marginBottom: 24 }}>
         {porRamo.map((r) => (
-          <div key={r.ramo} style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 12, textAlign: "center" }}>
+          <div key={r.ramo} style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, textAlign: "center" }}>
             <div style={{ width: 16, height: 16, borderRadius: "50%", background: semaforoColor(r.avance), margin: "0 auto 8px", transition: "background .4s ease" }} />
             <p style={{ fontSize: 12, fontWeight: 600, margin: "0 0 2px", color: "var(--ink)" }}>{r.ramo}</p>
             <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>
@@ -1301,7 +1294,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
       {/* SECCIÓN 3: Metas manuales y % de comisión */}
       <SectionTitle>Metas mensuales y % de comisión</SectionTitle>
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>% com.</span>
@@ -1524,6 +1517,7 @@ function Multicotizador({ profile, tarjeta }) {
   if (vista === "comparativo") {
     return (
       <div>
+        <PageHeader eyebrow="Cotización" title="Multicotizador" subtitle="Compara pólizas de varias aseguradoras en un solo PDF." />
         {tabsVista}
         <Comparativo profile={profile} tarjeta={tarjeta} />
       </div>
@@ -1532,13 +1526,11 @@ function Multicotizador({ profile, tarjeta }) {
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <PageHeader eyebrow="Cotización" title="Multicotizador" subtitle={path.length === 0 ? "Elige dónde quieres cotizar" : `Multicotizador › ${path.join(" › ")}`} />
       {tabsVista}
-      <h3 className="serif" style={{ fontSize: 18, color: "var(--ink)", margin: "0 0 4px", fontWeight: 500 }}>
-        {path.length === 0 ? "Multicotizador" : path[path.length - 1]}
-      </h3>
-      <p style={{ fontSize: 12, color: "var(--stone)", marginBottom: 18 }}>
-        {path.length === 0 ? "Elige dónde quieres cotizar" : `Multicotizador › ${path.join(" › ")}`}
-      </p>
+      {path.length > 0 && (
+        <h3 className="serif" style={{ fontSize: 18, color: "var(--ink)", margin: "0 0 14px", fontWeight: 500 }}>{path[path.length - 1]}</h3>
+      )}
       {path.length > 0 && (
         <button
           onClick={() => setPath(path.slice(0, -1))}
@@ -2157,10 +2149,11 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
 
   return (
     <div>
+      <PageHeader eyebrow="Agenda" title="Planificador" subtitle="Tu semana: pagos, renovaciones, cumpleaños y actividades." />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px" }}>‹</button>
+        <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>‹</button>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{rangeLabel}</span>
-        <button onClick={() => changeWeek(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px" }}>›</button>
+        <button onClick={() => changeWeek(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>›</button>
       </div>
 
       {weekDates.map((date, i) => {
@@ -2216,7 +2209,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
             })}
 
             {isAdding && (
-              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: 12, marginTop: 8 }}>
+              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginTop: 8 }}>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <input
                     type="time"
@@ -2248,7 +2241,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
                 </select>
                 <button
                   onClick={() => submitAdd(dateStr)}
-                  style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 6, padding: "10px", fontSize: 13, fontWeight: 600 }}
+                  style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}
                 >
                   Agregar
                 </button>
@@ -2366,6 +2359,24 @@ function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
     </div>
   );
 }
+
+function PageHeader({ eyebrow, title, subtitle, action }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+      <div style={{ minWidth: 0 }}>
+        <div className="eyebrow" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold-deep, #B07F12)" }}>{eyebrow}</div>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, fontSize: 30, color: "var(--ink)", margin: "4px 0 2px" }}>{title}</h2>
+        {subtitle && <div style={{ fontSize: 13.5, color: "var(--muted)" }}>{subtitle}</div>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+const goldBtn = {
+  display: "flex", alignItems: "center", gap: 8, background: "var(--gold)", color: "#fff", border: "none",
+  borderRadius: 12, padding: "11px 18px", fontSize: 14, fontWeight: 700, boxShadow: "0 6px 16px -6px rgba(201,151,30,0.6)",
+};
 
 function DashPanel({ title, hint, children, action }) {
   return (
@@ -3816,6 +3827,7 @@ function migrateClient(c) {
 
         {tab === "recordatorios" && (
           <div>
+            <PageHeader eyebrow="Seguimiento" title="Recordatorios" subtitle={`${reminders.length} fecha${reminders.length === 1 ? "" : "s"} próxima${reminders.length === 1 ? "" : "s"} en el año`} />
             {reminders.length === 0 && (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--stone)" }}>
                 <Bell size={28} style={{ marginBottom: 10, opacity: 0.5 }} />
