@@ -1228,7 +1228,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
   })();
 
   return (
-    <div>
+    <div className="stagger">
       <PageHeader eyebrow="Ingresos" title="Comisiones" subtitle="Cálculo automático a partir de la prima anual de cada cliente (Vida 25%, Autos 8%, GMM 8%; ajustable abajo)." />
 
       {/* Selector de mes */}
@@ -1240,7 +1240,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
       {/* SECCIÓN 1: Ramo, aseguradora y prima -> comisión */}
       <SectionTitle>Comisiones del mes por ramo</SectionTitle>
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 24 }}>
+      <div className="panel" style={{ overflow: "hidden", marginBottom: 24 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>Pólizas</span>
@@ -1248,21 +1248,21 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           <span>%</span>
           <span>Comisión</span>
         </div>
-        {porRamo.map((r) => (
-          <div key={r.ramo} style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "8px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center" }}>
+        {porRamo.map((r, i) => (
+          <div key={r.ramo} className="row-hover rise" style={{ "--i": i + 2, display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "9px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center" }}>
             <span style={{ fontWeight: 500 }}>{r.ramo}</span>
-            <span>{r.numPolizas}</span>
-            <span>{fmt(r.primaTotal)}</span>
+            <span><CountUp value={r.numPolizas} /></span>
+            <span>$<CountUp value={r.primaTotal} /></span>
             <span>{r.pct}%</span>
-            <span style={{ fontWeight: 600, color: "var(--emerald)" }}>{fmt(r.comision)}</span>
+            <span style={{ fontWeight: 600, color: "var(--emerald)" }}>$<CountUp value={r.comision} /></span>
           </div>
         ))}
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "12px 10px", fontSize: 12, borderTop: "2px solid var(--ink)", background: "var(--cream-2)", fontWeight: 700, alignItems: "center" }}>
           <span>Total</span>
-          <span>{totalPolizas}</span>
-          <span>{fmt(totalPrima)}</span>
+          <span><CountUp value={totalPolizas} /></span>
+          <span>$<CountUp value={totalPrima} /></span>
           <span></span>
-          <span className="serif" style={{ color: "var(--emerald)", fontSize: 17, fontWeight: 600 }}>{fmt(totalComision)}</span>
+          <span className="serif" style={{ color: "var(--emerald)", fontSize: 17, fontWeight: 600 }}>$<CountUp value={totalComision} duration={1200} /></span>
         </div>
       </div>
       {/* Detalle de aseguradoras por ramo */}
@@ -1285,13 +1285,18 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
       {/* SECCIÓN 2: Semáforo */}
       <SectionTitle>Semáforo de ventas</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 10, marginBottom: 24 }}>
-        {porRamo.map((r) => (
-          <div key={r.ramo} style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, textAlign: "center" }}>
-            <div style={{ width: 16, height: 16, borderRadius: "50%", background: semaforoColor(r.avance), margin: "0 auto 8px", transition: "background .4s ease" }} />
+        {porRamo.map((r, i) => (
+          <div key={r.ramo} className="panel lift rise" style={{ "--i": i + 1, padding: 12, textAlign: "center", borderRadius: 14 }}>
+            <div className={r.avance !== null ? "dot-pulse" : ""} style={{ width: 16, height: 16, borderRadius: "50%", background: semaforoColor(r.avance), color: semaforoColor(r.avance), margin: "0 auto 8px", transition: "background .4s ease" }} />
             <p style={{ fontSize: 12, fontWeight: 600, margin: "0 0 2px", color: "var(--ink)" }}>{r.ramo}</p>
             <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>
               {r.numPolizas}{r.meta.metaPolizas ? ` / ${r.meta.metaPolizas}` : ""} pólizas
             </p>
+            {r.avance !== null && (
+              <div className="meter" style={{ margin: "8px 0 0", height: 6 }}>
+                <i className="grow-x" style={{ width: `${Math.min(100, Math.max(0, r.avance))}%`, background: semaforoColor(r.avance) }} />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -1301,7 +1306,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
       {/* SECCIÓN 3: Metas manuales y % de comisión */}
       <SectionTitle>Metas mensuales y % de comisión</SectionTitle>
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
+      <div className="panel" style={{ overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
           <span>% com.</span>
@@ -2265,9 +2270,8 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
 function CountUp({ value, prefix = "", suffix = "", decimals = 0, duration = 900 }) {
   const [n, setN] = useState(0);
   useEffect(() => {
-    const reduce = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const target = Number(value) || 0;
-    if (reduce || !target) { setN(target); return undefined; }
+    if (!target) { setN(target); return undefined; }
     let raf; let start;
     const tick = (t) => {
       if (start === undefined) start = t;
@@ -3634,10 +3638,16 @@ function migrateClient(c) {
       <div className="app-shell">
         <aside className={"app-side" + (menuOpen ? " on" : "")} aria-label="Menú principal">
           <div className="side-brand">
-            <div className="side-mono">JL</div>
-            <div style={{ flex: 1 }}>
-              <b>J L Consultoría<br />Patrimonial</b>
-              <small>CREAMOS TRANQUILIDAD</small>
+            {tarjeta.fotoUrl ? (
+              <img src={tarjeta.fotoUrl} alt={profile?.nombre || "Agente"} className="side-mono side-photo" />
+            ) : (
+              <div className="side-mono">
+                {((profile?.nombre || "A").trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0)).join("") || "A").toUpperCase()}
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <b>{profile?.nombre || "Mi cuenta"}</b>
+              <small>AGENTE DE SEGUROS</small>
             </div>
             <button className="side-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" style={{ background: "none", border: "none", color: "#8EA3B6", alignSelf: "flex-start" }}>
               <X size={18} />
