@@ -39,6 +39,7 @@ const ASEGURADORAS = [
   "Chubb Seguros",
   "Seguros Banorte",
   "HDI Seguros",
+  "Afirme",
   "ANA Seguros",
   "Plan Seguro",
   "GMX Seguros",
@@ -60,6 +61,7 @@ const ASEGURADORA_COLORS = {
   "Chubb Seguros": "#B0182F",
   "Seguros Banorte": "#D52B1E",
   "HDI Seguros": "#C9A227",
+  "Afirme": "#1B9A3C",
   "Otra": "var(--stone)",
 };
 function insurerColor(name) {

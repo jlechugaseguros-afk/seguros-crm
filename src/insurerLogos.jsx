@@ -22,6 +22,7 @@ export function insurerKey(name) {
   if (/banorte/.test(n)) return "banorte";
   if (/chubb/.test(n)) return "chubb";
   if (/allianz/.test(n)) return "allianz";
+  if (/afirme/.test(n)) return "afirme";
   return "";
 }
 
