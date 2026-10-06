@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { FileText, Trash2, Plus, Download, X } from "lucide-react";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { MC_LOGO } from "./brandAssets.js";
-import { InsurerMark } from "./insurerLogos.jsx";
+import { InsurerMark, insurerLogo } from "./insurerLogos.jsx";
 import { MAX_POLIZAS, parsePoliza, construirTabla, indiceMasBarato } from "./comparativoParser.js";
 
 const MAX_MB = 15;
@@ -163,8 +163,25 @@ async function generarPdf({ secciones, encabezados, profile, tarjeta }) {
     margin: { left: M, right: M, bottom: 54 },
     theme: "grid",
     styles: { font: "helvetica", fontSize: 8.5, cellPadding: 5, valign: "middle", halign: "center", lineColor: [224, 229, 228], textColor: NAVY },
-    headStyles: { fillColor: GOLD, textColor: 255, fontStyle: "bold" },
+    headStyles: { fillColor: GOLD, textColor: 255, fontStyle: "bold", minCellHeight: 54, valign: "bottom" },
     columnStyles: { 0: { cellWidth: colConcepto } },
+    // Logo de cada compañía sobre su nombre, en una tarjeta blanca
+    didDrawCell: (d) => {
+      if (d.section !== "head" || d.column.index === 0) return;
+      const logo = insurerLogo(encabezados[d.column.index - 1]);
+      if (!logo) return;
+      const boxW = Math.min(d.cell.width - 16, 84);
+      const boxH = 30;
+      const bx = d.cell.x + (d.cell.width - boxW) / 2;
+      const by = d.cell.y + 5;
+      doc.setFillColor(logo.bg ? logo.bg : "#FFFFFF");
+      doc.roundedRect(bx, by, boxW, boxH, 5, 5, "F");
+      const pad = logo.bg ? 0 : 3;
+      const aw = boxW - 2 * pad; const ah = boxH - 2 * pad;
+      const k = Math.min(aw / logo.w, ah / logo.h);
+      const iw = logo.w * k; const ih = logo.h * k;
+      try { doc.addImage(logo.src, "PNG", bx + (boxW - iw) / 2, by + (boxH - ih) / 2, iw, ih); } catch { /* sin logo */ }
+    },
     didParseCell: (d) => {
       if (d.section !== "body" || d.column.index === 0) return;
       if (mejores.get(`${d.row.index}-${d.column.index}`)) {
