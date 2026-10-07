@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search } from "lucide-react";
+import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
 import Comparativo from "./Comparativo.jsx";
 import CalculadoraFactura from "./CalculadoraFactura.jsx";
+import PageHeader from "./PageHeader.jsx";
+import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
 
@@ -1008,9 +1010,7 @@ function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFo
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "var(--stone)", marginTop: 0 }}>
-        Elige tu aseguradora, sube tu foto y agrega tu teléfono y WhatsApp. Tu nombre y correo son los de tu perfil.
-      </p>
+      <PageHeader eyebrow="Identidad" title="Tarjeta digital" subtitle="Elige tu aseguradora, sube tu foto y agrega tu teléfono y WhatsApp. Tu nombre y correo son los de tu perfil." />
 
       {userId && nombre && (
         <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
@@ -2377,19 +2377,6 @@ function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
   );
 }
 
-function PageHeader({ eyebrow, title, subtitle, action }) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-      <div style={{ minWidth: 0 }}>
-        <div className="eyebrow" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold-deep, #B07F12)" }}>{eyebrow}</div>
-        <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, fontSize: 30, color: "var(--ink)", margin: "4px 0 2px" }}>{title}</h2>
-        {subtitle && <div style={{ fontSize: 13.5, color: "var(--muted)" }}>{subtitle}</div>}
-      </div>
-      {action}
-    </div>
-  );
-}
-
 const goldBtn = {
   display: "flex", alignItems: "center", gap: 8, background: "var(--gold)", color: "#fff", border: "none",
   borderRadius: 12, padding: "11px 18px", fontSize: 14, fontWeight: 700, boxShadow: "0 6px 16px -6px rgba(201,151,30,0.6)",
@@ -2580,6 +2567,7 @@ export default function SegurosCRM() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
 
   const [vistosHoy, setVistosHoy] = useState([]);
@@ -3706,6 +3694,16 @@ function migrateClient(c) {
             <Download size={15} /> Exportar a Excel
           </button>
           <button
+            onClick={() => { setShowImport(true); setMenuOpen(false); }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8,
+              background: "rgba(230,188,85,.08)", color: "#E6BC55",
+              border: "1px solid rgba(230,188,85,.35)", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <Upload size={15} /> Importar cartera
+          </button>
+          <button
             onClick={() => { supabase.auth.signOut(); setMenuOpen(false); }}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -3999,27 +3997,19 @@ function migrateClient(c) {
             {(() => {
               const totalPolizas = clients.reduce((n, c) => n + (c.polizas || []).length, 0);
               return (
-                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-                  <div>
-                    <div className="eyebrow" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold-deep, #B07F12)" }}>Cartera</div>
-                    <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, fontSize: 30, color: "var(--ink)", margin: "4px 0 2px" }}>Clientes</h2>
-                    <div style={{ fontSize: 13.5, color: "var(--muted)" }}>
-                      {clients.length} cliente{clients.length === 1 ? "" : "s"} · {totalPolizas} póliza{totalPolizas === 1 ? "" : "s"}
-                    </div>
-                  </div>
-                  <button
-                    className="lift"
-                    onClick={() => { setForm({ ...emptyClientForm, ...emptyPolicyForm, fechaAlta: todayStr() }); setNuevaPolizaFile(null); setError(""); setShowForm(true); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      background: "var(--gold)", color: "#fff", border: "none",
-                      borderRadius: 12, padding: "11px 18px", fontSize: 14, fontWeight: 700,
-                      boxShadow: "0 6px 16px -6px rgba(201,151,30,0.6)",
-                    }}
-                  >
-                    <Plus size={16} /> Nuevo cliente
-                  </button>
-                </div>
+                <PageHeader
+                  eyebrow="Cartera" title="Clientes"
+                  subtitle={`${clients.length} cliente${clients.length === 1 ? "" : "s"} · ${totalPolizas} póliza${totalPolizas === 1 ? "" : "s"}`}
+                  action={
+                    <button
+                      className="lift"
+                      onClick={() => { setForm({ ...emptyClientForm, ...emptyPolicyForm, fechaAlta: todayStr() }); setNuevaPolizaFile(null); setError(""); setShowForm(true); }}
+                      style={goldBtn}
+                    >
+                      <Plus size={16} /> Nuevo cliente
+                    </button>
+                  }
+                />
               );
             })()}
 
@@ -4309,6 +4299,15 @@ function migrateClient(c) {
         )}
 
         {tab === "factura" && <CalculadoraFactura />}
+
+        {showImport && (
+          <ImportarCartera
+            clients={clients}
+            opciones={{ ASEGURADORAS, RAMOS, MONEDAS, PAGOS: PAGOS_FRACCIONADOS, METODOS: METODOS_PAGO, CLASIFICACIONES: CLASIFICACIONES_POLIZA }}
+            onApply={(aplicar) => setClients((cs) => aplicar(cs))}
+            onClose={() => setShowImport(false)}
+          />
+        )}
 
         {tab === "multicotizador" && <Multicotizador profile={profile} tarjeta={tarjeta} />}
 

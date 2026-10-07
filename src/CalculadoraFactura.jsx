@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import PageHeader from "./PageHeader.jsx";
 
 // Calculadora de factura (CFDI) para comisiones de seguros.
 // Se captura solo el TOTAL y se obtienen subtotal, base, IVA y retenciones.
@@ -128,13 +129,7 @@ export default function CalculadoraFactura() {
 
   return (
     <div className="stagger">
-      <div style={{ marginBottom: 18 }}>
-        <p style={{ fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: "var(--gold)", margin: "0 0 4px", fontWeight: 600 }}>Ingresos</p>
-        <h2 className="serif" style={{ fontSize: 26, margin: 0, color: "var(--ink)" }}>Calculadora de factura</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0" }}>
-          Escribe solo el total a cobrar y obtén los importes que debe llevar tu CFDI de comisiones.
-        </p>
-      </div>
+      <PageHeader eyebrow="Ingresos" title="Calculadora de factura" subtitle="Escribe solo el total a cobrar y obtén los importes que debe llevar tu CFDI de comisiones." />
 
       <div className="panel" style={{ padding: 16, marginBottom: 18 }}>
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Total a cobrar (con impuestos)</label>
