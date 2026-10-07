@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
 import Comparativo from "./Comparativo.jsx";
+import CalculadoraFactura from "./CalculadoraFactura.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
 
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { id: "condiciones", label: "Condiciones generales", icon: FileText },
   { id: "tarjeta", label: "Tarjeta digital", icon: CreditCard },
   { id: "comisiones", label: "Comisiones", icon: Calculator },
+  { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
   { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
@@ -164,7 +166,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "multicotizador"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "multicotizador"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
@@ -4304,6 +4306,8 @@ function migrateClient(c) {
             onPorcentajesChange={setPorcentajes}
           />
         )}
+
+        {tab === "factura" && <CalculadoraFactura />}
 
         {tab === "multicotizador" && <Multicotizador profile={profile} tarjeta={tarjeta} />}
 
