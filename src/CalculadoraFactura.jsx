@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
 // Calculadora de factura (CFDI) para comisiones de seguros.
 // Se captura solo el TOTAL y se obtienen subtotal, base, IVA y retenciones.
@@ -12,26 +12,29 @@ const REGIMENES = [
   { id: "pfae", label: "PF Actividad Empresarial", isr: 0 },
 ];
 
-const DATOS_FIJOS = [
-  ["Emisor", "JOSHUA LECHUGA PLATA"],
-  ["RFC emisor", "LEPJ861115NC9"],
-  ["Régimen fiscal emisor", "Régimen Simplificado de Confianza (626)"],
-  ["Código postal de expedición", "72990"],
-  ["Receptor", "MACOOLEY BROKERS, AGENTE DE SEGUROS"],
-  ["RFC receptor", "MBA161004PB9"],
-  ["CP receptor", "11520"],
-  ["Régimen receptor", "General de Ley Personas Morales"],
-  ["Uso CFDI", "Gastos en general (G03)"],
-  ["Clave producto/servicio", "80141600"],
-  ["Descripción", "COMISIONES NO VIDA"],
-  ["Cantidad", "1"],
-  ["Clave de unidad", "E48 – Unidad de servicio"],
-  ["Objeto de impuesto", "Sí objeto de impuesto"],
-  ["Moneda", "Peso Mexicano (MXN)"],
-  ["Forma de pago", "03 – Transferencia electrónica de fondos"],
-  ["Método de pago", "PUE – Pago en una sola exhibición"],
-  ["Efecto del comprobante", "Ingreso"],
+// Campos de la factura que cada agente captura una sola vez (se guardan en su cuenta).
+const CAMPOS = [
+  { k: "emisor", label: "Emisor (tu nombre completo)", def: "", ph: "NOMBRE APELLIDOS" },
+  { k: "rfc", label: "RFC emisor", def: "", ph: "XXXX000000XXX" },
+  { k: "cp", label: "Código postal de expedición", def: "", ph: "00000" },
+  { k: "receptor", label: "Receptor", def: "MACOOLEY BROKERS, AGENTE DE SEGUROS" },
+  { k: "rfcReceptor", label: "RFC receptor", def: "MBA161004PB9" },
+  { k: "cpReceptor", label: "CP receptor", def: "11520" },
+  { k: "regReceptor", label: "Régimen receptor", def: "General de Ley Personas Morales" },
+  { k: "uso", label: "Uso CFDI", def: "Gastos en general (G03)" },
+  { k: "clave", label: "Clave producto/servicio", def: "80141600" },
+  { k: "descripcion", label: "Descripción", def: "COMISIONES NO VIDA" },
+  { k: "cantidad", label: "Cantidad", def: "1" },
+  { k: "unidad", label: "Clave de unidad", def: "E48 – Unidad de servicio" },
+  { k: "objeto", label: "Objeto de impuesto", def: "Sí objeto de impuesto" },
+  { k: "moneda", label: "Moneda", def: "Peso Mexicano (MXN)" },
+  { k: "forma", label: "Forma de pago", def: "03 – Transferencia electrónica de fondos" },
+  { k: "metodo", label: "Método de pago", def: "PUE – Pago en una sola exhibición" },
+  { k: "efecto", label: "Efecto del comprobante", def: "Ingreso" },
 ];
+const DEFAULTS = Object.fromEntries(CAMPOS.map((c) => [c.k, c.def]));
+const REG_EMISOR = { resico: "Régimen Simplificado de Confianza (626)", pfae: "Personas Físicas con Actividades Empresariales (612)" };
+const STORAGE_KEY = "facturaDatos";
 
 const r2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const r6 = (n) => Math.round((n + Number.EPSILON) * 1e6) / 1e6;
@@ -67,6 +70,35 @@ export default function CalculadoraFactura() {
   const [totalTxt, setTotalTxt] = useState("15000");
   const [regimen, setRegimen] = useState("resico");
   const [ajuste, setAjuste] = useState(0); // centavos
+  const [datos, setDatos] = useState(DEFAULTS);
+  const [editando, setEditando] = useState(false);
+  const [cargado, setCargado] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const res = await window.storage.get(STORAGE_KEY);
+        if (vivo && res && res.value) {
+          const g = JSON.parse(res.value);
+          setDatos({ ...DEFAULTS, ...(g.datos || {}) });
+          if (g.regimen && REGIMENES.some((r) => r.id === g.regimen)) setRegimen(g.regimen);
+          if (!g.datos || !g.datos.emisor) setEditando(true);
+        } else if (vivo) {
+          setEditando(true);
+        }
+      } catch (e) {
+        if (vivo) setEditando(true);
+      }
+      if (vivo) setCargado(true);
+    })();
+    return () => { vivo = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!cargado) return;
+    window.storage.set(STORAGE_KEY, JSON.stringify({ datos, regimen })).catch(() => {});
+  }, [datos, regimen, cargado]);
 
   const total = Number(String(totalTxt).replace(/[^0-9.]/g, "")) || 0;
   const reg = REGIMENES.find((r) => r.id === regimen);
@@ -180,17 +212,43 @@ export default function CalculadoraFactura() {
         })}
       </div>
 
-      <h3 className="serif" style={{ fontSize: 14, color: "var(--ink)", margin: "0 0 10px" }}>Datos fijos de tu factura</h3>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 10px" }}>
+        <h3 className="serif" style={{ fontSize: 14, color: "var(--ink)", margin: 0 }}>Datos fijos de tu factura</h3>
+        <button
+          type="button"
+          onClick={() => setEditando((e) => !e)}
+          style={{ background: editando ? "var(--gold)" : "none", color: editando ? "#fff" : "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}
+        >
+          {editando ? "Listo" : "Editar"}
+        </button>
+      </div>
+      {editando && !datos.emisor && (
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 10px" }}>
+          Captura una sola vez tus datos (nombre, RFC y código postal); se guardan en tu cuenta.
+        </p>
+      )}
       <div className="panel" style={{ overflow: "hidden", marginBottom: 12 }}>
-        {DATOS_FIJOS.map(([k, v], i) => (
-          <div key={k} style={{ ...cell, borderTop: i === 0 ? "none" : cell.borderTop, padding: "8px 12px" }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, color: "var(--muted)" }}>{k}</div>
-              <div style={{ fontSize: 13, color: "var(--ink)", wordBreak: "break-word" }}>{v}</div>
+        {CAMPOS.slice(0, 2).concat([{ k: "_regimen", label: "Régimen fiscal emisor", fijo: REG_EMISOR[regimen] }], CAMPOS.slice(2)).map((c, i) => {
+          const valor = c.fijo !== undefined ? c.fijo : datos[c.k];
+          return (
+            <div key={c.k} style={{ ...cell, borderTop: i === 0 ? "none" : cell.borderTop, padding: "8px 12px" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.label}</div>
+                {editando && c.fijo === undefined ? (
+                  <input
+                    value={datos[c.k]}
+                    placeholder={c.ph || ""}
+                    onChange={(e) => setDatos((d) => ({ ...d, [c.k]: c.k === "rfc" ? e.target.value.toUpperCase() : e.target.value }))}
+                    style={{ width: "100%", padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, background: "#fff", color: "var(--ink)", marginTop: 2 }}
+                  />
+                ) : (
+                  <div style={{ fontSize: 13, color: valor ? "var(--ink)" : "var(--muted)", wordBreak: "break-word" }}>{valor || "— sin capturar —"}</div>
+                )}
+              </div>
+              {!editando && valor ? <CopyBtn text={valor} /> : null}
             </div>
-            <CopyBtn text={v} />
-          </div>
-        ))}
+          );
+        })}
       </div>
       <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 24px" }}>
         Herramienta de cálculo, no asesoría fiscal. Confirma con tu contador cualquier duda sobre tu régimen.
