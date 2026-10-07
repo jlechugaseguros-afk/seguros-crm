@@ -3634,9 +3634,8 @@ function migrateClient(c) {
   }
 
   return (
-    <div className="min-h-dvh" style={{
+    <div className="min-h-dvh app-bg" style={{
       fontFamily: "'Manrope', system-ui, sans-serif",
-      background: "var(--cream)",
       color: "var(--ink)",
     }}>
       {baseStyles}

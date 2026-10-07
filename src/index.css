@@ -14,7 +14,7 @@
   --cream: #F1F3F2;   /* fondo base */
   --cream-2: #E8ECEB; /* fondo secundario */
   --surface: #FFFFFF;
-  --shadow: 0 1px 2px rgba(11,42,68,.06), 0 8px 24px -12px rgba(11,42,68,.18);
+  --shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 1px 2px rgba(11,42,68,.04), 0 14px 30px -20px rgba(11,42,68,.35);
 }
 
 .serif {
@@ -106,7 +106,7 @@ input, select, textarea { font-family: inherit; transition: border-color .18s ea
 .app-top {
   position: sticky; top: 0; z-index: 10;
   padding: 12px 20px 8px; display: flex; flex-wrap: wrap; row-gap: 10px; align-items: center; justify-content: space-between;
-  background: linear-gradient(var(--cream) 82%, transparent);
+  background: linear-gradient(rgba(241,243,242,.94) 82%, transparent);
 }
 .top-title { font-size: 22px; font-weight: 500; margin: 0; }
 .icon-btn {
@@ -208,4 +208,14 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .auth-photo {
   position: absolute; inset: 0;
   background: linear-gradient(135deg, rgba(7,29,49,.86), rgba(11,42,68,.80)), url("/fondos/lobby.jpg") center 55% / cover no-repeat;
+}
+
+/* ---------- Textura "Suave" del fondo (resplandores de marca + grano de papel) ---------- */
+.app-bg {
+  background-color: var(--cream);
+  background-image:
+    radial-gradient(900px 520px at 100% 0%, rgba(201,151,30,.11), transparent 62%),
+    radial-gradient(900px 620px at 0% 100%, rgba(11,42,68,.08), transparent 62%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .04  0 0 0 0 .16  0 0 0 0 .27  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-attachment: fixed, fixed, scroll;
 }
