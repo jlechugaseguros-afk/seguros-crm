@@ -94,6 +94,7 @@ export default function AuthGate({ children }) {
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             padding: 32, color: '#EFE9D8',
           }}>
+            <div className="auth-photo" aria-hidden="true" />
             <svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
               <circle className="auth-ring" cx="150" cy="180" r="90" />
               <circle className="auth-ring r2" cx="150" cy="180" r="120" />
