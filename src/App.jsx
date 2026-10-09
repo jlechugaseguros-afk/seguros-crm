@@ -112,14 +112,6 @@ const emptyPolicyForm = {
 
 const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, Hogar: 0, "Plan Personal de Retiro (PPR)": 0 };
 
-const SINDICATOS_PIN_DEFAULT = "12345";
-
-async function hashPin(userId, pin) {
-  const data = new TextEncoder().encode(`${userId}:${pin}`);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 const VAPID_PUBLIC_KEY = "BLdEb7gA1qb0ZZXckV0X3206SY474OiqZ58R8PtK87fEhC-_ak994Yl9PAuwoVyxO1L-tZFafg-jXGwYzXEDo6k";
 
 function urlBase64ToUint8Array(base64String) {
@@ -130,15 +122,6 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 const MULTICOTIZADOR_MENU = [
-  {
-    label: "Sindicatos",
-    color: "var(--ink)",
-    pin: true,
-    children: [
-      { label: "Telmex", url: "https://mcbrokers.dora.com.mx/", color: "#E4032E" },
-      { label: "SNTE 23", url: "https://mcbrokers.dora.com.mx/", color: "#1B6EC2" },
-    ],
-  },
   {
     label: "Privados",
     color: "var(--ink)",
@@ -990,6 +973,65 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
   );
 }
 
+// Pantalla temporal mientras la Tarjeta digital se termina de construir.
+// Para reactivar la función, cambia TARJETA_EN_CONSTRUCCION a false.
+const TARJETA_EN_CONSTRUCCION = true;
+
+function EnConstruccion({ titulo, eyebrow, mensaje }) {
+  return (
+    <div>
+      <PageHeader eyebrow={eyebrow} title={titulo} />
+      <div className="obra-card">
+        <svg className="obra-art" viewBox="0 0 320 220" role="img" aria-label="Ilustración de una obra en construcción">
+          <defs>
+            <pattern id="obra-franjas" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+              <rect width="12" height="24" fill="#C9971E" />
+              <rect x="12" width="12" height="24" fill="#0B2A44" />
+            </pattern>
+          </defs>
+          <ellipse cx="160" cy="200" rx="130" ry="10" fill="#0B2A44" opacity=".08" />
+          {/* grúa */}
+          <g stroke="#0B2A44" strokeWidth="4" strokeLinecap="round" fill="none">
+            <path d="M232 196V50" />
+            <path d="M218 50H292" />
+            <path d="M232 50L262 24L292 50" />
+            <path d="M232 76L262 50" />
+            <path d="M270 50v38" strokeWidth="2.5" />
+          </g>
+          <rect x="258" y="88" width="24" height="16" rx="3" fill="#C9971E" />
+          {/* engranes */}
+          <g className="obra-gear" style={{ transformOrigin: "78px 70px" }}>
+            <circle cx="78" cy="70" r="20" fill="none" stroke="#C9971E" strokeWidth="9" strokeDasharray="7 5.2" />
+            <circle cx="78" cy="70" r="15" fill="#0B2A44" />
+            <circle cx="78" cy="70" r="6" fill="#F7F5F0" />
+          </g>
+          <g className="obra-gear rev" style={{ transformOrigin: "122px 48px" }}>
+            <circle cx="122" cy="48" r="12" fill="none" stroke="#0B2A44" strokeWidth="7" strokeDasharray="5 4.2" />
+            <circle cx="122" cy="48" r="9" fill="#C9971E" />
+            <circle cx="122" cy="48" r="3.5" fill="#F7F5F0" />
+          </g>
+          {/* casco */}
+          <g className="obra-casco">
+            <path d="M118 138a42 42 0 0 1 84 0z" fill="#C9971E" />
+            <rect x="106" y="136" width="108" height="11" rx="5.5" fill="#E6BC55" />
+            <rect x="152" y="104" width="16" height="32" rx="4" fill="#E6BC55" opacity=".75" />
+            <path d="M126 130a34 34 0 0 1 14-22" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity=".45" fill="none" />
+          </g>
+          {/* valla de obra */}
+          <g>
+            <rect x="36" y="160" width="6" height="40" rx="2" fill="#0B2A44" />
+            <rect x="198" y="160" width="6" height="40" rx="2" fill="#0B2A44" />
+            <rect x="30" y="152" width="180" height="26" rx="5" fill="url(#obra-franjas)" stroke="#0B2A44" strokeWidth="3" />
+          </g>
+        </svg>
+        <h3 className="serif obra-titulo">En construcción</h3>
+        <p className="obra-texto">{mensaje}</p>
+        <div className="obra-barra" aria-hidden="true"><span /></div>
+      </div>
+    </div>
+  );
+}
+
 function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFoto, error }) {
   const plantilla = TARJETA_PLANTILLAS[tarjeta.plantillaId] || TARJETA_PLANTILLAS.qualitas;
   const nombre = profile?.nombre || "";
@@ -1355,14 +1397,6 @@ function SectionTitle({ children }) {
 function Multicotizador({ profile, tarjeta }) {
   const [vista, setVista] = useState("cotizadores"); // cotizadores | comparativo
   const [path, setPath] = useState([]);
-  const [pendingItem, setPendingItem] = useState(null);
-  const [unlocked, setUnlocked] = useState([]);
-  const [stage, setStage] = useState("enter"); // enter | change
-  const [pin, setPin] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [newPin2, setNewPin2] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [busy, setBusy] = useState(false);
 
   function getChildren(p) {
     let level = MULTICOTIZADOR_MENU;
@@ -1376,27 +1410,7 @@ function Multicotizador({ profile, tarjeta }) {
 
   const items = getChildren(path);
 
-  function resetGate() {
-    setPendingItem(null);
-    setStage("enter");
-    setPin("");
-    setNewPin("");
-    setNewPin2("");
-    setPinError("");
-  }
-
-  function unlockAndOpen(item) {
-    setUnlocked([...unlocked, item.label]);
-    setPath([...path, item.label]);
-    resetGate();
-  }
-
   function handleSelect(item) {
-    if (item.pin && !unlocked.includes(item.label)) {
-      resetGate();
-      setPendingItem(item);
-      return;
-    }
     if (item.children) {
       setPath([...path, item.label]);
       return;
@@ -1406,110 +1420,6 @@ function Multicotizador({ profile, tarjeta }) {
       return;
     }
     window.open(item.url, "_blank", "noopener");
-  }
-
-  async function handlePinSubmit(e) {
-    e.preventDefault();
-    setBusy(true);
-    setPinError("");
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const stored = user && user.user_metadata ? user.user_metadata.sindicatos_pin_hash : null;
-      if (stored) {
-        const h = await hashPin(user.id, pin);
-        if (h === stored) unlockAndOpen(pendingItem);
-        else setPinError("PIN incorrecto.");
-      } else if (pin === SINDICATOS_PIN_DEFAULT) {
-        setStage("change");
-      } else {
-        setPinError("PIN incorrecto, ponte en contacto con tu administrador.");
-      }
-    } catch (err) {
-      setPinError("No se pudo validar el PIN. Intenta de nuevo.");
-    }
-    setPin("");
-    setBusy(false);
-  }
-
-  async function handleChangeSubmit(e) {
-    e.preventDefault();
-    setPinError("");
-    if (!/^\d{4,8}$/.test(newPin)) {
-      setPinError("Tu PIN debe tener de 4 a 8 números.");
-      return;
-    }
-    if (newPin === SINDICATOS_PIN_DEFAULT) {
-      setPinError("Elige un PIN distinto al inicial.");
-      return;
-    }
-    if (newPin !== newPin2) {
-      setPinError("Los PIN no coinciden.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const h = await hashPin(user.id, newPin);
-      const { error } = await supabase.auth.updateUser({ data: { sindicatos_pin_hash: h } });
-      if (error) setPinError("No se pudo guardar tu PIN: " + error.message);
-      else unlockAndOpen(pendingItem);
-    } catch (err) {
-      setPinError("No se pudo guardar tu PIN. Intenta de nuevo.");
-    }
-    setBusy(false);
-  }
-
-  const btnStyle = {
-    width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none",
-    borderRadius: 7, padding: "10px", fontSize: 13, fontWeight: 600,
-  };
-  const linkBtn = { marginTop: 16, background: "none", border: "none", fontSize: 12, color: "var(--stone)", textDecoration: "underline" };
-  const pinInput = { ...inputStyle, textAlign: "center", letterSpacing: 4, fontSize: 16, marginBottom: 12 };
-
-  if (pendingItem && stage === "change") {
-    return (
-      <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>PIN correcto.</p>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
-          Por seguridad, crea tu PIN personal (4 a 8 números). Lo usarás en adelante.
-        </p>
-        <form onSubmit={handleChangeSubmit}>
-          <input
-            type="password" inputMode="numeric" value={newPin}
-            onChange={(e) => setNewPin(e.target.value)}
-            style={pinInput} placeholder="Nuevo PIN" autoFocus
-          />
-          <input
-            type="password" inputMode="numeric" value={newPin2}
-            onChange={(e) => setNewPin2(e.target.value)}
-            style={pinInput} placeholder="Repite el nuevo PIN"
-          />
-          <button type="submit" disabled={busy} style={btnStyle}>Guardar y entrar</button>
-        </form>
-        {pinError && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{pinError}</p>}
-        <button onClick={resetGate} style={linkBtn}>Cancelar</button>
-      </div>
-    );
-  }
-
-  if (pendingItem) {
-    return (
-      <div style={{ maxWidth: 280, margin: "60px auto", textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
-          "{pendingItem.label}" pide un PIN de acceso.
-        </p>
-        <form onSubmit={handlePinSubmit}>
-          <input
-            type="password" inputMode="numeric" value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            style={pinInput} placeholder="PIN" autoFocus
-          />
-          <button type="submit" disabled={busy} style={btnStyle}>Entrar</button>
-        </form>
-        {pinError && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 12 }}>{pinError}</p>}
-        <button onClick={resetGate} style={linkBtn}>Cancelar</button>
-      </div>
-    );
   }
 
   const tabsVista = (
@@ -1558,10 +1468,10 @@ function Multicotizador({ profile, tarjeta }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 10 }}>
         {items.map((item) => {
           const brand = item.color || "var(--ink)";
-          const mono = item.pin ? "🔒" : item.label.charAt(0).toUpperCase();
+          const mono = item.label.charAt(0).toUpperCase();
           // Logo por nombre; los hijos (p. ej. Qualitas > Autos) usan el logo de su aseguradora
           const logoName = insurerKey(item.label) ? item.label : path.join(" ");
-          const tieneLogo = !item.pin && !!insurerKey(logoName);
+          const tieneLogo = !!insurerKey(logoName);
           const tileStyle = {
             display: "flex", alignItems: "center", gap: 10,
             background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${brand}`,
@@ -1583,7 +1493,7 @@ function Multicotizador({ profile, tarjeta }) {
             </>
           );
           // Enlace real (no bloqueable por el navegador) para los que abren directo a una URL
-          if (item.url && !item.pin) {
+          if (item.url) {
             return (
               <a key={item.label} href={item.url} target="_blank" rel="noreferrer" className="logo-tile" style={tileStyle}>
                 {content}
@@ -4272,7 +4182,13 @@ function migrateClient(c) {
           />
         )}
 
-        {tab === "tarjeta" && (
+        {tab === "tarjeta" && (TARJETA_EN_CONSTRUCCION ? (
+          <EnConstruccion
+            eyebrow="Identidad"
+            titulo="Tarjeta digital"
+            mensaje="Estamos preparando esta sección para que muy pronto puedas crear y compartir tu tarjeta de presentación digital. ¡Vuelve pronto!"
+          />
+        ) : (
           <TarjetaDigital
             tarjeta={tarjeta}
             profile={profile}
@@ -4282,7 +4198,7 @@ function migrateClient(c) {
             subiendoFoto={subiendoFoto}
             error={tarjetaError}
           />
-        )}
+        ))}
 
         {tab === "comisiones" && (
           <Comisiones
