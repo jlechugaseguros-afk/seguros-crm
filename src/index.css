@@ -247,6 +247,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 /* ---------- Encabezado con la imagen de marca (todas las pestañas) ---------- */
 .jl-hero {
   position: relative; overflow: hidden; isolation: isolate; border-radius: 18px; margin-bottom: 18px;
+  container-type: inline-size; container-name: jlhero;
   background: #0b1829; color: #F4EFE3;
   box-shadow: 0 20px 44px -28px rgba(7,29,49,.75), inset 0 0 0 1px rgba(201,151,30,.18);
 }
@@ -272,12 +273,12 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .jl-hero-aside { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .hero-logos { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; opacity: .95; }
 
-@media (max-width: 700px) {
+@container jlhero (max-width: 700px) {
   .jl-hero-img { aspect-ratio: 2.83 / 1; background-image: url("/fondos/banner-jl-m.jpg"); background-position: center; }
   .hero-logos { display: none; }
 }
-/* Pantalla ancha: el título se apoya sobre la pared lisa a la izquierda de la imagen */
-@media (min-width: 900px) {
+/* Encabezado ancho (según el ancho real del contenedor, no de la pantalla): el título se apoya sobre la pared lisa a la izquierda */
+@container jlhero (min-width: 900px) {
   .jl-hero-bar {
     position: absolute; left: 0; top: 0; bottom: 0; width: 44%; padding: 0 0 0 30px; border-top: 0;
     flex-direction: column; align-items: flex-start; justify-content: center; flex-wrap: nowrap; gap: 14px;
