@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient.js'
-import { MC_LOGO, JL_LOGO } from './brandAssets.js'
+import { JL_LOGO } from './brandAssets.js'
 
 
 export default function AuthGate({ children }) {
@@ -76,14 +76,12 @@ export default function AuthGate({ children }) {
           }
         `}</style>
 
-        {/* Franja superior con ambos logos, sin corte de color con el fondo */}
+        {/* Franja superior con el logo, sin corte de color con el fondo */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
           padding: '18px 20px', background: 'var(--cream)',
         }}>
-          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 52, objectFit: 'contain' }} />
-          <div style={{ width: 1, height: 40, background: 'var(--line)' }} />
-          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 68, objectFit: 'contain' }} />
+          <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 68, objectFit: 'contain' }} />
         </div>
 
         <div className="auth-split">
@@ -101,7 +99,7 @@ export default function AuthGate({ children }) {
               <circle className="auth-ring r3" cx="150" cy="180" r="150" />
             </svg>
             <div style={{ position: 'relative', zIndex: 2, fontSize: 15 }}>
-              <b style={{ fontWeight: 600 }}>MCBrokers</b> · seguros-crm
+              <b style={{ fontWeight: 600 }}>J L Consultoría Patrimonial</b> · J L CRM
             </div>
             <div style={{ position: 'relative', zIndex: 2, maxWidth: 280, fontSize: 14, lineHeight: 1.5, color: '#DCE7E1' }}>
               Tu cartera de clientes, pólizas y comisiones en un solo lugar.

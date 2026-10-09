@@ -1,29 +1,34 @@
 import React from "react";
 import { InsurerMark } from "./insurerLogos.jsx";
 
-// Encabezado de cada pestaña: foto de MC Brokers bajo capa azul marino, con una variación por pestaña
+// Encabezado de cada pestaña: foto de oficinas de aseguradoras bajo capa azul marino, con una variación por pestaña
 // (foto distinta, encuadre distinto y, en las pestañas de aseguradoras, una fila con sus logos).
 const FOTOS = {
-  lobby: "/fondos/lobby.jpg",
-  fachada: "/fondos/fachada.jpg",
-  recepcion: "/fondos/recepcion.jpg",
+  banorte: "/fondos/banorte.jpg",
+  gmx: "/fondos/gmx.jpg",
+  aguila: "/fondos/aguila.jpg",
+  zurich: "/fondos/zurich.jpg",
+  mapfre: "/fondos/mapfre.jpg",
+  qualitas: "/fondos/qualitas.jpg",
+  gnp: "/fondos/gnp.jpg",
+  axa: "/fondos/axa.jpg",
 };
 
 const LOGOS_COTIZADOR = ["GNP", "AXA", "Qualitas", "ANA", "Zurich", "Mapfre"];
 const LOGOS_CONDICIONES = ["HDI", "Chubb", "Allianz", "MetLife", "Banorte", "Plan Seguro"];
 
 const VARIANTES = {
-  "Planificador":           { foto: "recepcion", pos: "center 30%", dir: "90deg" },
-  "Recordatorios":          { foto: "lobby", pos: "center 62%", dir: "100deg" },
-  "Clientes":               { foto: "fachada", pos: "center 40%", dir: "90deg" },
-  "Prospectos":             { foto: "lobby", pos: "center 35%", dir: "110deg" },
-  "Condiciones generales":  { foto: "recepcion", pos: "center 62%", dir: "95deg", logos: LOGOS_CONDICIONES },
-  "Tarjeta digital":        { foto: "fachada", pos: "center 28%", dir: "100deg" },
-  "Comisiones":             { foto: "fachada", pos: "center 72%", dir: "110deg" },
-  "Multicotizador":         { foto: "lobby", pos: "center 50%", dir: "95deg", logos: LOGOS_COTIZADOR },
-  "Calculadora de factura": { foto: "recepcion", pos: "center 52%", dir: "100deg" },
+  "Planificador":           { foto: "gmx", pos: "center 28%", dir: "90deg" },
+  "Recordatorios":          { foto: "gnp", pos: "center 28%", dir: "100deg" },
+  "Clientes":               { foto: "zurich", pos: "center 34%", dir: "90deg" },
+  "Prospectos":             { foto: "aguila", pos: "center 38%", dir: "110deg" },
+  "Condiciones generales":  { foto: "mapfre", pos: "center 52%", dir: "95deg", logos: LOGOS_CONDICIONES },
+  "Tarjeta digital":        { foto: "axa", pos: "center 40%", dir: "100deg" },
+  "Comisiones":             { foto: "banorte", pos: "center 22%", dir: "110deg" },
+  "Multicotizador":         { foto: "qualitas", pos: "center 30%", dir: "95deg", logos: LOGOS_COTIZADOR },
+  "Calculadora de factura": { foto: "gmx", pos: "center 62%", dir: "100deg" },
 };
-const POR_DEFECTO = { foto: "lobby", pos: "center 55%", dir: "100deg" };
+const POR_DEFECTO = { foto: "gmx", pos: "center 36%", dir: "100deg" };
 
 export default function PageHeader({ eyebrow, title, subtitle, action }) {
   const v = VARIANTES[title] || POR_DEFECTO;

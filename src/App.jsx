@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
-import { MC_LOGO, JL_LOGO } from "./brandAssets.js";
+import { JL_LOGO } from "./brandAssets.js";
 import Comparativo from "./Comparativo.jsx";
 import CalculadoraFactura from "./CalculadoraFactura.jsx";
 import PageHeader from "./PageHeader.jsx";
@@ -3560,9 +3560,7 @@ function migrateClient(c) {
           display: "flex", alignItems: "center", justifyContent: "center", gap: 18,
           padding: "16px", background: "var(--cream)",
         }}>
-          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 40, objectFit: "contain" }} />
-          <div style={{ width: 1, height: 30, background: "var(--line)" }} />
-          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 52, objectFit: "contain" }} />
+          <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 52, objectFit: "contain" }} />
         </div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <form onSubmit={saveProfile} style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -3828,9 +3826,7 @@ function migrateClient(c) {
           order: 3, flex: "1 1 100%",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
         }}>
-          <img src={MC_LOGO} alt="MCBrokers" style={{ height: 38, objectFit: "contain" }} />
-          <div style={{ width: 1, height: 28, background: "var(--line)" }} />
-          <img src={JL_LOGO} alt="Consultoría Patrimonial" style={{ height: 48, objectFit: "contain" }} />
+          <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 48, objectFit: "contain" }} />
         </div>
       </header>
 

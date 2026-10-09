@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Paleta de marca — tomada del logo de MCBrokers y del logo personal de Joshua */
+  /* Paleta de marca — tomada del logo personal de Joshua (J L Consultoría Patrimonial) */
   --ink: #0B2A44;      /* azul marino, texto principal y fondos oscuros */
   --ink-2: #071D31;    /* azul marino más oscuro, para degradados */
   --gold: #C9971E;     /* dorado, acento — se usa con moderación */
@@ -65,7 +65,7 @@ input, select, textarea { font-family: inherit; transition: border-color .18s ea
   transform: translateX(-104%); transition: transform .32s cubic-bezier(.2,.8,.2,1);
   display: flex; flex-direction: column; padding: 22px 14px 16px; overflow-y: auto;
   color: #C7D3DE; -webkit-overflow-scrolling: touch;
-  background: linear-gradient(180deg, rgba(7,29,49,.92), rgba(7,29,49,.97)), url("/fondos/recepcion.jpg") center 30% / cover no-repeat, radial-gradient(120% 60% at 0% 0%, #123B5C 0%, transparent 60%), linear-gradient(180deg, var(--ink), var(--ink-2));
+  background: linear-gradient(180deg, rgba(7,29,49,.92), rgba(7,29,49,.97)), url("/fondos/zurich.jpg") center 30% / cover no-repeat, radial-gradient(120% 60% at 0% 0%, #123B5C 0%, transparent 60%), linear-gradient(180deg, var(--ink), var(--ink-2));
   box-shadow: 8px 0 30px -10px rgba(0,0,0,.4);
 }
 .app-side::before {
@@ -199,15 +199,15 @@ input, select, textarea { font-family: inherit; transition: border-color .18s ea
 
 input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 
-/* ---------- Fondos con identidad (fotos de MC Brokers bajo capa azul marino) ---------- */
+/* ---------- Fondos con identidad (fotos de oficinas de aseguradoras bajo capa azul marino) ---------- */
 .dash-hero {
   position: relative; overflow: hidden; border-radius: 18px; padding: 22px 22px 20px; margin-bottom: 16px; color: #fff;
-  background: linear-gradient(90deg, rgba(7,29,49,.94) 0%, rgba(11,42,68,.61) 100%), url("/fondos/fachada.jpg") center 40% / cover no-repeat, var(--ink);
+  background: linear-gradient(90deg, rgba(7,29,49,.94) 0%, rgba(11,42,68,.61) 100%), url("/fondos/banorte.jpg") center 22% / cover no-repeat, var(--ink);
 }
 .dash-hero h2 { color: #fff; }
 .auth-photo {
   position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(7,29,49,.86), rgba(11,42,68,.80)), url("/fondos/lobby.jpg") center 55% / cover no-repeat;
+  background: linear-gradient(135deg, rgba(7,29,49,.86), rgba(11,42,68,.80)), url("/fondos/gmx.jpg") center 50% / cover no-repeat;
 }
 
 /* ---------- Textura "Suave" del fondo (resplandores de marca + grano de papel) ---------- */

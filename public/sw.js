@@ -3,9 +3,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: "MCBrokers CRM", body: event.data ? event.data.text() : "" };
+    data = { title: "J L CRM", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "MCBrokers CRM";
+  const title = data.title || "J L CRM";
   const options = {
     body: data.body || "",
     icon: "/icon-192.png",
