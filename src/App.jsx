@@ -1275,7 +1275,7 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
 
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Ingresos" title="Comisiones" subtitle="Cálculo automático a partir de la prima anual de cada cliente (Vida 25%, Autos 8%, GMM 8%; ajustable abajo)." />
+      <PageHeader eyebrow="Ingresos" title="Comisiones" subtitle="Cálculo automático a partir de la prima anual de cada cliente." />
 
       {/* Selector de mes */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 20 }}>
