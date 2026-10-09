@@ -2231,17 +2231,11 @@ function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
   const total = items.length + agenda.length;
   return (
     <div>
-      <div className="dash-hero">
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "#E6BC55", marginBottom: 8 }}>
-          {fecha}
-        </div>
-        <h2 className="serif" style={{ fontSize: "clamp(26px, 5vw, 34px)", fontWeight: 500, lineHeight: 1.1 }}>
-          {saludo}{primer ? `, ${primer}` : ""}
-        </h2>
-        <p style={{ margin: "8px 0 0", color: "#DCE6EE", fontSize: 14 }}>
-          {total === 0 ? "No tienes pendientes para hoy. Buen momento para prospectar." : `Hoy tienes ${partes.join(", ")}.`}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={fecha}
+        title={`${saludo}${primer ? `, ${primer}` : ""}`}
+        subtitle={total === 0 ? "No tienes pendientes para hoy. Buen momento para prospectar." : `Hoy tienes ${partes.join(", ")}.`}
+      />
       {total > 0 && (
         <div className="panel stagger" style={{ padding: 6 }}>
           {items.slice(0, 5).map((r, i) => {
