@@ -8,8 +8,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "J L CRM";
   const options = {
     body: data.body || "",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/jl-icon-192.png",
+    badge: "/jl-icon-192.png",
     data: { url: data.url || "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
