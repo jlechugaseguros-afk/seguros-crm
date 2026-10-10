@@ -124,18 +124,31 @@ export function TarjetaVista({ nombre, fotoUrl, whatsapp, correo, web, qrUrl, ed
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
       />
 
-      {/* Foto del agente */}
+      {/* Foto del agente: con foto, el círculo cubre el marco de la plantilla y dibuja uno propio, parejo en todo el contorno */}
       <div
         onClick={editable ? onFotoClick : undefined}
         role={editable ? "button" : undefined}
         aria-label={editable ? "Cambiar foto" : undefined}
-        style={{
-          position: "absolute", left: "54.44%", top: "18.95%", width: "38.4%", aspectRatio: "1",
-          borderRadius: "50%", overflow: "hidden", cursor: editable ? "pointer" : "default",
-          boxShadow: fotoUrl ? "0 0 0 0.6cqw rgba(255,255,255,0.85)" : "none",
-        }}
+        style={
+          fotoUrl
+            ? {
+                position: "absolute", left: "52.76%", top: "18.225%", width: "41.6%", aspectRatio: "1",
+                boxSizing: "border-box", borderRadius: "50%", overflow: "hidden", border: "0.8cqw solid #fff",
+                background: "#fff", boxShadow: "0 0.6cqw 2.4cqw rgba(0,0,0,0.28)",
+                cursor: editable ? "pointer" : "default",
+              }
+            : {
+                position: "absolute", left: "54.44%", top: "18.95%", width: "38.4%", aspectRatio: "1",
+                borderRadius: "50%", cursor: editable ? "pointer" : "default",
+              }
+        }
       >
-        {fotoUrl && <img src={fotoUrl} alt={nombre || "Agente"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+        {fotoUrl && (
+          <img
+            src={fotoUrl} alt={nombre || "Agente"}
+            style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+          />
+        )}
       </div>
 
       {/* Nombre */}
