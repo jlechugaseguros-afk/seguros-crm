@@ -2441,7 +2441,7 @@ export default function SegurosCRM() {
   }, [porcentajes, porcentajesLoaded]);
 
   // --- Tarjeta digital ---
-  const [tarjeta, setTarjeta] = useState({ plantillaId: "mc", fotoUrl: "", telefono: "", whatsapp: "", correoUsuario: "", web: "", qrUrl: "" });
+  const [tarjeta, setTarjeta] = useState({ plantillaId: "mc", fotoUrl: "", telefono: "", whatsapp: "", correoUsuario: "", web: "", qrUrl: "", catalogo: "" });
   const [tarjetaLoaded, setTarjetaLoaded] = useState(false);
   const [tarjetaError, setTarjetaError] = useState("");
   const [subiendoFoto, setSubiendoFoto] = useState(false);
@@ -2547,6 +2547,7 @@ export default function SegurosCRM() {
         whatsapp: tarjeta.whatsapp,
         web: tarjeta.web || "",
         qr_url: tarjeta.qrUrl || "",
+        catalogo_url: tarjeta.catalogo || "",
         updated_at: new Date().toISOString(),
       }, { onConflict: "agent_id" })
       .then(({ error }) => {

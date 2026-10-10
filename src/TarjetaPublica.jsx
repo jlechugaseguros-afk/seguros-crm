@@ -54,6 +54,7 @@ export default function TarjetaPublica({ agentId }) {
           correo={data.correo}
           web={data.web}
           qrUrl={data.qr_url}
+          catalogo={data.catalogo_url}
         />
       </div>
     </div>

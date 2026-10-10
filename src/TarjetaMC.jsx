@@ -78,7 +78,7 @@ export function reducirImagen(file, maxLado, tipo = "image/jpeg", calidad = 0.88
 
 // ---------- Vista de la tarjeta (editor y liga pública) ----------
 // Las coordenadas están en % sobre la plantilla de 1125 x 2000.
-export function TarjetaVista({ nombre, fotoUrl, whatsapp, correo, web, qrUrl, editable, onFotoClick, onQrClick }) {
+export function TarjetaVista({ nombre, fotoUrl, whatsapp, correo, web, qrUrl, catalogo, editable, onFotoClick, onQrClick }) {
   const palabras = String(nombre || "").trim().split(/\s+/).filter(Boolean);
   const linea1 = palabras[0] || "";
   const linea2 = palabras.slice(1).join(" ");
@@ -175,19 +175,25 @@ export function TarjetaVista({ nombre, fotoUrl, whatsapp, correo, web, qrUrl, ed
       {fila(62, web ? normalizarWeb(web) : "", webTxt, "tusitio.com", tamLinea(webTxt || "tusitio.com"))}
       {fila(66.75, LINK_MAPA, DIRECCION_OFICINA, "", 2.9, { multilinea: true })}
 
-      {/* QR */}
-      <div
-        onClick={editable ? onQrClick : undefined}
-        role={editable ? "button" : undefined}
-        aria-label={editable ? "Cambiar QR" : undefined}
-        style={{
-          position: "absolute", left: "6.1%", top: "71.5%", width: "19.7%", aspectRatio: "1",
-          borderRadius: "2cqw", overflow: "hidden", cursor: editable ? "pointer" : "default",
-          background: qrUrl ? "#fff" : "transparent", display: "flex", alignItems: "center", justifyContent: "center",
-        }}
-      >
-        {qrUrl && <img src={qrUrl} alt="Código QR" style={{ width: "100%", height: "100%", objectFit: "contain", padding: "4%" }} />}
-      </div>
+      {/* QR: en la tarjeta pública abre el catálogo de WhatsApp Business (el enlace no se muestra) */}
+      {(() => {
+        const linkCatalogo = !editable && catalogo ? normalizarWeb(catalogo) : "";
+        const Tag = linkCatalogo ? "a" : "div";
+        return (
+          <Tag
+            {...(linkCatalogo ? { href: linkCatalogo, target: "_blank", rel: "noreferrer", "aria-label": "Ver catálogo de WhatsApp Business" } : {})}
+            onClick={editable ? onQrClick : undefined}
+            role={editable ? "button" : undefined}
+            style={{
+              position: "absolute", left: "6.1%", top: "71.5%", width: "19.7%", aspectRatio: "1",
+              borderRadius: "2cqw", overflow: "hidden", cursor: editable || linkCatalogo ? "pointer" : "default",
+              background: qrUrl ? "#fff" : "transparent", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            {qrUrl && <img src={qrUrl} alt="Código QR" style={{ width: "100%", height: "100%", objectFit: "contain", padding: "4%" }} />}
+          </Tag>
+        );
+      })()}
     </div>
   );
 }
@@ -347,6 +353,21 @@ export default function TarjetaDigital({ tarjeta, profile, userId, onChange, onF
           titulo="Imagen de tu QR" url={tarjeta.qrUrl} subiendo={subiendoQr}
           onFile={onQr} camara="environment" ayuda="Sube la imagen del QR desde la galería o tómale una foto."
         />
+
+        <label style={labelStyle}>Enlace del catálogo de WhatsApp Business</label>
+        <input
+          value={tarjeta.catalogo || ""}
+          onChange={(e) => onChange("catalogo", e.target.value)}
+          autoCapitalize="none" autoCorrect="off" inputMode="url"
+          placeholder="https://wa.me/c/521..."
+          style={{ ...inputBase, marginBottom: 4 }}
+        />
+        <p style={{ fontSize: 11, color: "#8794A0" }}>
+          No se muestra en la tarjeta: solo hace que, al tocar el QR, tu cliente abra tu catálogo.
+          {tarjeta.catalogo ? (
+            <> <a href={normalizarWeb(tarjeta.catalogo)} target="_blank" rel="noreferrer" style={{ color: "var(--emerald)", fontWeight: 600, textDecoration: "underline" }}>Probar enlace</a></>
+          ) : null}
+        </p>
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#B23A2E", marginBottom: 14 }}>{error}</p>}
@@ -360,6 +381,7 @@ export default function TarjetaDigital({ tarjeta, profile, userId, onChange, onF
             correo={correo}
             web={tarjeta.web}
             qrUrl={tarjeta.qrUrl}
+            catalogo={tarjeta.catalogo}
             editable
             onFotoClick={() => tocarImagen(onFoto)}
             onQrClick={() => tocarImagen(onQr)}
