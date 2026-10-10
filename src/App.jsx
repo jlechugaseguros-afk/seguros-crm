@@ -8,7 +8,7 @@ import CalculadoraFactura from "./CalculadoraFactura.jsx";
 import PageHeader from "./PageHeader.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
-import { TARJETA_PLANTILLAS, TARJETA_POS, LINK_UBICACION } from "./tarjetaAssets.js";
+import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 
 const DOCS_BUCKET = "documentos";
 const TARJETAS_BUCKET = "tarjetas-fotos";
@@ -975,7 +975,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
 
 // Pantalla temporal mientras la Tarjeta digital se termina de construir.
 // Para reactivar la función, cambia TARJETA_EN_CONSTRUCCION a false.
-const TARJETA_EN_CONSTRUCCION = true;
+const TARJETA_EN_CONSTRUCCION = false;
 
 function EnConstruccion({ titulo, eyebrow, mensaje }) {
   return (
@@ -1028,185 +1028,6 @@ function EnConstruccion({ titulo, eyebrow, mensaje }) {
         <p className="obra-texto">{mensaje}</p>
         <div className="obra-barra" aria-hidden="true"><span /></div>
       </div>
-    </div>
-  );
-}
-
-function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, subiendoFoto, error }) {
-  const plantilla = TARJETA_PLANTILLAS[tarjeta.plantillaId] || TARJETA_PLANTILLAS.qualitas;
-  const nombre = profile?.nombre || "";
-  const correo = profile?.correo || "";
-  const linkWhatsapp = tarjeta.whatsapp ? `https://wa.me/${tarjeta.whatsapp.replace(/\D/g, "")}` : "";
-  const linkCorreo = correo ? `mailto:${correo}` : "";
-  const linkTelefono = tarjeta.telefono ? `tel:${tarjeta.telefono.replace(/\s/g, "")}` : "";
-  const [copiado, setCopiado] = useState(false);
-
-  const ligaPublica = userId ? `${window.location.origin}/t/${userId}` : "";
-
-  function copiarLiga() {
-    navigator.clipboard.writeText(ligaPublica).then(() => {
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
-    });
-  }
-
-  return (
-    <div>
-      <PageHeader eyebrow="Identidad" title="Tarjeta digital" subtitle="Elige tu aseguradora, sube tu foto y agrega tu teléfono y WhatsApp. Tu nombre y correo son los de tu perfil." />
-
-      {userId && nombre && (
-        <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>
-            Tu liga pública (compártela con tus clientes)
-          </label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input readOnly value={ligaPublica} style={{ ...inputStyle, flex: 1, fontSize: 12, color: "var(--muted)" }} onFocus={(e) => e.target.select()} />
-            <button
-              onClick={copiarLiga}
-              style={{ background: "var(--ink)", color: "var(--cream)", borderRadius: 10, padding: "0 14px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}
-            >
-              {copiado ? "¡Copiada!" : "Copiar"}
-            </button>
-          </div>
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent("Aquí está mi tarjeta digital: " + ligaPublica)}`}
-            target="_blank" rel="noreferrer"
-            style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: "var(--emerald)", fontWeight: 600, textDecoration: "underline" }}
-          >
-            Compartir por WhatsApp
-          </a>
-        </div>
-      )}
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 18 }}>
-        {Object.entries(TARJETA_PLANTILLAS).map(([id, p]) => {
-          const active = tarjeta.plantillaId === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onChange("plantillaId", id)}
-              className="logo-tile"
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                background: "#FFFFFF", border: "1px solid var(--line)", borderLeft: `3px solid ${p.colorNombre}`,
-                borderRadius: 8, padding: "10px 12px", textAlign: "left",
-                outline: active ? `2px solid ${p.colorNombre}` : "none", outlineOffset: 1,
-              }}
-            >
-              <div style={{
-                width: 26, height: 26, borderRadius: 7, flexShrink: 0, background: p.colorNombre, color: "#fff",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 12,
-              }}>
-                {p.nombre.charAt(0)}
-              </div>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>{p.nombre}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 20 }}>
-        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>Foto de perfil</label>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          {tarjeta.fotoUrl ? (
-            <img src={tarjeta.fotoUrl} alt="foto" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-          ) : (
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#F0EEE6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Camera size={20} color="#8794A0" />
-            </div>
-          )}
-          <label style={{
-            background: "var(--ink)", color: "var(--cream)", borderRadius: 10, padding: "8px 12px",
-            fontSize: 12, fontWeight: 600, cursor: "pointer",
-          }}>
-            {subiendoFoto ? "Subiendo..." : tarjeta.fotoUrl ? "Cambiar foto" : "Cargar foto"}
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              disabled={subiendoFoto}
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) onFoto(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-        </div>
-        <p style={{ fontSize: 11, color: "#8794A0", marginBottom: 14 }}>Abre la galería o la cámara del teléfono.</p>
-
-        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Teléfono</label>
-        <input
-          value={tarjeta.telefono}
-          onChange={(e) => onChange("telefono", e.target.value)}
-          placeholder="222 123 4567"
-          style={{ ...inputStyle, marginBottom: 10 }}
-        />
-        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>WhatsApp (con lada, sin espacios)</label>
-        <input
-          value={tarjeta.whatsapp}
-          onChange={(e) => onChange("whatsapp", e.target.value)}
-          placeholder="522221234567"
-          style={inputStyle}
-        />
-      </div>
-
-      {error && (
-        <p style={{ fontSize: 12, color: "#B23A2E", marginBottom: 14 }}>{error}</p>
-      )}
-
-      {!nombre && (
-        <p style={{ fontSize: 12, color: "#B23A2E", marginBottom: 14 }}>
-          Completa tu nombre y correo en tu perfil (toca tu nombre arriba a la derecha) para que aparezcan en la tarjeta.
-        </p>
-      )}
-
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <div style={{ width: 260, position: "relative", borderRadius: 18, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.15)", aspectRatio: "1080 / 1920" }}>
-          <img src={plantilla.bg} alt={plantilla.nombre} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-
-          {tarjeta.fotoUrl ? (
-            <div style={{ position: "absolute", overflow: "hidden", borderRadius: "50%", border: "3px solid #fff", ...TARJETA_POS.foto }}>
-              <img src={tarjeta.fotoUrl} alt={nombre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </div>
-          ) : (
-            <div style={{
-              position: "absolute", borderRadius: "50%", border: `2px dashed ${plantilla.colorNombre}`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, textAlign: "center",
-              color: plantilla.colorNombre, opacity: 0.6, ...TARJETA_POS.foto,
-            }}>
-              Foto aquí
-            </div>
-          )}
-
-          <div style={{
-            position: "absolute", width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "0 16px", top: TARJETA_POS.nombre.top, height: TARJETA_POS.nombre.height,
-          }}>
-            <span style={{ fontWeight: 800, fontSize: 13, textAlign: "center", color: plantilla.colorNombre }}>
-              {nombre || "Tu nombre"}
-            </span>
-          </div>
-
-          <a href={LINK_UBICACION} target="_blank" rel="noreferrer" style={{ position: "absolute", borderRadius: "50%", ...TARJETA_POS.iconoUbicacion }} title="Ver ubicación en Google Maps" />
-          {linkCorreo && (
-            <a href={linkCorreo} style={{ position: "absolute", borderRadius: "50%", ...TARJETA_POS.iconoCorreo }} title={correo} />
-          )}
-          {linkTelefono && (
-            <a href={linkTelefono} style={{ position: "absolute", borderRadius: "50%", ...TARJETA_POS.iconoTelefono }} title={tarjeta.telefono} />
-          )}
-          {linkWhatsapp && (
-            <>
-              <a href={linkWhatsapp} style={{ position: "absolute", ...TARJETA_POS.cotizarBtn }} title="Cotizar por WhatsApp" />
-              <a href={linkWhatsapp} style={{ position: "absolute", borderRadius: "50%", ...TARJETA_POS.whatsappBubble }} title="WhatsApp" />
-            </>
-          )}
-        </div>
-      </div>
-      <p style={{ textAlign: "center", fontSize: 11, color: "#8794A0", marginTop: 10 }}>
-        Así la verá el cliente. Los íconos de correo, teléfono y WhatsApp ya son enlaces reales.
-      </p>
     </div>
   );
 }
@@ -2620,10 +2441,11 @@ export default function SegurosCRM() {
   }, [porcentajes, porcentajesLoaded]);
 
   // --- Tarjeta digital ---
-  const [tarjeta, setTarjeta] = useState({ plantillaId: "qualitas", fotoUrl: "", telefono: "", whatsapp: "" });
+  const [tarjeta, setTarjeta] = useState({ plantillaId: "mc", fotoUrl: "", telefono: "", whatsapp: "", correoUsuario: "", web: "", qrUrl: "" });
   const [tarjetaLoaded, setTarjetaLoaded] = useState(false);
   const [tarjetaError, setTarjetaError] = useState("");
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [subiendoQr, setSubiendoQr] = useState(false);
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
@@ -2717,12 +2539,14 @@ export default function SegurosCRM() {
       .from("public_cards")
       .upsert({
         agent_id: userId,
-        plantilla_id: tarjeta.plantillaId,
+        plantilla_id: "mc",
         foto_url: tarjeta.fotoUrl,
-        nombre: profile.nombre,
-        correo: profile.correo,
+        nombre: tarjeta.nombre ?? profile.nombre,
+        correo: correoCompleto(tarjeta.correoUsuario),
         telefono: tarjeta.telefono,
         whatsapp: tarjeta.whatsapp,
+        web: tarjeta.web || "",
+        qr_url: tarjeta.qrUrl || "",
         updated_at: new Date().toISOString(),
       }, { onConflict: "agent_id" })
       .then(({ error }) => {
@@ -2734,22 +2558,39 @@ export default function SegurosCRM() {
     setTarjeta((t) => ({ ...t, [campo]: valor }));
   }
 
+  async function subirImagenTarjeta(file, nombreArchivo, maxLado, tipo, campo) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Sin sesión activa.");
+    const blob = await reducirImagen(file, maxLado, tipo);
+    const ext = tipo === "image/png" ? "png" : "jpg";
+    const path = `${user.id}/${nombreArchivo}.${ext}`;
+    const { error: upErr } = await supabase.storage.from(TARJETAS_BUCKET).upload(path, blob, { upsert: true, contentType: tipo });
+    if (upErr) throw upErr;
+    const { data } = supabase.storage.from(TARJETAS_BUCKET).getPublicUrl(path);
+    actualizarTarjeta(campo, `${data.publicUrl}?v=${Date.now()}`);
+  }
+
   async function handleTarjetaFoto(file) {
     setTarjetaError("");
     setSubiendoFoto(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sin sesión activa.");
-      const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-      const path = `${user.id}/foto.${ext}`;
-      const { error: upErr } = await supabase.storage.from(TARJETAS_BUCKET).upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from(TARJETAS_BUCKET).getPublicUrl(path);
-      actualizarTarjeta("fotoUrl", `${data.publicUrl}?v=${Date.now()}`);
+      await subirImagenTarjeta(file, "foto", 1000, "image/jpeg", "fotoUrl");
     } catch (e) {
       setTarjetaError(`No se pudo subir la foto: ${e.message}`);
     } finally {
       setSubiendoFoto(false);
+    }
+  }
+
+  async function handleTarjetaQr(file) {
+    setTarjetaError("");
+    setSubiendoQr(true);
+    try {
+      await subirImagenTarjeta(file, "qr", 900, "image/png", "qrUrl");
+    } catch (e) {
+      setTarjetaError(`No se pudo subir el QR: ${e.message}`);
+    } finally {
+      setSubiendoQr(false);
     }
   }
 
@@ -4189,7 +4030,9 @@ function migrateClient(c) {
             userId={userId}
             onChange={actualizarTarjeta}
             onFoto={handleTarjetaFoto}
+            onQr={handleTarjetaQr}
             subiendoFoto={subiendoFoto}
+            subiendoQr={subiendoQr}
             error={tarjetaError}
           />
         ))}
