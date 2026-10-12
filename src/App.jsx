@@ -51,11 +51,13 @@ const ASEGURADORAS = [
   "Crabi",
   "El Águila",
   "Click Seguros",
+  "Thona Seguros",
   "Otra",
 ];
 
 const ASEGURADORA_COLORS = {
   "GNP Seguros": "#F58220",
+  "Thona Seguros": "#1F2A5C",
   "AXA Seguros": "#00008F",
   "MetLife": "#0A2A43",
   "Qualitas": "#93278F",
