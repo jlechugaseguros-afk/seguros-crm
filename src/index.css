@@ -294,3 +294,5 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
   .jl-hero-img, .jl-hero-sheen, .jl-hero-text { animation: none; }
   .jl-hero-sheen { display: none; }
 }
+
+.side-link.side-sublink { margin-left: 18px; padding-left: 10px; text-decoration: none; }

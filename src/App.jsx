@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search } from "lucide-react";
+import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { id: "comisiones", label: "Comisiones", icon: Calculator },
   { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
+  { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
   { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
 ];
@@ -154,8 +155,12 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "multicotizador"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
+];
+
+const DIRECTORIOS_MEDICOS = [
+  { label: "GNP", aseguradora: "GNP Seguros", url: "https://www.gnp.com.mx/directorio-proveedores-medicos" },
 ];
 
 const NAV_EXTERNAL_LINKS = {
@@ -2295,6 +2300,7 @@ export default function SegurosCRM() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dirOpen, setDirOpen] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
 
@@ -3411,6 +3417,23 @@ function migrateClient(c) {
                     )}
                   </>
                 );
+                if (item.id === "directorios") {
+                  return (
+                    <React.Fragment key={item.id}>
+                      <button onClick={() => setDirOpen((o) => !o)} className="side-link" aria-expanded={dirOpen}>
+                        {inner}
+                        <ChevronDown size={16} style={{ marginLeft: "auto", transition: "transform .2s", transform: dirOpen ? "rotate(180deg)" : "none" }} />
+                      </button>
+                      {dirOpen && DIRECTORIOS_MEDICOS.map((d) => (
+                        <a key={d.label} href={d.url} target="_blank" rel="noreferrer"
+                          onClick={() => setMenuOpen(false)} className="side-link side-sublink">
+                          <InsurerMark name={d.aseguradora} w={44} h={26} radius={6} />
+                          <span>{d.label}</span>
+                        </a>
+                      ))}
+                    </React.Fragment>
+                  );
+                }
                 if (externalUrl) {
                   return (
                     <a key={item.id} href={externalUrl} target="_blank" rel="noreferrer"
