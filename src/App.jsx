@@ -127,7 +127,8 @@ const MULTICOTIZADOR_MENU = [
     color: "var(--ink)",
     children: [
       { label: "GNP", url: "https://portalintermediarios.gnp.com.mx/sesion", color: "#F58220" },
-      { label: "AXA", url: "https://axa.mx/", color: "#00008F" },
+      { label: "AXA", url: "https://cloud.distribuidores.axa.com.mx/group/distribucion", color: "#00008F" },
+      { label: "Thona Seguros", url: "https://thona-agentes.azurewebsites.net/", color: "#1F2A5C" },
       {
         label: "Qualitas",
         color: "#93278F",

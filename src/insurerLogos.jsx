@@ -6,6 +6,7 @@ export function insurerKey(name) {
   const n = String(name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   if (!n) return "";
   if (/\bgnp\b/.test(n)) return "gnp";
+  if (/thona/.test(n)) return "thona";
   if (/\baxa\b/.test(n)) return "axa";
   if (/qualitas/.test(n)) return "qualitas";
   if (/\bana\b/.test(n)) return "ana";
