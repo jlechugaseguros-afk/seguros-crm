@@ -1980,6 +1980,9 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
                     {TIPOS_ACTIVIDAD.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
+                <p style={{ fontSize: 11.5, color: "var(--stone)", margin: "0 0 8px" }}>
+                  Con hora, te avisamos 15 minutos antes (campanita y notificación). Sin hora, te avisamos a las 8 AM del día.
+                </p>
                 <input
                   value={draft.descripcion}
                   onChange={(e) => setDraft((d) => ({ ...d, descripcion: e.target.value }))}
@@ -2938,10 +2941,29 @@ function migrateClient(c) {
   function reminderKey(r) {
     return r.actId ? `${r.tone}-${r.actId}` : `${r.tone}-${r.client.id}-${r.policy?.id || ""}-${r.date}`;
   }
+  // Actividades propias del Planificador de hoy: van a la campanita y al push, pero no a la pestaña Recordatorios
+  const actividadesHoy = useMemo(() => {
+    const hoyStr = todayStr();
+    return (activities || [])
+      .filter((a) => !a.prospectoId && a.fecha === hoyStr)
+      .map((a) => {
+        const cli = clients.find((c) => c.id === a.clienteId);
+        return {
+          client: { id: a.id, nombre: a.descripcion || a.tipo || "Actividad", telefono: "" },
+          policy: null,
+          label: `${a.tipo || "Actividad"}${cli ? ` · ${cli.nombre}` : ""}`,
+          tone: "actividad", days: 0, date: a.fecha, hora: a.hora || "", actId: a.id,
+        };
+      });
+  }, [activities, clients]);
   const remindersHoy = useMemo(
-    () => reminders.filter((r) => r.days === 0 && !vistosHoy.includes(reminderKey(r))),
-    [reminders, vistosHoy]
+    () => [...reminders, ...actividadesHoy]
+      .filter((r) => r.days === 0 && !vistosHoy.includes(reminderKey(r)))
+      .sort((a, b) => (a.hora || "99:99").localeCompare(b.hora || "99:99")),
+    [reminders, actividadesHoy, vistosHoy]
   );
+  const recordatoriosHoyN = remindersHoy.filter((r) => r.tone !== "actividad").length;
+  const actividadesHoyN = remindersHoy.length - recordatoriosHoyN;
   const [expandedReminderGroups, setExpandedReminderGroups] = useState({});
   const [expandedPagosFuturos, setExpandedPagosFuturos] = useState({});
   const [expandedClientGroups, setExpandedClientGroups] = useState({});
@@ -3280,14 +3302,16 @@ function migrateClient(c) {
     renovacion: "#8F5E0B",
     cumple: "var(--emerald)",
     seguimiento: "#2B5C86",
+    actividad: "#B8892B",
   };
   const toneSoft = {
     pago: "#F6DEDA",
     renovacion: "#F8E9C8",
     cumple: "#DCEEE7",
     seguimiento: "#DDE9F4",
+    actividad: "#F8EFD6",
   };
-  const toneIcon = { pago: CreditCard, renovacion: CalendarClock, cumple: Heart, seguimiento: UserPlus };
+  const toneIcon = { pago: CreditCard, renovacion: CalendarClock, cumple: Heart, seguimiento: UserPlus, actividad: CalendarDays };
 
   const baseStyles = (
     <style>{`
@@ -3412,8 +3436,11 @@ function migrateClient(c) {
                   <>
                     {Icon && <Icon size={18} style={{ flexShrink: 0 }} />}
                     <span>{item.label}</span>
-                    {item.id === "recordatorios" && remindersHoy.length > 0 && (
-                      <span className="side-badge">{remindersHoy.length}</span>
+                    {item.id === "recordatorios" && recordatoriosHoyN > 0 && (
+                      <span className="side-badge">{recordatoriosHoyN}</span>
+                    )}
+                    {item.id === "planificador" && actividadesHoyN > 0 && (
+                      <span className="side-badge">{actividadesHoyN}</span>
                     )}
                   </>
                 );
@@ -3551,7 +3578,7 @@ function migrateClient(c) {
                   {remindersHoy.map((r, i) => (
                     <button
                       key={i}
-                      onClick={() => { marcarNotifVista(reminderKey(r)); setTab("recordatorios"); setShowNotifs(false); }}
+                      onClick={() => { marcarNotifVista(reminderKey(r)); setTab(r.tone === "actividad" ? "planificador" : "recordatorios"); setShowNotifs(false); }}
                       style={{
                         width: "100%", textAlign: "left", background: "none", border: "none",
                         padding: "10px 14px", borderBottom: "1px solid var(--line)", display: "flex", gap: 8, alignItems: "center",
@@ -4113,7 +4140,7 @@ function migrateClient(c) {
           <button key={id} onClick={() => setTab(id)} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined}>
             <Icon size={20} />
             {label}
-            {id === "recordatorios" && remindersHoy.length > 0 && <span className="tb-badge">{remindersHoy.length}</span>}
+            {id === "recordatorios" && recordatoriosHoyN > 0 && <span className="tb-badge">{recordatoriosHoyN}</span>}
           </button>
         ))}
       </nav>
