@@ -53,12 +53,14 @@ const ASEGURADORAS = [
   "El Águila",
   "Click Seguros",
   "Thona Seguros",
+  "Sura",
   "Otra",
 ];
 
 const ASEGURADORA_COLORS = {
   "GNP Seguros": "#F58220",
   "Thona Seguros": "#1F2A5C",
+  "Sura": "#0033A0",
   "AXA Seguros": "#00008F",
   "MetLife": "#0A2A43",
   "Qualitas": "#93278F",
@@ -132,6 +134,7 @@ const MULTICOTIZADOR_MENU = [
       { label: "GNP", url: "https://portalintermediarios.gnp.com.mx/sesion", color: "#F58220" },
       { label: "AXA", url: "https://cloud.distribuidores.axa.com.mx/group/distribucion", color: "#00008F" },
       { label: "Thona Seguros", url: "https://thona-agentes.azurewebsites.net/", color: "#1F2A5C" },
+      { label: "Sura", url: "https://suramexicob2cprod.b2clogin.com/suramexicob2cprod.onmicrosoft.com/b2c_1_inicio_sesion_agentes/oauth2/v2.0/authorize?client_id=d72169b0-608d-40ca-82ce-b451885b0e1c&response_type=code&redirect_uri=https%3A%2F%2Fportalfuerzaventas.segurossura.com.mx%2Fapi%2Fauth%2Fcallback&response_mode=query&scope=openid+profile+offline_access&state=VMFEMQHcxbjE7VVjKd12jBc91c6jPVeIKUckasCD6WA&nonce=kEyJOwI2o9BZpK_AE-a95T7_nItLST3760fUcNQwGq4&code_challenge=yh7_PAAaWX8D4ZVv5fqGJ4EKMibrrJZ3VpTb-Fi9EEc&code_challenge_method=S256", color: "#0033A0" },
       {
         label: "Qualitas",
         color: "#93278F",

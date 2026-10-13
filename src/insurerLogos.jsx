@@ -7,6 +7,7 @@ export function insurerKey(name) {
   if (!n) return "";
   if (/\bgnp\b/.test(n)) return "gnp";
   if (/thona/.test(n)) return "thona";
+  if (/\bsura\b/.test(n)) return "sura";
   if (/\baxa\b/.test(n)) return "axa";
   if (/qualitas/.test(n)) return "qualitas";
   if (/\bana\b/.test(n)) return "ana";
