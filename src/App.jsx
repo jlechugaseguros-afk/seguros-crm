@@ -546,7 +546,88 @@ const ACCIONES_SEGUIMIENTO = ["Correo", "Llamada", "Whatsapp", "Reunión Virtual
 const emptyProspecto = {
   nombre: "", telefono: "", correo: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "",
   requiereSeguimiento: false, accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "",
+  cotizaciones: [],
 };
+
+// Sube uno o varios PDF de cotizaciones enviadas al prospecto (solo visible en estado "Cotización enviada").
+// `folderId` agrupa los archivos en Storage; `onChange` recibe una función que actualiza la lista.
+function CotizacionesPdf({ folderId, files, onChange }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function handleFiles(e) {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!picked.length) return;
+    setErr("");
+    setBusy(true);
+    const added = [];
+    const failed = [];
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sin sesión activa.");
+      for (const file of picked) {
+        if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
+          failed.push(`${file.name} (no es PDF)`);
+          continue;
+        }
+        const path = `prospectos/${user.id}/${folderId}/${Date.now()}-${added.length}-${slugifyFileName(file.name)}`;
+        const { error } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { upsert: true });
+        if (error) { failed.push(`${file.name} (${error.message})`); continue; }
+        added.push({ id: `${Date.now()}-${added.length}`, name: file.name, path, uploadedAt: Date.now() });
+      }
+    } catch (ex) {
+      setErr(ex.message || "No se pudieron subir los archivos.");
+    }
+    if (added.length) onChange((prev) => [...(prev || []), ...added]);
+    if (failed.length) setErr(`No se pudo subir: ${failed.join(", ")}`);
+    setBusy(false);
+  }
+
+  async function openFile(f) {
+    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(f.path, 3600);
+    if (error || !data) { setErr("No se pudo abrir el PDF."); return; }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
+  const list = files || [];
+  return (
+    <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Cotizaciones enviadas (PDF)</div>
+      {list.length === 0 && <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 8px" }}>Aún no has subido cotizaciones.</p>}
+      {list.map((f) => (
+        <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
+          <FileText size={16} color="var(--stone)" style={{ flexShrink: 0 }} />
+          <button
+            type="button"
+            onClick={() => openFile(f)}
+            style={{ flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, textAlign: "left", fontSize: 13, color: "var(--ink)", textDecoration: "underline", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          >
+            {f.name}
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange((prev) => (prev || []).filter((x) => x.id !== f.id))}
+            aria-label={`Quitar ${f.name}`}
+            style={{ background: "none", border: "none", color: "#B23A2E", padding: 4 }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ))}
+      <label style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10,
+        border: "1px dashed var(--line)", borderRadius: 10, padding: "10px 12px", fontSize: 13,
+        cursor: busy ? "default" : "pointer", color: "var(--ink)", opacity: busy ? 0.6 : 1,
+      }}>
+        <Upload size={15} />
+        {busy ? "Subiendo..." : "Subir PDF(s)"}
+        <input type="file" accept=".pdf,application/pdf" multiple disabled={busy} onChange={handleFiles} style={{ display: "none" }} />
+      </label>
+      {err && <p style={{ color: "#B23A2E", fontSize: 12, margin: "8px 0 0" }}>{err}</p>}
+    </div>
+  );
+}
 
 function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddActivity }) {
   const [showForm, setShowForm] = useState(false);
@@ -558,6 +639,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
   const [perdidoTarget, setPerdidoTarget] = useState(null); // "edit" | "new" | null
   const [motivoPerdido, setMotivoPerdido] = useState(MOTIVOS_PERDIDO[0]);
   const [comentarioPerdido, setComentarioPerdido] = useState("");
+  const [draftFolder, setDraftFolder] = useState(() => `nuevo-${Date.now()}`);
 
   const funnelData = ESTADOS_PROSPECTO.map((e) => [e, prospectos.filter((p) => p.estado === e).length]);
   const visible = filter ? prospectos.filter((p) => p.estado === filter) : prospectos;
@@ -631,7 +713,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
         eyebrow="Ventas" title="Prospectos"
         subtitle={`${prospectos.length} prospecto${prospectos.length === 1 ? "" : "s"} en seguimiento`}
         action={
-          <button className="lift" onClick={() => { setForm(emptyProspecto); setError(""); setShowForm(true); }} style={goldBtn}>
+          <button className="lift" onClick={() => { setForm(emptyProspecto); setDraftFolder(`nuevo-${Date.now()}`); setError(""); setShowForm(true); }} style={goldBtn}>
             <Plus size={16} /> Nuevo prospecto
           </button>
         }
@@ -672,7 +754,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[p.estado] }} />
-                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.estado}{p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}</span>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.estado}{p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}{p.estado === "Cotización enviada" && (p.cotizaciones || []).length > 0 ? ` · ${p.cotizaciones.length} PDF${p.cotizaciones.length === 1 ? "" : "s"}` : ""}</span>
                 </div>
               </div>
               <ChevronDown size={18} color="var(--stone)" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
@@ -706,6 +788,13 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                       Editar motivo
                     </button>
                   </div>
+                )}
+                {editDraft.estado === "Cotización enviada" && (
+                  <CotizacionesPdf
+                    folderId={p.id}
+                    files={editDraft.cotizaciones}
+                    onChange={(fn) => setEditDraft((d) => ({ ...d, cotizaciones: fn(d.cotizaciones || []) }))}
+                  />
                 )}
                 <Field label="Notas">
                   <input value={editDraft.notas || ""} onChange={(e) => setEditDraft((d) => ({ ...d, notas: e.target.value }))} style={inputStyle} />
@@ -811,6 +900,13 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {form.motivoPerdido}</div>
                 {form.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{form.comentarioPerdido}</div>}
               </div>
+            )}
+            {form.estado === "Cotización enviada" && (
+              <CotizacionesPdf
+                folderId={draftFolder}
+                files={form.cotizaciones}
+                onChange={(fn) => setForm((f) => ({ ...f, cotizaciones: fn(f.cotizaciones || []) }))}
+              />
             )}
             <Field label="Notas">
               <input value={form.notas} onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))} style={inputStyle} />
