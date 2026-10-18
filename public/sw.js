@@ -12,7 +12,23 @@ self.addEventListener("push", (event) => {
     badge: "/jl-icon-192.png",
     data: { url: data.url || "/" },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  const conteo = Number(data.badge) > 0 ? Number(data.badge) : 1;
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // Globito rojo en el ícono de la app (iOS 16.4+ PWA instalada)
+      "setAppBadge" in self.navigator
+        ? self.navigator.setAppBadge(conteo).catch(() => {})
+        : Promise.resolve(),
+    ])
+  );
+});
+
+// La app avisa cuando se abre para quitar el globito
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "CLEAR_BADGE" && "clearAppBadge" in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {

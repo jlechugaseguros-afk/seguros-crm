@@ -11,6 +11,16 @@ const publicMatch = path.match(/^\/t\/([^/]+)\/?$/)
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {})
+
+  // Al abrir o volver a la app, se quita el globito del ícono
+  const limpiarGlobito = () => {
+    if (document.visibilityState !== 'visible') return
+    try {
+      if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {})
+    } catch (e) { /* sin soporte */ }
+  }
+  document.addEventListener('visibilitychange', limpiarGlobito)
+  limpiarGlobito()
 }
 
 createRoot(document.getElementById('root')).render(
