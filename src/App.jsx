@@ -164,6 +164,8 @@ const NAV_GROUPS = [
 
 const DIRECTORIOS_MEDICOS = [
   { label: "GNP", aseguradora: "GNP Seguros", url: "https://www.gnp.com.mx/directorio-proveedores-medicos" },
+  { label: "AXA", aseguradora: "AXA", url: "https://axa.mx/servicios/buscador-de-servicios" },
+  { label: "Plan Seguro", aseguradora: "Plan Seguro", url: "https://directorio.planseguro.com.mx:447/Directorio/Hospitales" },
 ];
 
 const NAV_EXTERNAL_LINKS = {
