@@ -5,6 +5,7 @@ import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
 import Comparativo from "./Comparativo.jsx";
 import CalculadoraFactura from "./CalculadoraFactura.jsx";
+import CalculadoraDeducible from "./CalculadoraDeducible.jsx";
 import PageHeader from "./PageHeader.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { id: "tarjeta", label: "Tarjeta digital", icon: CreditCard },
   { id: "comisiones", label: "Comisiones", icon: Calculator },
   { id: "factura", label: "Calculadora de factura", icon: FileText },
+  { id: "deducible", label: "Deducible y coaseguro", icon: Calculator },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
@@ -158,7 +160,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "multicotizador", "directorios"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
@@ -4203,6 +4205,13 @@ function migrateClient(c) {
         )}
 
         {tab === "factura" && <CalculadoraFactura />}
+
+        {tab === "deducible" && (
+          <CalculadoraDeducible
+            clients={clients}
+            onUpdateClient={(id, fn) => setClients((cs) => cs.map((c) => (c.id === id ? fn(c) : c)))}
+          />
+        )}
 
         {showImport && (
           <ImportarCartera
