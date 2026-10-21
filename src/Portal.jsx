@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Home, FileText, ShieldAlert, MessageCircle, LayoutGrid, Download, LogOut, X, Share, MoreVertical, Smartphone, CalendarClock, ChevronRight, Phone, Car, HeartPulse, Heart, PawPrint, PiggyBank, Shield, FolderOpen, MoreHorizontal, Camera } from "lucide-react";
+import { Home, FileText, ShieldAlert, MessageCircle, LayoutGrid, Download, LogOut, X, Share, MoreVertical, Smartphone, CalendarClock, ChevronRight, Phone, Car, HeartPulse, Heart, PawPrint, PiggyBank, Shield, FolderOpen, MoreHorizontal, Camera, ScanFace } from "lucide-react";
+import { bioDisponible, bioActivaPara, bioRechazada, bioRechazar, bioActivar, bioVerificar, bioDesactivar } from "./biometria.js";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import { supabasePortal as supabase } from "./supabasePortal.js";
 import { JL_LOGO } from "./brandAssets.js";
@@ -168,49 +169,167 @@ function InstalarModal({ onClose, instalarNativo }) {
   );
 }
 
-// ───────── Pantalla de acceso ─────────
-function Acceso() {
-  const [email, setEmail] = useState("");
-  const [estado, setEstado] = useState("idle"); // idle | enviando | enviado | error
-  async function enviar(e) {
-    e.preventDefault();
-    setEstado("enviando");
-    try {
-      const { error } = await supabase.functions.invoke("portal-enlace", { body: { email, redirectTo: window.location.origin + "/portal", agentId: AGENTE_ID } });
-      setEstado(error ? "error" : "enviado");
-    } catch (err) { setEstado("error"); }
-  }
+// ───────── Pantalla de acceso (correo + contraseña) y activación con enlace del asesor ─────────
+const inputSt = { width: "100%", padding: "13px 14px", border: "2px solid var(--gold)", borderRadius: 10, fontSize: 16, background: "#fff", color: "var(--ink)", marginBottom: 12 };
+const btnSt = { width: "100%", padding: "13px 14px", border: "none", borderRadius: 10, background: "var(--ink)", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" };
+const lblSt = { display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 };
+function leerTokenActivacion() {
+  try { const t = new URLSearchParams(window.location.search).get("activar") || ""; return /^[0-9a-f]{48}$/.test(t) ? t : ""; } catch (e) { return ""; }
+}
+function Marco({ children }) {
   return (
     <div style={{ minHeight: "100dvh", background: "var(--cream)", display: "flex", flexDirection: "column", fontFamily: "'Manrope', system-ui, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "center", padding: "22px 20px 8px" }}>
         {ES_JL ? <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 110, objectFit: "contain" }} /> : <div className="serif" style={{ fontSize: 26, padding: "26px 0 6px", color: "var(--ink)" }}>Portal de clientes</div>}
       </div>
       <div style={{ flex: 1, display: "grid", placeItems: "center", padding: "12px 16px 32px" }}>
-        <div className="panel stagger" style={{ width: "100%", maxWidth: 420, padding: 24 }}>
-          <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--gold-text)", fontWeight: 700 }}>Portal de clientes</div>
-          <h1 className="serif" style={{ fontSize: 26, color: "var(--ink)", margin: "6px 0 6px", lineHeight: 1.15 }}>Tus pólizas, siempre contigo</h1>
-          <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 18 }}>Escribe el correo que registraste con tu asesor y te enviamos un enlace para entrar. Sin contraseñas.</p>
-          {estado === "enviado" ? (
-            <div style={{ background: "var(--gold-soft)", borderRadius: 12, padding: 14, fontSize: 14, color: "var(--ink)" }}>
-              <b>Revisa tu correo.</b> Si <b>{email}</b> está registrado, te llegará un enlace para entrar (revisa también spam). Ábrelo en este mismo dispositivo.
-              <button type="button" onClick={() => setEstado("idle")} style={{ display: "block", marginTop: 10, background: "none", border: "none", color: "var(--gold-text)", fontWeight: 600, cursor: "pointer", padding: 0 }}>Usar otro correo</button>
-            </div>
-          ) : (
-            <form onSubmit={enviar}>
-              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Correo electrónico</label>
-              <input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" style={{ width: "100%", padding: "13px 14px", border: "2px solid var(--gold)", borderRadius: 10, fontSize: 16, background: "#fff", color: "var(--ink)", marginBottom: 12 }} />
-              <button type="submit" disabled={estado === "enviando"} style={{ width: "100%", padding: "13px 14px", border: "none", borderRadius: 10, background: "var(--ink)", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: estado === "enviando" ? 0.6 : 1 }}>
-                {estado === "enviando" ? "Enviando…" : "Enviarme el enlace de acceso"}
-              </button>
-              {estado === "error" && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 10 }}>No pudimos enviar el enlace. Intenta de nuevo en un momento o escríbele a tu asesor.</p>}
-            </form>
-          )}
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 18 }}>
-            {ES_JL
-              ? <>¿Aún no eres cliente o tu correo no funciona? <a href={`https://wa.me/${ASESOR_JL.whatsapp}?text=${encodeURIComponent("Hola Joshua, quiero acceder al portal de clientes.")}`} style={{ color: "var(--gold-text)", fontWeight: 600 }}>Escríbeme por WhatsApp</a>.</>
-              : <>¿Tu correo no funciona? Pídele a tu asesor que lo registre en tu expediente.</>}
-          </p>
-        </div>
+        <div className="panel stagger" style={{ width: "100%", maxWidth: 420, padding: 24 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+const AyudaAsesor = () => (
+  <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 18 }}>
+    {ES_JL
+      ? <>¿Primera vez o olvidaste tu contraseña? <a href={`https://wa.me/${ASESOR_JL.whatsapp}?text=${encodeURIComponent("Hola Joshua, necesito mi enlace de acceso al portal de clientes.")}`} style={{ color: "var(--gold-text)", fontWeight: 600 }}>Pídeme tu enlace por WhatsApp</a>.</>
+      : <>¿Primera vez o olvidaste tu contraseña? Pídele a tu asesor un enlace de acceso.</>}
+  </p>
+);
+
+function Activar({ token, onListo, onEntro }) {
+  const [info, setInfo] = useState(null); // null = cargando, false = inválido
+  const [p1, setP1] = useState("");
+  const [p2, setP2] = useState("");
+  const [ver, setVer] = useState(false);
+  const [estado, setEstado] = useState("idle");
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: d } = await supabase.functions.invoke("portal-activar", { body: { accion: "info", token } });
+        setInfo(d && d.correo ? d : false);
+      } catch (e) { setInfo(false); }
+    })();
+  }, [token]);
+  async function guardar(e) {
+    e.preventDefault();
+    if (p1.length < 8) { setMsg("La contraseña debe tener al menos 8 caracteres."); return; }
+    if (p1 !== p2) { setMsg("Las contraseñas no coinciden."); return; }
+    setMsg(""); setEstado("guardando");
+    try {
+      const { data: d, error } = await supabase.functions.invoke("portal-activar", { body: { accion: "activar", token, password: p1 } });
+      if (error || !d?.ok) { setEstado("idle"); setMsg(d?.error === "cuenta_no_permitida" ? "Esta cuenta no se puede activar desde aquí. Contacta a tu asesor." : "No pudimos activar tu acceso. Pide un enlace nuevo a tu asesor."); return; }
+      const { error: e2 } = await supabase.auth.signInWithPassword({ email: d.correo, password: p1 });
+      if (e2) { setEstado("idle"); setMsg("Contraseña creada, pero no pudimos iniciar sesión. Intenta entrar con tu correo y contraseña."); return; }
+      try { window.history.replaceState({}, "", window.location.pathname); } catch (err) { /* sin historial */ }
+      onEntro?.(); onListo();
+    } catch (err) { setEstado("idle"); setMsg("Ocurrió un problema. Intenta de nuevo."); }
+  }
+  return (
+    <Marco>
+      <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--gold-text)", fontWeight: 700 }}>Portal de clientes</div>
+      {info === null && <p style={{ color: "var(--muted)", marginTop: 14 }}>Verificando tu enlace…</p>}
+      {info === false && (
+        <>
+          <h1 className="serif" style={{ fontSize: 24, color: "var(--ink)", margin: "6px 0" }}>Enlace no válido</h1>
+          <p style={{ fontSize: 14, color: "var(--muted)" }}>Este enlace ya se usó o caducó. Pídele a tu asesor uno nuevo.</p>
+          <button type="button" onClick={onListo} style={{ ...btnSt, marginTop: 14 }}>Ir a iniciar sesión</button>
+        </>
+      )}
+      {info && (
+        <form onSubmit={guardar}>
+          <h1 className="serif" style={{ fontSize: 26, color: "var(--ink)", margin: "6px 0 6px", lineHeight: 1.15 }}>Hola{info.nombre ? `, ${info.nombre}` : ""}</h1>
+          <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>Crea tu contraseña para entrar a tu portal. Tu usuario será <b>{info.correo}</b>.</p>
+          <label style={lblSt}>Contraseña (mínimo 8 caracteres)</label>
+          <input type={ver ? "text" : "password"} required minLength={8} autoComplete="new-password" value={p1} onChange={(e) => setP1(e.target.value)} style={inputSt} />
+          <label style={lblSt}>Repite la contraseña</label>
+          <input type={ver ? "text" : "password"} required minLength={8} autoComplete="new-password" value={p2} onChange={(e) => setP2(e.target.value)} style={inputSt} />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", marginBottom: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={ver} onChange={(e) => setVer(e.target.checked)} /> Mostrar contraseña
+          </label>
+          <button type="submit" disabled={estado === "guardando"} style={{ ...btnSt, opacity: estado === "guardando" ? 0.6 : 1 }}>{estado === "guardando" ? "Guardando…" : "Crear contraseña y entrar"}</button>
+          {msg && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 10 }}>{msg}</p>}
+        </form>
+      )}
+    </Marco>
+  );
+}
+
+function Acceso({ onEntro }) {
+  const [token, setToken] = useState(leerTokenActivacion());
+  const [email, setEmail] = useState(leerLS("jl_portal_correo") || "");
+  const [pass, setPass] = useState("");
+  const [ver, setVer] = useState(false);
+  const [estado, setEstado] = useState("idle");
+  const [msg, setMsg] = useState("");
+  if (token) return <Activar token={token} onListo={() => setToken("")} onEntro={onEntro} />;
+  async function entrar(e) {
+    e.preventDefault();
+    setEstado("entrando"); setMsg("");
+    const correo = email.trim().toLowerCase();
+    const { error } = await supabase.auth.signInWithPassword({ email: correo, password: pass });
+    if (error) { setEstado("idle"); setMsg("Correo o contraseña incorrectos."); return; }
+    escribirLS("jl_portal_correo", correo);
+    onEntro?.();
+  }
+  return (
+    <Marco>
+      <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--gold-text)", fontWeight: 700 }}>Portal de clientes</div>
+      <h1 className="serif" style={{ fontSize: 26, color: "var(--ink)", margin: "6px 0 6px", lineHeight: 1.15 }}>Tus pólizas, siempre contigo</h1>
+      <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 18 }}>Entra con tu correo y tu contraseña.</p>
+      <form onSubmit={entrar}>
+        <label style={lblSt}>Correo electrónico</label>
+        <input type="email" required autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" style={inputSt} />
+        <label style={lblSt}>Contraseña</label>
+        <input type={ver ? "text" : "password"} required autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} style={{ ...inputSt, marginBottom: 8 }} />
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", marginBottom: 12, cursor: "pointer" }}>
+          <input type="checkbox" checked={ver} onChange={(e) => setVer(e.target.checked)} /> Mostrar contraseña
+        </label>
+        <button type="submit" disabled={estado === "entrando"} style={{ ...btnSt, opacity: estado === "entrando" ? 0.6 : 1 }}>{estado === "entrando" ? "Entrando…" : "Entrar"}</button>
+        {msg && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 10 }}>{msg}</p>}
+      </form>
+      <AyudaAsesor />
+    </Marco>
+  );
+}
+
+// ───────── Bloqueo con Face ID / huella ─────────
+function Bloqueo({ uid, onOk, onSalir }) {
+  const [fallo, setFallo] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  async function probar() {
+    setOcupado(true); setFallo(false);
+    const ok = await bioVerificar(uid);
+    setOcupado(false);
+    if (ok) onOk(); else setFallo(true);
+  }
+  useEffect(() => { probar(); /* intento automático al abrir */ }, []);
+  return (
+    <Marco>
+      <div style={{ textAlign: "center" }}>
+        <span style={{ width: 64, height: 64, borderRadius: 20, background: "var(--gold-soft)", color: "var(--gold-text)", display: "inline-grid", placeItems: "center" }}><ScanFace size={32} /></span>
+        <h1 className="serif" style={{ fontSize: 24, color: "var(--ink)", margin: "12px 0 6px" }}>Tu portal está protegido</h1>
+        <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>Confirma con Face ID o tu huella para entrar.</p>
+        <button type="button" onClick={probar} disabled={ocupado} style={{ ...btnSt, opacity: ocupado ? 0.6 : 1 }}>{ocupado ? "Verificando…" : "Desbloquear"}</button>
+        {fallo && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 10 }}>No se pudo verificar. Intenta de nuevo.</p>}
+        <button type="button" onClick={onSalir} style={{ marginTop: 14, background: "none", border: "none", color: "var(--gold-text)", fontWeight: 600, cursor: "pointer" }}>Usar contraseña</button>
+      </div>
+    </Marco>
+  );
+}
+
+function BioOferta({ onActivar, onCerrar }) {
+  const [ocupado, setOcupado] = useState(false);
+  const [fallo, setFallo] = useState(false);
+  return (
+    <div role="dialog" aria-modal="true" onClick={onCerrar} style={{ position: "fixed", inset: 0, background: "rgba(7,29,49,.62)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12 }}>
+      <div className="panel" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, padding: 22, animation: "rise .4s cubic-bezier(.2,.7,.2,1)" }}>
+        <span style={{ width: 52, height: 52, borderRadius: 16, background: "var(--gold-soft)", color: "var(--gold-text)", display: "grid", placeItems: "center" }}><ScanFace size={28} /></span>
+        <h3 className="serif" style={{ fontSize: 20, color: "var(--ink)", margin: "12px 0 4px" }}>Entra más rápido</h3>
+        <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.45 }}>Activa Face ID o tu huella para abrir tu portal sin escribir la contraseña. Solo funciona en este dispositivo.</p>
+        {fallo && <p style={{ fontSize: 12, color: "#B23A2E", marginTop: 8 }}>No se pudo activar. Puedes intentarlo después desde “Más”.</p>}
+        <button type="button" disabled={ocupado} onClick={async () => { setOcupado(true); setFallo(false); const ok = await onActivar(); setOcupado(false); if (!ok) setFallo(true); }} style={{ ...btnSt, marginTop: 14, opacity: ocupado ? 0.6 : 1 }}>{ocupado ? "Activando…" : "Activar Face ID / huella"}</button>
+        <button type="button" onClick={onCerrar} style={{ width: "100%", marginTop: 8, padding: "11px 14px", border: "1px solid var(--line)", borderRadius: 10, background: "#fff", color: "var(--ink)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Ahora no</button>
       </div>
     </div>
   );
@@ -474,7 +593,7 @@ function Pagos({ data }) {
   );
 }
 
-function Mas({ data, setTab, salir, abrirInstalar }) {
+function Mas({ data, setTab, salir, abrirInstalar, bioOk, bioOn, alternarBio }) {
   const item = (icon, titulo, sub, onClick, color = "var(--gold-text)") => {
     const I = icon;
     return (
@@ -491,6 +610,7 @@ function Mas({ data, setTab, salir, abrirInstalar }) {
       {item(CalendarClock, "Calendario de pagos", "Tus próximos pagos y vigencias", () => setTab("pagos"))}
       {item(MessageCircle, "Pedir asesoría", "Resuelve tus dudas con tu agente", () => setTab("asesoria"))}
       {item(LayoutGrid, "Otros productos", "Conoce toda la gama de servicios", () => setTab("productos"))}
+      {bioOk && item(ScanFace, "Face ID / huella", bioOn ? "Activado en este dispositivo · toca para desactivar" : "Entra sin escribir tu contraseña", alternarBio)}
       {!esStandalone() && item(Smartphone, "Instalar la app", "Agrégala a tu pantalla de inicio", abrirInstalar)}
       {item(LogOut, "Cerrar sesión", data.cliente.nombre, salir, "var(--muted)")}
       <TuAgente data={data} />
@@ -646,6 +766,11 @@ export default function Portal() {
   const [fotos, setFotos] = useState({});
   const [instalar, setInstalar] = useState(false);
   const [promptNativo, setPromptNativo] = useState(null);
+  const [desbloq, setDesbloq] = useState(false);
+  const [bioOferta, setBioOferta] = useState(false);
+  const [bioOn, setBioOn] = useState(false);
+  const [bioOk, setBioOk] = useState(false);
+  const instalarPend = useRef(false);
 
   // Identidad de app instalable propia del portal (no la del CRM)
   useEffect(() => {
@@ -671,6 +796,19 @@ export default function Portal() {
   // Se carga una sola vez por usuario: los eventos de sesión (volver a la pestaña, renovar el token)
   // ya no reinician la app.
   const uid = session?.user?.id || "";
+  useEffect(() => { bioDisponible().then(setBioOk); }, []);
+  useEffect(() => { setBioOn(uid ? bioActivaPara(uid) : false); }, [uid]);
+  // Si la app estuvo oculta más de 2 minutos, vuelve a pedir Face ID / huella
+  useEffect(() => {
+    let t0 = 0;
+    const h = () => {
+      if (document.hidden) { t0 = Date.now(); return; }
+      if (t0 && Date.now() - t0 > 120000 && uid && bioActivaPara(uid)) setDesbloq(false);
+      t0 = 0;
+    };
+    document.addEventListener("visibilitychange", h);
+    return () => document.removeEventListener("visibilitychange", h);
+  }, [uid]);
   const yaCargado = useRef(false);
   useEffect(() => {
     if (!uid) { setData(null); setFotos({}); yaCargado.current = false; return; }
@@ -691,7 +829,14 @@ export default function Portal() {
         if (vivo && rows) setFotos(Object.fromEntries(rows.map((r) => [r.poliza_id, r.foto])));
       } catch (e) { /* sin fotos */ }
       // Aviso para instalar como app: al entrar, salvo que ya esté instalada u oculto
-      if (!yaCargado.current && !esStandalone() && leerLS(LS_NO_MOSTRAR) !== "1") setTimeout(() => vivo && setInstalar(true), 700);
+      if (!yaCargado.current) {
+        const quiereInstalar = !esStandalone() && leerLS(LS_NO_MOSTRAR) !== "1";
+        const disp = await bioDisponible();
+        if (!vivo) return;
+        if (disp && !bioActivaPara(uid) && !bioRechazada()) { instalarPend.current = quiereInstalar; setTimeout(() => vivo && setBioOferta(true), 700); }
+        else if (quiereInstalar) setTimeout(() => vivo && setInstalar(true), 700);
+        setDesbloq(true);
+      }
       yaCargado.current = true;
     })();
     return () => { vivo = false; };
@@ -713,9 +858,17 @@ export default function Portal() {
   }
 
   if (session === undefined) return <div style={{ minHeight: "100dvh", background: "var(--cream)" }} />;
-  if (!session) return <Acceso />;
+  if (!session) return <Acceso onEntro={() => setDesbloq(true)} />;
+  if (bioActivaPara(uid) && !desbloq) return <Bloqueo uid={uid} onOk={() => setDesbloq(true)} onSalir={async () => { await supabase.auth.signOut(); }} />;
 
-  const salir = async () => { await supabase.auth.signOut(); };
+  const salir = async () => { setDesbloq(false); await supabase.auth.signOut(); };
+  const activarBio = async () => {
+    const ok = await bioActivar(uid, session?.user?.email || "cliente");
+    if (ok) { setBioOn(true); setBioOferta(false); if (instalarPend.current) { instalarPend.current = false; setTimeout(() => setInstalar(true), 400); } }
+    return ok;
+  };
+  const cerrarBioOferta = () => { bioRechazar(); setBioOferta(false); if (instalarPend.current) { instalarPend.current = false; setTimeout(() => setInstalar(true), 400); } };
+  const alternarBio = async () => { if (bioOn) { bioDesactivar(); setBioOn(false); } else await activarBio(); };
   const centro = (children) => (
     <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", background: "var(--cream)", padding: 20, textAlign: "center", fontFamily: "'Manrope', system-ui, sans-serif" }}>
       <div className="panel" style={{ maxWidth: 380, padding: 24 }}>{children}<button type="button" onClick={salir} style={{ marginTop: 14, background: "none", border: "none", color: "var(--gold-text)", fontWeight: 600, cursor: "pointer" }}>Salir</button></div>
@@ -748,7 +901,7 @@ export default function Portal() {
         {tab === "seguros" && <MisSeguros data={data} setTab={setTab} irSiniestro={irSiniestro} fotos={fotos} onFoto={guardarFoto} />}
         {tab === "documentos" && <Documentos data={data} />}
         {tab === "siniestro" && <Siniestro key={pidSiniestro} data={data} pid0={pidSiniestro} />}
-        {tab === "mas" && <Mas data={data} setTab={setTab} salir={salir} abrirInstalar={() => setInstalar(true)} />}
+        {tab === "mas" && <Mas data={data} setTab={setTab} salir={salir} abrirInstalar={() => setInstalar(true)} bioOk={bioOk} bioOn={bioOn} alternarBio={alternarBio} />}
         {tab === "pagos" && <Pagos data={data} />}
         {tab === "asesoria" && <Asesoria data={data} />}
         {tab === "productos" && <Productos data={data} />}
@@ -768,6 +921,7 @@ export default function Portal() {
         </div>
       </nav>
 
+      {bioOferta && <BioOferta onActivar={activarBio} onCerrar={cerrarBioOferta} />}
       {instalar && <InstalarModal onClose={() => setInstalar(false)} instalarNativo={promptNativo ? instalarNativo : null} />}
     </div>
   );

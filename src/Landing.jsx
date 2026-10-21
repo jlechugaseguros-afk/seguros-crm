@@ -143,7 +143,7 @@ export default function Landing() {
           <div>
             <div style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--gold)", fontWeight: 700 }}>Para mis clientes</div>
             <h2 className="serif" style={{ fontSize: 28, fontWeight: 500, margin: "8px 0" }}>Tu portal: tus pólizas, siempre en tu bolsillo</h2>
-            <p style={{ color: "#D6DEE5", maxWidth: 620, lineHeight: 1.55 }}>Entra con un enlace a tu correo, sin contraseñas. Consulta tus pólizas, recibe recordatorios de pago, reporta un siniestro o pide asesoría. Instálalo en tu celular como una app.</p>
+            <p style={{ color: "#D6DEE5", maxWidth: 620, lineHeight: 1.55 }}>Entra con tu correo y tu contraseña, y si quieres con Face ID o huella. Consulta tus pólizas, recibe recordatorios de pago, reporta un siniestro o pide asesoría. Instálalo en tu celular como una app.</p>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 18, fontSize: 14, color: "#fff" }}>
             <span style={{ display: "flex", gap: 8, alignItems: "center" }}><FileText size={16} color="var(--gold)" /> Tus pólizas en PDF</span>

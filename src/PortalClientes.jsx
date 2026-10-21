@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Smartphone, Copy, Check, Send, ChevronDown } from "lucide-react";
+import { Smartphone, Copy, Check, Send, ChevronDown, KeyRound } from "lucide-react";
+import { supabase } from "./supabaseClient.js";
 
 // Tarjeta discreta del Dashboard: el agente comparte con sus clientes el enlace de su portal.
 // El enlace lleva el id del agente (?a=...) para que cada cliente entre al portal de SU agente.
@@ -13,6 +14,9 @@ export default function PortalClientes({ clients = [], agentId, agenteNombre }) 
   const [copiado, setCopiado] = useState(false);
   const [abierto, setAbierto] = useState(false);
   const [clienteId, setClienteId] = useState("");
+  const [generando, setGenerando] = useState(false);
+  const [listo, setListo] = useState(null); // { url, copiado }
+  const [err, setErr] = useState("");
 
   const link = agentId ? `${window.location.origin}/portal?a=${agentId}` : `${window.location.origin}/portal`;
   const conCorreo = useMemo(() => clients.filter((c) => String(c.correo || "").includes("@")), [clients]);
@@ -21,10 +25,27 @@ export default function PortalClientes({ clients = [], agentId, agenteNombre }) 
   const cliente = conCorreo.find((c) => c.id === clienteId) || null;
 
   const firma = agenteNombre ? `soy ${agenteNombre}. ` : "";
-  const mensajeGeneral = `Hola, ${firma}ya puedes consultar tus pólizas, ver tus pagos y pedirme asesoría desde tu celular en tu portal de clientes: ${link}\nEntra con el correo que tengo registrado; te llegará un enlace, sin contraseñas.`;
-  const mensajeCliente = cliente
-    ? `Hola ${String(cliente.nombre || "").split(" ")[0]}, ${firma}ya puedes consultar tus pólizas, ver tus pagos y pedirme asesoría desde tu celular en tu portal de clientes: ${link}\nEntra con tu correo (${cliente.correo}); te llegará un enlace, sin contraseñas.`
+  const mensajeGeneral = `Hola, ${firma}ya puedes consultar tus pólizas, ver tus pagos y pedirme asesoría desde tu celular en tu portal de clientes: ${link}\nSi es tu primera vez, pídeme tu enlace personal para crear tu contraseña.`;
+  const mensajeCliente = cliente && listo
+    ? `Hola ${String(cliente.nombre || "").split(" ")[0]}, ${firma}ya puedes consultar tus pólizas, ver tus pagos y pedirme asesoría desde tu celular. Crea tu contraseña con este enlace personal (un solo uso, vale 7 días): ${listo.url}\nTu usuario es ${cliente.correo}. Después podrás entrar con Face ID o huella.`
     : "";
+
+  async function generar() {
+    if (!cliente) return;
+    setGenerando(true); setErr(""); setListo(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("portal-activar", { body: { accion: "crear", clientId: cliente.id } });
+      if (error || !data?.token) {
+        setErr(data?.error === "correo_agente" ? "Ese correo es el de tu cuenta de agente; usa el del cliente." : "No se pudo generar el enlace. Intenta de nuevo.");
+      } else {
+        setListo({ url: `${window.location.origin}/portal?a=${agentId}&activar=${data.token}` });
+      }
+    } catch (e) { setErr("No se pudo generar el enlace. Intenta de nuevo."); }
+    setGenerando(false);
+  }
+  async function copiarEnlace() {
+    try { await navigator.clipboard.writeText(mensajeCliente); setListo((l) => ({ ...l, copiado: true })); setTimeout(() => setListo((l) => l && ({ ...l, copiado: false })), 1600); } catch (e) { /* sin portapapeles */ }
+  }
 
   async function copiar() {
     try {
@@ -60,7 +81,7 @@ export default function PortalClientes({ clients = [], agentId, agenteNombre }) 
 
       <div style={{ margin: "12px 0 10px", position: "relative" }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)", marginBottom: 5 }}>
-          <span>{conCorreo.length} de {clients.length} clientes ya pueden entrar</span>
+          <span>{conCorreo.length} de {clients.length} clientes con correo para activar</span>
           {sinCorreo > 0 && <span>{sinCorreo} sin correo</span>}
         </div>
         <div className="meter"><i className="grow-x" style={{ width: `${pct}%` }} /></div>
@@ -81,18 +102,30 @@ export default function PortalClientes({ clients = [], agentId, agenteNombre }) 
       {abierto && (
         <div style={{ marginTop: 10, display: "grid", gap: 8, position: "relative", animation: "rise .3s cubic-bezier(.2,.7,.2,1)" }}>
           {conCorreo.length === 0 ? (
-            <small style={{ color: "var(--stone)", fontSize: 12 }}>Aún no hay clientes con correo. Agrégalo con “Editar” en el cliente para que pueda entrar.</small>
+            <small style={{ color: "var(--stone)", fontSize: 12 }}>Aún no hay clientes con correo. Agrégalo con “Editar” en el cliente para poder generarle su acceso.</small>
           ) : (
             <>
-              <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} style={{ width: "100%", padding: "9px 11px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 13, background: "#fff", color: "var(--ink)" }}>
+              <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setListo(null); setErr(""); }} style={{ width: "100%", padding: "9px 11px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 13, background: "#fff", color: "var(--ink)" }}>
                 <option value="">Elige un cliente…</option>
                 {conCorreo.map((c) => <option key={c.id} value={c.id}>{c.nombre} {c.apellido || ""}</option>)}
               </select>
-              {cliente && (
-                <a href={`https://wa.me/${limpiaTel(cliente.telefono)}?text=${encodeURIComponent(mensajeCliente)}`} target="_blank" rel="noreferrer" style={{ ...btn, textDecoration: "none", justifyContent: "center", background: "var(--ink)", color: "#fff", border: "none" }}>
-                  <Send size={14} /> Enviar por WhatsApp a {String(cliente.nombre || "").split(" ")[0]}
-                </a>
+              {cliente && !listo && (
+                <button type="button" onClick={generar} disabled={generando} style={{ ...btn, justifyContent: "center", background: "var(--ink)", color: "#fff", border: "none", opacity: generando ? 0.6 : 1 }}>
+                  <KeyRound size={14} /> {generando ? "Generando…" : `Generar acceso para ${String(cliente.nombre || "").split(" ")[0]}`}
+                </button>
               )}
+              {cliente && listo && (
+                <>
+                  <a href={`https://wa.me/${limpiaTel(cliente.telefono)}?text=${encodeURIComponent(mensajeCliente)}`} target="_blank" rel="noreferrer" style={{ ...btn, textDecoration: "none", justifyContent: "center", background: "var(--ink)", color: "#fff", border: "none" }}>
+                    <Send size={14} /> Enviar por WhatsApp a {String(cliente.nombre || "").split(" ")[0]}
+                  </a>
+                  <button type="button" onClick={copiarEnlace} style={{ ...btn, justifyContent: "center" }}>
+                    {listo.copiado ? <><Check size={14} color="var(--emerald)" /> Copiado</> : <><Copy size={14} /> Copiar mensaje</>}
+                  </button>
+                  <small style={{ color: "var(--stone)", fontSize: 11.5 }}>Enlace personal de un solo uso, válido 7 días. Si generas otro, el anterior deja de servir.</small>
+                </>
+              )}
+              {err && <small style={{ color: "#B23A2E", fontSize: 12 }}>{err}</small>}
             </>
           )}
         </div>
