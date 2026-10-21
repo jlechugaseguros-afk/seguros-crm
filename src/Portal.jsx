@@ -125,7 +125,7 @@ function InstalarModal({ onClose, instalarNativo }) {
       <div className="panel" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, padding: 20, animation: "rise .4s cubic-bezier(.2,.7,.2,1)", maxHeight: "92dvh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <img src="/jl-icon-192.png" alt="" width={44} height={44} style={{ borderRadius: 11 }} />
+            <img src="/portal-icon-192.png" alt="" width={44} height={44} style={{ borderRadius: 11 }} />
             <div>
               <h3 className="serif" style={{ fontSize: 18, color: "var(--ink)", lineHeight: 1.2 }}>Ten tu portal a un toque</h3>
               <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Agrégalo a tu pantalla de inicio y ya no tendrás que buscar el enlace.</p>
@@ -651,7 +651,10 @@ const TEL_SINIESTROS = [
 function TelefonosSiniestros({ data }) {
   const [todas, setTodas] = useState(false);
   const mias = new Set((data.polizas || []).map((p) => insurerKey(p.aseguradora)).filter(Boolean));
-  const ordenadas = [...TEL_SINIESTROS].sort((a, b) => (mias.has(insurerKey(b.nombre)) ? 1 : 0) - (mias.has(insurerKey(a.nombre)) ? 1 : 0));
+  const fuente = Array.isArray(data.siniestros) && data.siniestros.length
+    ? data.siniestros.map((x) => ({ nombre: x.aseguradora, tels: (x.telefonos || []).map((t) => [t.lugar || "", t.numero]), instrucciones: x.instrucciones || "", docs: x.docs || [] }))
+    : TEL_SINIESTROS;
+  const ordenadas = [...fuente].sort((a, b) => (mias.has(insurerKey(b.nombre)) ? 1 : 0) - (mias.has(insurerKey(a.nombre)) ? 1 : 0));
   const hayMias = ordenadas.some((a) => mias.has(insurerKey(a.nombre)));
   const visibles = todas || !hayMias ? ordenadas : ordenadas.filter((a) => mias.has(insurerKey(a.nombre)));
   const tel = (t) => `tel:${t.replace(/\D/g, "")}`;
@@ -672,6 +675,8 @@ function TelefonosSiniestros({ data }) {
                   {!lugar && <Phone size={16} color="var(--emerald)" />}
                 </a>
               ))}
+              {a.instrucciones && <p style={{ fontSize: 12.5, color: "var(--ink)", lineHeight: 1.45, margin: "4px 0 0", whiteSpace: "pre-line" }}>{a.instrucciones}</p>}
+              {(a.docs || []).map((d) => <a key={d.id} href={d.url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "var(--gold-text)", textDecoration: "none" }}><FileText size={14} /> {d.name}</a>)}
             </div>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope } from "lucide-react";
+import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
@@ -10,6 +10,7 @@ import PortalClientes from "./PortalClientes.jsx";
 import PageHeader from "./PageHeader.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
+import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 
 const DOCS_BUCKET = "documentos";
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { id: "comisiones", label: "Comisiones", icon: Calculator },
   { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "deducible", label: "Deducible y coaseguro", icon: Calculator },
+  { id: "siniestros", label: "Siniestros", icon: ShieldAlert },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
@@ -161,7 +163,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "multicotizador", "directorios"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
@@ -2352,7 +2354,7 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
       </div>
 
       <div className="dash-col stagger">
-        <section className="panel lift" style={{ padding: "18px 20px 20px" }}>
+        <section className="panel lift dash-com" style={{ padding: "18px 20px 20px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--gold-text)" }}>
             Comisiones de {MESES_LARGO[mesNum - 1].toLowerCase()}
           </div>
@@ -4254,6 +4256,8 @@ function migrateClient(c) {
         )}
 
         {tab === "factura" && <CalculadoraFactura />}
+
+        {tab === "siniestros" && <SiniestrosCRM />}
 
         {tab === "deducible" && (
           <CalculadoraDeducible

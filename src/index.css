@@ -148,6 +148,13 @@ input, select, textarea { font-family: inherit; transition: border-color .18s ea
 .dash-grid { display: grid; gap: 20px; align-items: start; }
 .dash-col { display: grid; gap: 20px; min-width: 0; align-content: start; }
 @media (min-width: 1000px) { .dash-grid { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); } }
+/* Celular/tableta: una sola columna, con "Comisiones del mes" justo después de "Para hoy" */
+@media (max-width: 999px) {
+  .dash-grid > .dash-col { display: contents; }
+  .dash-grid > .dash-col > * { order: 5; min-width: 0; }
+  .dash-grid > .dash-col:first-child > *:first-child { order: 1; }
+  .dash-grid > .dash-col > .dash-com { order: 2; }
+}
 
 .stagger > * { animation: rise .55s cubic-bezier(.2,.7,.2,1) backwards; }
 .stagger > *:nth-child(2) { animation-delay: 70ms; }
