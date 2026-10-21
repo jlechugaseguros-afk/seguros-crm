@@ -43,7 +43,7 @@ function enlace(data, texto) {
   return "#";
 }
 function Cab({ eyebrow, title, subtitle }) {
-  if (ES_JL) return <Cab eyebrow={eyebrow} title={title} subtitle={subtitle} />;
+  if (ES_JL) return <PageHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />;
   return (
     <header style={{ background: "radial-gradient(120% 140% at 0% 0%, #123B5C 0%, var(--ink) 55%, var(--ink-2) 100%)", borderRadius: 22, padding: "26px 24px", marginBottom: 18, color: "#fff" }}>
       {eyebrow && <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--gold)", fontWeight: 700 }}>{eyebrow}</div>}
