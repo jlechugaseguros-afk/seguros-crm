@@ -50,6 +50,13 @@ export default function AuthGate({ children }) {
     if (error) setError(error.message)
   }
 
+  // Los clientes del portal no usan el CRM: se les manda a su portal
+  const esCliente = session?.user?.user_metadata?.rol === 'cliente'
+  useEffect(() => {
+    if (esCliente) window.location.replace('/portal')
+  }, [esCliente])
+  if (esCliente) return <div className="min-h-dvh" style={{ background: 'var(--cream)' }} />
+
   if (session === undefined) {
     return <div className="min-h-dvh" style={{ background: 'var(--cream)' }} />
   }

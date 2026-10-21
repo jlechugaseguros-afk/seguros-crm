@@ -5,9 +5,11 @@ import './storage.js'
 import App from './App.jsx'
 import AuthGate from './AuthGate.jsx'
 import TarjetaPublica from './TarjetaPublica.jsx'
+import Portal from './Portal.jsx'
 
 const path = window.location.pathname
 const publicMatch = path.match(/^\/t\/([^/]+)\/?$/)
+const esPortal = /^\/portal\/?$/.test(path)
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {})
@@ -25,7 +27,9 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {publicMatch ? (
+    {esPortal ? (
+      <Portal />
+    ) : publicMatch ? (
       <TarjetaPublica agentId={publicMatch[1]} />
     ) : (
       <AuthGate>
