@@ -257,7 +257,9 @@ function Activar({ token, onListo, onEntro }) {
 
 function Acceso({ onEntro }) {
   const [token, setToken] = useState(leerTokenActivacion());
+  const [modo, setModo] = useState(leerLS("jl_portal_modo") === "tel" ? "tel" : "correo");
   const [email, setEmail] = useState(leerLS("jl_portal_correo") || "");
+  const [tel, setTel] = useState(leerLS("jl_portal_tel") || "");
   const [pass, setPass] = useState("");
   const [ver, setVer] = useState(false);
   const [estado, setEstado] = useState("idle");
@@ -266,6 +268,20 @@ function Acceso({ onEntro }) {
   async function entrar(e) {
     e.preventDefault();
     setEstado("entrando"); setMsg("");
+    escribirLS("jl_portal_modo", modo);
+    if (modo === "tel") {
+      const digitos = tel.replace(/\D/g, "");
+      if (digitos.length < 10) { setEstado("idle"); setMsg("Escribe tu número de WhatsApp a 10 dígitos."); return; }
+      try {
+        const { data: d, error } = await supabase.functions.invoke("portal-login", { body: { telefono: digitos, password: pass, agentId: AGENTE_ID } });
+        if (error || !d?.access_token) { setEstado("idle"); setMsg("Número o contraseña incorrectos."); return; }
+        const { error: e2 } = await supabase.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
+        if (e2) { setEstado("idle"); setMsg("No pudimos iniciar sesión. Intenta de nuevo."); return; }
+      } catch (err) { setEstado("idle"); setMsg("No pudimos iniciar sesión. Intenta de nuevo."); return; }
+      escribirLS("jl_portal_tel", digitos);
+      onEntro?.();
+      return;
+    }
     const correo = email.trim().toLowerCase();
     const { error } = await supabase.auth.signInWithPassword({ email: correo, password: pass });
     if (error) { setEstado("idle"); setMsg("Correo o contraseña incorrectos."); return; }
@@ -276,10 +292,24 @@ function Acceso({ onEntro }) {
     <Marco>
       <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--gold-text)", fontWeight: 700 }}>Portal de clientes</div>
       <h1 className="serif" style={{ fontSize: 26, color: "var(--ink)", margin: "6px 0 6px", lineHeight: 1.15 }}>Tus pólizas, siempre contigo</h1>
-      <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 18 }}>Entra con tu correo y tu contraseña.</p>
+      <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 14 }}>Elige cómo quieres entrar y escribe tu contraseña.</p>
+      <div role="tablist" style={{ display: "flex", marginBottom: 14 }}>
+        {[["correo", "Correo"], ["tel", "WhatsApp"]].map(([id, label], i) => (
+          <button key={id} type="button" role="tab" aria-selected={modo === id} onClick={() => { setModo(id); setMsg(""); }} style={{ flex: 1, padding: "10px 8px", border: "1px solid var(--line)", background: modo === id ? "var(--ink)" : "#fff", color: modo === id ? "#fff" : "var(--ink)", fontWeight: 600, fontSize: 14, borderRadius: i === 0 ? "10px 0 0 10px" : "0 10px 10px 0", cursor: "pointer" }}>{label}</button>
+        ))}
+      </div>
       <form onSubmit={entrar}>
-        <label style={lblSt}>Correo electrónico</label>
-        <input type="email" required autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" style={inputSt} />
+        {modo === "correo" ? (
+          <>
+            <label style={lblSt}>Correo electrónico</label>
+            <input type="email" required autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" style={inputSt} />
+          </>
+        ) : (
+          <>
+            <label style={lblSt}>Número de WhatsApp (10 dígitos)</label>
+            <input type="tel" required autoComplete="tel-national" inputMode="tel" value={tel} onChange={(e) => setTel(e.target.value)} placeholder="244 123 4567" style={inputSt} />
+          </>
+        )}
         <label style={lblSt}>Contraseña</label>
         <input type={ver ? "text" : "password"} required autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} style={{ ...inputSt, marginBottom: 8 }} />
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", marginBottom: 12, cursor: "pointer" }}>
