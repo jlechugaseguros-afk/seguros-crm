@@ -1767,8 +1767,10 @@ function PieChart({ data, size = 180 }) {
   );
 }
 
-function StatChart({ title, data }) {
-  const [type, setType] = useState("pie");
+function StatChart({ title, data, inicial = "pie" }) {
+  const LSK = `jl_dash_grafico_${title}`;
+  const [type, setTypeRaw] = useState(() => { try { const v = localStorage.getItem(LSK); return v === "bar" || v === "pie" ? v : inicial; } catch (e) { return inicial; } });
+  const setType = (v) => { setTypeRaw(v); try { localStorage.setItem(LSK, v); } catch (e) { /* sin almacenamiento */ } };
   const max = Math.max(1, ...data.map(([, n]) => n));
   return (
     <div style={{ marginBottom: 28 }}>
@@ -2234,6 +2236,51 @@ function DashPanel({ title, hint, children, action }) {
   );
 }
 
+// Calendario del Dashboard: en celular inicia contraído (con un resumen del mes) para no ocupar tanto espacio.
+function CalendarioPlegable({ clients }) {
+  const [abierto, setAbierto] = useState(() => {
+    try { const v = localStorage.getItem("jl_dash_calendario"); if (v === "1" || v === "0") return v === "1"; } catch (e) { /* sin almacenamiento */ }
+    return typeof window === "undefined" || window.innerWidth >= 700;
+  });
+  const alternar = () => { const n = !abierto; setAbierto(n); try { localStorage.setItem("jl_dash_calendario", n ? "1" : "0"); } catch (e) { /* sin almacenamiento */ } };
+  const hoy = new Date();
+  const resumen = useMemo(() => {
+    const ev = buildCalendarEvents(clients, hoy.getFullYear(), hoy.getMonth());
+    const fechas = Object.keys(ev).sort();
+    const total = fechas.reduce((s, f) => s + ev[f].length, 0);
+    const hoyS = toISODate(hoy);
+    const sig = fechas.find((f) => f >= hoyS);
+    return { total, sig, primero: sig ? ev[sig][0] : null };
+  }, [clients]);
+  const fmt = (f) => { const [, m, d] = f.split("-").map(Number); return `${d} ${MESES_LARGO[m - 1].slice(0, 3).toLowerCase()}`; };
+  return (
+    <section className="panel lift" style={{ padding: "16px 18px 18px" }}>
+      <button type="button" onClick={alternar} aria-expanded={abierto} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "inherit" }}>
+        <span style={{ minWidth: 0 }}>
+          <h3 className="serif" style={{ fontSize: 17, fontWeight: 500 }}>Calendario de recordatorios</h3>
+          {!abierto && (
+            <small style={{ display: "block", color: "var(--stone)", fontSize: 12, marginTop: 3 }}>
+              {MESES_LARGO[hoy.getMonth()]} · {resumen.total === 0 ? "sin recordatorios este mes" : `${resumen.total} recordatorio${resumen.total === 1 ? "" : "s"}`}
+              {resumen.sig && resumen.primero ? ` · próximo ${fmt(resumen.sig)}: ${resumen.primero.client}` : ""}
+            </small>
+          )}
+        </span>
+        <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--gold-text)" }}>
+          {abierto ? "Ocultar" : "Ver"}
+          <ChevronDown size={16} style={{ transform: abierto ? "rotate(180deg)" : "none", transition: "transform .28s cubic-bezier(.2,.7,.2,1)" }} />
+        </span>
+      </button>
+      <div style={{ display: "grid", gridTemplateRows: abierto ? "1fr" : "0fr", transition: "grid-template-rows .35s cubic-bezier(.2,.7,.2,1)" }}>
+        <div style={{ overflow: "hidden", minHeight: 0 }}>
+          <div style={{ paddingTop: 12, opacity: abierto ? 1 : 0, transition: "opacity .3s ease" }}>
+            <Calendar clients={clients} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo, userId }) {
   const allPolizas = useMemo(() => {
     const list = [];
@@ -2297,13 +2344,11 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
         </DashPanel>
 
         <DashPanel title="Cartera por ramo y aseguradora" hint={`${allPolizas.length} póliza${allPolizas.length === 1 ? "" : "s"}`}>
-          <StatChart title="Por ramo" data={byRamo} />
-          <StatChart title="Por aseguradora" data={byAseguradora} />
+          <StatChart title="Por ramo" data={byRamo} inicial="bar" />
+          <StatChart title="Por aseguradora" data={byAseguradora} inicial="pie" />
         </DashPanel>
 
-        <DashPanel title="Calendario de recordatorios">
-          <Calendar clients={clients} />
-        </DashPanel>
+        <CalendarioPlegable clients={clients} />
       </div>
 
       <div className="dash-col stagger">
