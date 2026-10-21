@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Home, FileText, ShieldAlert, MessageCircle, LayoutGrid, Download, LogOut, X, Share, MoreVertical, Smartphone, CalendarClock, ChevronRight, Phone, Car, HeartPulse, Heart, PawPrint, PiggyBank, Shield, FolderOpen, MoreHorizontal } from "lucide-react";
-import { InsurerMark } from "./insurerLogos.jsx";
-import { supabase } from "./supabaseClient.js";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Home, FileText, ShieldAlert, MessageCircle, LayoutGrid, Download, LogOut, X, Share, MoreVertical, Smartphone, CalendarClock, ChevronRight, Phone, Car, HeartPulse, Heart, PawPrint, PiggyBank, Shield, FolderOpen, MoreHorizontal, Camera } from "lucide-react";
+import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
+import { supabasePortal as supabase } from "./supabasePortal.js";
 import { JL_LOGO } from "./brandAssets.js";
 import PageHeader from "./PageHeader.jsx";
 import { calcularDyC } from "./CalculadoraDeducible.jsx";
@@ -176,7 +176,7 @@ function Acceso() {
     e.preventDefault();
     setEstado("enviando");
     try {
-      const { error } = await supabase.functions.invoke("portal-enlace", { body: { email, redirectTo: window.location.origin, agentId: AGENTE_ID } });
+      const { error } = await supabase.functions.invoke("portal-enlace", { body: { email, redirectTo: window.location.origin + "/portal", agentId: AGENTE_ID } });
       setEstado(error ? "error" : "enviado");
     } catch (err) { setEstado("error"); }
   }
@@ -261,10 +261,14 @@ function TuAgente({ data }) {
   );
 }
 
-function MisSeguros({ data, setTab, irSiniestro }) {
+function MisSeguros({ data, setTab, irSiniestro, fotos = {}, onFoto }) {
   const ps = data.polizas || [];
-  const ramos = useMemo(() => { const m = new Map(); ps.forEach((p) => m.set(p.ramo, (m.get(p.ramo) || 0) + 1)); return [...m.entries()]; }, [ps]);
-  const [sel, setSel] = useState(ramos.length === 1 ? ramos[0][0] : "Todas");
+  const ramos = useMemo(() => {
+    const cnt = new Map(["Autos", "GMM", "Vida", "Hogar", "Mascotas", "Plan Personal de Retiro (PPR)"].map((r) => [r, 0]));
+    ps.forEach((p) => cnt.set(p.ramo, (cnt.get(p.ramo) || 0) + 1));
+    return [...cnt.entries()];
+  }, [ps]);
+  const [sel, setSel] = useState("Todas");
   const [abierta, setAbierta] = useState(null);
   const [gastos, setGastos] = useState("300000");
   const lista = sel === "Todas" ? ps : ps.filter((p) => p.ramo === sel);
@@ -298,11 +302,11 @@ function MisSeguros({ data, setTab, irSiniestro }) {
 
       {ramos.length > 0 && (
         <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "4px 2px 10px", margin: "0 -2px" }}>
-          {(ramos.length > 1 ? [["Todas", ps.length], ...ramos] : ramos).map(([r, n]) => {
+          {[["Todas", ps.length], ...ramos].map(([r, n]) => {
             const m = r === "Todas" ? { icon: LayoutGrid, color: "var(--ink)", bg: "var(--cream-2)", label: "Todas" } : ramoMeta(r);
             const I = m.icon; const on = sel === r;
             return (
-              <button key={r} type="button" onClick={() => setSel(r)} style={{ position: "relative", flex: "0 0 auto", minWidth: 74, padding: "10px 10px 8px", borderRadius: 14, border: on ? "2px solid var(--emerald)" : "1px solid var(--line)", background: on ? "#EEF7F3" : "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "pointer", transition: "transform .2s", transform: on ? "translateY(-2px)" : "none" }}>
+              <button key={r} type="button" onClick={() => setSel(r)} style={{ position: "relative", flex: "0 0 auto", minWidth: 74, padding: "10px 10px 8px", borderRadius: 14, border: on ? "2px solid var(--emerald)" : "1px solid var(--line)", background: on ? "#EEF7F3" : "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "pointer", transition: "transform .2s", transform: on ? "translateY(-2px)" : "none", opacity: n === 0 && !on ? 0.72 : 1 }}>
                 <span style={{ position: "absolute", top: 5, right: 8, fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>{n}</span>
                 <I size={24} color={m.color} />
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink)" }}>{m.label}</span>
@@ -317,7 +321,19 @@ function MisSeguros({ data, setTab, irSiniestro }) {
         {sel !== "Todas" && ramos.length > 1 && <button type="button" onClick={() => setSel("Todas")} style={{ background: "none", border: "none", color: "var(--emerald)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Ver todas ›</button>}
       </div>
 
-      {ps.length === 0 && <div className="panel" style={{ padding: 16, fontSize: 14, color: "var(--muted)", marginBottom: 14 }}>Aún no hay pólizas registradas en tu cuenta.</div>}
+      {ps.length === 0 && sel === "Todas" && <div className="panel" style={{ padding: 16, fontSize: 14, color: "var(--muted)", marginBottom: 14 }}>Aún no hay pólizas registradas en tu cuenta.</div>}
+
+      {lista.length === 0 && sel !== "Todas" && (() => {
+        const m = ramoMeta(sel); const I = m.icon;
+        return (
+          <div className="panel" style={{ padding: 18, marginBottom: 14, textAlign: "center" }}>
+            <span style={{ width: 54, height: 54, borderRadius: 16, background: m.bg, display: "inline-grid", placeItems: "center" }}><I size={28} color={m.color} /></span>
+            <div style={{ fontWeight: 700, color: "var(--ink)", marginTop: 10 }}>Aún no tienes un seguro de {m.label}</div>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 12px" }}>Pídele a tu agente una cotización, sin compromiso.</p>
+            <a href={enlace(data, `Hola ${primerNombre(contactoDe(data))}, soy ${data.cliente.nombre}. Me gustaría cotizar un seguro de ${m.label}.`)} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--gold)", color: "#fff", fontWeight: 700, fontSize: 14, padding: "10px 18px", borderRadius: 10, textDecoration: "none" }}><MessageCircle size={16} /> Quiero cotizar</a>
+          </div>
+        );
+      })()}
 
       {lista.map((p) => {
         const m = ramoMeta(p.ramo); const I = m.icon; const st = estadoPoliza(p); const open = abierta === p.id;
@@ -326,8 +342,15 @@ function MisSeguros({ data, setTab, irSiniestro }) {
         const fila = (k, v) => v ? <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: "1px solid var(--line)", fontSize: 13 }}><span style={{ color: "var(--muted)" }}>{k}</span><span style={{ color: "var(--ink)", fontWeight: 600, textAlign: "right" }}>{v}</span></div> : null;
         return (
           <div key={p.id} className="panel" style={{ marginBottom: 12, padding: 12, overflow: "hidden" }}>
-            <button type="button" onClick={() => setAbierta(open ? null : p.id)} style={{ width: "100%", background: "none", border: "none", padding: 0, display: "flex", gap: 12, alignItems: "center", textAlign: "left", cursor: "pointer" }}>
-              <span style={{ width: 62, height: 62, borderRadius: 14, background: m.bg, display: "grid", placeItems: "center", flexShrink: 0 }}><I size={30} color={m.color} /></span>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <label aria-label="Poner o cambiar la foto" style={{ position: "relative", width: 62, height: 62, flexShrink: 0, cursor: "pointer" }}>
+                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f && onFoto) onFoto(p.id, f); }} />
+                {fotos[p.id]
+                  ? <img src={fotos[p.id]} alt="" style={{ width: 62, height: 62, borderRadius: 14, objectFit: "cover", display: "block" }} />
+                  : <span style={{ width: 62, height: 62, borderRadius: 14, background: m.bg, display: "grid", placeItems: "center" }}><I size={30} color={m.color} /></span>}
+                <span style={{ position: "absolute", right: -4, bottom: -4, width: 22, height: 22, borderRadius: "50%", background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", border: "2px solid #fff" }}><Camera size={11} /></span>
+              </label>
+              <button type="button" onClick={() => setAbierta(open ? null : p.id)} style={{ flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, display: "flex", gap: 8, alignItems: "center", textAlign: "left", cursor: "pointer" }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontWeight: 700, color: "var(--ink)", fontSize: 16 }}>{m.label}</span>
                 <span style={{ display: "block", fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Póliza: {p.numeroPoliza || "sin número"}</span>
@@ -343,6 +366,7 @@ function MisSeguros({ data, setTab, irSiniestro }) {
               </span>
               <ChevronRight size={18} color="var(--muted)" style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .2s", flexShrink: 0 }} />
             </button>
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
               {p.docUrl
@@ -474,6 +498,69 @@ function Mas({ data, setTab, salir, abrirInstalar }) {
   );
 }
 
+// Reduce la foto a un máximo de 480 px para guardarla ligera
+function reducirFoto(file, max = 480) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("imagen")); };
+    img.src = url;
+  });
+}
+
+// Teléfonos de siniestros por aseguradora (confirma siempre el número de tu póliza)
+const TEL_SINIESTROS = [
+  { nombre: "AXA", tels: [["", "800 911 1292"]] },
+  { nombre: "Qualitas", tels: [["", "800 800 2880"]] },
+  { nombre: "Chubb", tels: [["", "800 223 2001"]] },
+  { nombre: "Banorte", tels: [["", "800 500 1500"]] },
+  { nombre: "Plan Seguro", tels: [["", "800 277 1234"]] },
+  { nombre: "HDI", tels: [["", "800 667 3144"]] },
+  { nombre: "Mapfre", tels: [["", "800 062 7373"]] },
+  { nombre: "ANA", tels: [["", "800 835 3262"]] },
+  { nombre: "Afirme", tels: [["MTY", "81 8318 3800"], ["CDMX", "55 5140 3000"], ["Zapopan", "33 3880 7400"], ["Chihuahua", "614 432 6210"], ["Resto del país", "800 734 8761"]] },
+];
+function TelefonosSiniestros({ data }) {
+  const [todas, setTodas] = useState(false);
+  const mias = new Set((data.polizas || []).map((p) => insurerKey(p.aseguradora)).filter(Boolean));
+  const ordenadas = [...TEL_SINIESTROS].sort((a, b) => (mias.has(insurerKey(b.nombre)) ? 1 : 0) - (mias.has(insurerKey(a.nombre)) ? 1 : 0));
+  const hayMias = ordenadas.some((a) => mias.has(insurerKey(a.nombre)));
+  const visibles = todas || !hayMias ? ordenadas : ordenadas.filter((a) => mias.has(insurerKey(a.nombre)));
+  const tel = (t) => `tel:${t.replace(/\D/g, "")}`;
+  return (
+    <div className="panel" style={{ padding: 16, marginBottom: 14 }}>
+      <h3 className="serif" style={{ fontSize: 18, color: "var(--ink)" }}>Teléfonos de siniestros</h3>
+      <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0 12px", lineHeight: 1.45 }}>Si sufres un siniestro, comunícate con tu agente o directamente con tu aseguradora. Toca un número para llamar.</p>
+      <div style={{ display: "grid", gap: 8 }}>
+        {visibles.map((a) => (
+          <div key={a.nombre} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", border: "1px solid " + (mias.has(insurerKey(a.nombre)) ? "var(--gold)" : "var(--line)"), borderRadius: 14, background: mias.has(insurerKey(a.nombre)) ? "var(--gold-soft)" : "#fff" }}>
+            <InsurerMark name={a.nombre} w={52} h={30} radius={8} fontSize={12} />
+            <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 4 }}>
+              {mias.has(insurerKey(a.nombre)) && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--gold-text)" }}>Tu aseguradora</span>}
+              {a.tels.map(([lugar, n]) => (
+                <a key={n} href={tel(n)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: "var(--ink)", textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
+                  <span style={{ fontSize: lugar ? 12 : 15, fontWeight: lugar ? 600 : 700, color: lugar ? "var(--muted)" : "var(--ink)" }}>{lugar || n}</span>
+                  {lugar && <span>{n}</span>}
+                  {!lugar && <Phone size={16} color="var(--emerald)" />}
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {hayMias && <button type="button" onClick={() => setTodas((v) => !v)} style={{ background: "none", border: "none", color: "var(--gold-text)", fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 10, padding: 0 }}>{todas ? "Ver solo mis aseguradoras" : "Ver todas las aseguradoras"}</button>}
+    </div>
+  );
+}
+
 function Siniestro({ data, pid0 }) {
   const ps = data.polizas || [];
   const [pid, setPid] = useState(pid0 || ps[0]?.id || "");
@@ -489,6 +576,7 @@ function Siniestro({ data, pid0 }) {
       <div className="panel" style={{ padding: 14, marginBottom: 14, background: "var(--gold-soft)", borderColor: "transparent", fontSize: 13, color: "var(--ink)" }}>
         <b>Si es una emergencia</b>, primero llama a la línea de siniestros de tu aseguradora (viene en tu póliza) o al 911. Después cuéntame aquí.
       </div>
+      <TelefonosSiniestros data={data} />
       <div className="panel" style={{ padding: 16, marginBottom: 14 }}>
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Póliza afectada</label>
         <select value={pid} onChange={(e) => { setPid(e.target.value); setTipo(""); }} style={{ width: "100%", padding: "11px 13px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 14, background: "#fff", color: "var(--ink)", marginBottom: 12 }}>
@@ -555,16 +643,17 @@ export default function Portal() {
   const [estado, setEstado] = useState("cargando"); // cargando | ok | no_cliente | error
   const [tab, setTab] = useState("seguros");
   const [pidSiniestro, setPidSiniestro] = useState("");
+  const [fotos, setFotos] = useState({});
   const [instalar, setInstalar] = useState(false);
   const [promptNativo, setPromptNativo] = useState(null);
 
   // Identidad de app instalable propia del portal (no la del CRM)
   useEffect(() => {
-    document.title = "J L Patrimonial";
+    document.title = "Portal de clientes";
     const setLink = (rel, href) => { const l = document.querySelector(`link[rel="${rel}"]`); if (l) l.setAttribute("href", href); };
     setLink("manifest", "/portal-manifest.json");
     const t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-    if (t) t.setAttribute("content", "J L Patrimonial");
+    if (t) t.setAttribute("content", "Portal de clientes");
   }, []);
 
   useEffect(() => {
@@ -579,25 +668,42 @@ export default function Portal() {
     return () => window.removeEventListener("beforeinstallprompt", h);
   }, []);
 
+  // Se carga una sola vez por usuario: los eventos de sesión (volver a la pestaña, renovar el token)
+  // ya no reinician la app.
+  const uid = session?.user?.id || "";
+  const yaCargado = useRef(false);
   useEffect(() => {
-    if (!session) { setData(null); return; }
+    if (!uid) { setData(null); setFotos({}); yaCargado.current = false; return; }
     let vivo = true;
     (async () => {
-      setEstado("cargando");
+      if (!yaCargado.current) setEstado("cargando");
       const { data: d, error } = await supabase.functions.invoke("portal-cliente", { body: { agentId: AGENTE_ID } });
       if (!vivo) return;
       if (error || !d || d.error) {
-        let status = error?.context?.status;
-        setEstado(status === 403 || d?.error === "no_cliente" ? "no_cliente" : "error");
+        const status = error?.context?.status;
+        if (!yaCargado.current) setEstado(status === 403 || d?.error === "no_cliente" ? "no_cliente" : "error");
         return;
       }
       setData(d);
       setEstado("ok");
+      try {
+        const { data: rows } = await supabase.from("portal_fotos").select("poliza_id, foto");
+        if (vivo && rows) setFotos(Object.fromEntries(rows.map((r) => [r.poliza_id, r.foto])));
+      } catch (e) { /* sin fotos */ }
       // Aviso para instalar como app: al entrar, salvo que ya esté instalada u oculto
-      if (!esStandalone() && leerLS(LS_NO_MOSTRAR) !== "1") setTimeout(() => vivo && setInstalar(true), 700);
+      if (!yaCargado.current && !esStandalone() && leerLS(LS_NO_MOSTRAR) !== "1") setTimeout(() => vivo && setInstalar(true), 700);
+      yaCargado.current = true;
     })();
     return () => { vivo = false; };
-  }, [session]);
+  }, [uid]);
+
+  async function guardarFoto(polizaId, file) {
+    try {
+      const url = await reducirFoto(file, 480);
+      setFotos((f) => ({ ...f, [polizaId]: url }));
+      await supabase.from("portal_fotos").upsert({ user_id: uid, poliza_id: polizaId, foto: url, updated_at: new Date().toISOString() });
+    } catch (e) { /* no se pudo guardar la foto */ }
+  }
 
   async function instalarNativo() {
     if (!promptNativo) return;
@@ -639,7 +745,7 @@ export default function Portal() {
         {SUBMENU.includes(tab) && (
           <button type="button" onClick={() => setTab("mas")} style={{ background: "none", border: "none", color: "var(--gold-text)", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: "0 0 8px" }}>‹ Más</button>
         )}
-        {tab === "seguros" && <MisSeguros data={data} setTab={setTab} irSiniestro={irSiniestro} />}
+        {tab === "seguros" && <MisSeguros data={data} setTab={setTab} irSiniestro={irSiniestro} fotos={fotos} onFoto={guardarFoto} />}
         {tab === "documentos" && <Documentos data={data} />}
         {tab === "siniestro" && <Siniestro key={pidSiniestro} data={data} pid0={pidSiniestro} />}
         {tab === "mas" && <Mas data={data} setTab={setTab} salir={salir} abrirInstalar={() => setInstalar(true)} />}

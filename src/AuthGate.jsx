@@ -53,8 +53,11 @@ export default function AuthGate({ children }) {
   // Los clientes del portal no usan el CRM: se les manda a su portal
   const esCliente = session?.user?.user_metadata?.rol === 'cliente'
   useEffect(() => {
-    if (esCliente) window.location.replace('/portal')
-  }, [esCliente])
+    if (!esCliente || !session) return
+    // El portal tiene su propia sesión: se le entrega y se limpia la del CRM en este navegador.
+    const hash = `#access_token=${encodeURIComponent(session.access_token)}&refresh_token=${encodeURIComponent(session.refresh_token)}&expires_in=${session.expires_in || 3600}&token_type=bearer&type=magiclink`
+    supabase.auth.signOut({ scope: 'local' }).finally(() => window.location.replace('/portal' + hash))
+  }, [esCliente]) // eslint-disable-line react-hooks/exhaustive-deps
   if (esCliente) return <div className="min-h-dvh" style={{ background: 'var(--cream)' }} />
 
   if (session === undefined) {
