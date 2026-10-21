@@ -812,6 +812,8 @@ export default function Portal() {
     document.title = "Portal de clientes";
     const setLink = (rel, href) => { const l = document.querySelector(`link[rel="${rel}"]`); if (l) l.setAttribute("href", href); };
     setLink("manifest", "/portal-manifest.json");
+    setLink("apple-touch-icon", "/portal-apple-touch.png?v=3");
+    setLink("icon", "/portal-icon-192.png?v=3");
     const t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
     if (t) t.setAttribute("content", "Portal de clientes");
   }, []);
