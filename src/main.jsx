@@ -6,9 +6,11 @@ import App from './App.jsx'
 import AuthGate from './AuthGate.jsx'
 import TarjetaPublica from './TarjetaPublica.jsx'
 import Portal from './Portal.jsx'
+import Landing from './Landing.jsx'
 
 const path = window.location.pathname
 const publicMatch = path.match(/^\/t\/([^/]+)\/?$/)
+const esLanding = /^\/inicio\/?$/.test(path)
 const esPortal = /^\/portal\/?$/.test(path)
 
 if ('serviceWorker' in navigator) {
@@ -27,7 +29,9 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {esPortal ? (
+    {esLanding ? (
+      <Landing />
+    ) : esPortal ? (
       <Portal />
     ) : publicMatch ? (
       <TarjetaPublica agentId={publicMatch[1]} />
