@@ -5,15 +5,52 @@ import { JL_LOGO } from "./brandAssets.js";
 import PageHeader from "./PageHeader.jsx";
 import { calcularDyC } from "./CalculadoraDeducible.jsx";
 
-// ───────── Datos de contacto del asesor (editar aquí) ─────────
-const ASESOR = {
+// ───────── Agente al que pertenece este portal ─────────
+// El enlace que comparte cada agente trae su id (?a=...). Se recuerda en el dispositivo,
+// porque tras abrir el enlace del correo la página se recarga sin el parámetro.
+const JOSHUA_ID = "c3aca0b3-a1ae-4816-ab0c-4ebe5dddb777";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function resolverAgenteId() {
+  let id = "";
+  try { id = new URLSearchParams(window.location.search).get("a") || ""; } catch (e) { /* sin URL */ }
+  if (UUID_RE.test(id)) { try { localStorage.setItem("jl_portal_agente", id); } catch (e) { /* sin almacenamiento */ } return id; }
+  try { id = localStorage.getItem("jl_portal_agente") || ""; } catch (e) { id = ""; }
+  return UUID_RE.test(id) ? id : JOSHUA_ID;
+}
+const AGENTE_ID = resolverAgenteId();
+const ES_JL = AGENTE_ID === JOSHUA_ID;
+const ASESOR_JL = {
   nombre: "Joshua Lechuga Plata",
   titulo: "Asesor en protección y planeación patrimonial",
   whatsapp: "522441071011",
   whatsappVisible: "244 107 1011",
   correo: "jlechuga.seguros@gmail.com",
 };
-const wa = (texto) => `https://wa.me/${ASESOR.whatsapp}?text=${encodeURIComponent(texto)}`;
+function contactoDe(data) {
+  if (ES_JL) return ASESOR_JL;
+  const a = data?.agente || {};
+  let d = String(a.whatsapp || "").replace(/\D/g, "");
+  if (d.length === 10) d = "52" + d;
+  return { nombre: a.nombre || "Tu asesor", titulo: "Tu asesor de seguros", whatsapp: d.length >= 12 ? d : "", whatsappVisible: a.whatsapp || "", correo: a.correo || "" };
+}
+const primerNombre = (c) => String(c.nombre || "").split(" ")[0] || "";
+// Enlace de contacto con el asesor: WhatsApp si hay número; si no, correo.
+function enlace(data, texto) {
+  const c = contactoDe(data);
+  if (c.whatsapp) return `https://wa.me/${c.whatsapp}?text=${encodeURIComponent(texto)}`;
+  if (c.correo) return `mailto:${c.correo}?subject=${encodeURIComponent("Portal de clientes")}&body=${encodeURIComponent(texto)}`;
+  return "#";
+}
+function Cab({ eyebrow, title, subtitle }) {
+  if (ES_JL) return <Cab eyebrow={eyebrow} title={title} subtitle={subtitle} />;
+  return (
+    <header style={{ background: "radial-gradient(120% 140% at 0% 0%, #123B5C 0%, var(--ink) 55%, var(--ink-2) 100%)", borderRadius: 22, padding: "26px 24px", marginBottom: 18, color: "#fff" }}>
+      {eyebrow && <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--gold)", fontWeight: 700 }}>{eyebrow}</div>}
+      <h2 className="serif" style={{ fontSize: 28, fontWeight: 500, margin: "6px 0 4px" }}>{title}</h2>
+      {subtitle && <p style={{ color: "#C7D3DE", fontSize: 14 }}>{subtitle}</p>}
+    </header>
+  );
+}
 
 const PRODUCTOS = [
   { t: "Protección", d: "Vida, gastos médicos mayores, autos y accidentes para ti y tu familia.", q: "seguros de protección (vida, gastos médicos, autos)" },
@@ -138,14 +175,14 @@ function Acceso() {
     e.preventDefault();
     setEstado("enviando");
     try {
-      const { error } = await supabase.functions.invoke("portal-enlace", { body: { email, redirectTo: window.location.origin } });
+      const { error } = await supabase.functions.invoke("portal-enlace", { body: { email, redirectTo: window.location.origin, agentId: AGENTE_ID } });
       setEstado(error ? "error" : "enviado");
     } catch (err) { setEstado("error"); }
   }
   return (
     <div style={{ minHeight: "100dvh", background: "var(--cream)", display: "flex", flexDirection: "column", fontFamily: "'Manrope', system-ui, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "center", padding: "22px 20px 8px" }}>
-        <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 110, objectFit: "contain" }} />
+        {ES_JL ? <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 110, objectFit: "contain" }} /> : <div className="serif" style={{ fontSize: 26, padding: "26px 0 6px", color: "var(--ink)" }}>Portal de clientes</div>}
       </div>
       <div style={{ flex: 1, display: "grid", placeItems: "center", padding: "12px 16px 32px" }}>
         <div className="panel stagger" style={{ width: "100%", maxWidth: 420, padding: 24 }}>
@@ -168,7 +205,9 @@ function Acceso() {
             </form>
           )}
           <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 18 }}>
-            ¿Aún no eres cliente o tu correo no funciona? <a href={wa("Hola Joshua, quiero acceder al portal de clientes.")} style={{ color: "var(--gold-text)", fontWeight: 600 }}>Escríbeme por WhatsApp</a>.
+            {ES_JL
+              ? <>¿Aún no eres cliente o tu correo no funciona? <a href={`https://wa.me/${ASESOR_JL.whatsapp}?text=${encodeURIComponent("Hola Joshua, quiero acceder al portal de clientes.")}`} style={{ color: "var(--gold-text)", fontWeight: 600 }}>Escríbeme por WhatsApp</a>.</>
+              : <>¿Tu correo no funciona? Pídele a tu asesor que lo registre en tu expediente.</>}
           </p>
         </div>
       </div>
@@ -190,7 +229,7 @@ function Inicio({ data, setTab }) {
   const nombre = (data.cliente.nombre || "").split(" ")[0];
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Tu portal" title={`Hola, ${nombre}`} subtitle="Aquí tienes el resumen de tus seguros." />
+      <Cab eyebrow="Tu portal" title={`Hola, ${nombre}`} subtitle="Aquí tienes el resumen de tus seguros." />
       {primero ? (
         <div className="panel" style={{ padding: 16, marginBottom: 14, borderLeft: "4px solid var(--gold)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--gold-text)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}><CalendarClock size={14} /> Próximo pago</div>
@@ -243,7 +282,7 @@ function Polizas({ data }) {
   const ps = data.polizas || [];
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Mis seguros" title="Mis pólizas" subtitle="Consulta tus datos y descarga tu póliza." />
+      <Cab eyebrow="Mis seguros" title="Mis pólizas" subtitle="Consulta tus datos y descarga tu póliza." />
       {ps.length === 0 && <div className="panel" style={{ padding: 16, fontSize: 14, color: "var(--muted)" }}>Aún no hay pólizas registradas en tu cuenta.</div>}
       {ps.map((p) => {
         const open = abierta === p.id;
@@ -291,11 +330,11 @@ function Siniestro({ data }) {
   const [relato, setRelato] = useState("");
   const p = ps.find((x) => x.id === pid);
   const nombre = `${data.cliente.nombre} ${data.cliente.apellido}`.trim();
-  const msg = `Hola Joshua, soy ${nombre}. Quiero reportar un siniestro.\nPóliza: ${p ? `${p.aseguradora} · ${p.ramo} · ${p.numeroPoliza || "s/n"}` : "(sin elegir)"}\nTipo: ${tipo || "(sin especificar)"}\nQué pasó: ${relato || "(te lo cuento por aquí)"}`;
+  const msg = `Hola ${primerNombre(contactoDe(data))}, soy ${nombre}. Quiero reportar un siniestro.\nPóliza: ${p ? `${p.aseguradora} · ${p.ramo} · ${p.numeroPoliza || "s/n"}` : "(sin elegir)"}\nTipo: ${tipo || "(sin especificar)"}\nQué pasó: ${relato || "(te lo cuento por aquí)"}`;
   const tipos = (p?.ramo === "Autos") ? ["Choque", "Robo", "Daños a terceros", "Cristales", "Otro"] : (p?.ramo === "GMM") ? ["Hospitalización", "Cirugía", "Consulta / estudios", "Medicamentos", "Otro"] : ["Daño o pérdida", "Fallecimiento / invalidez", "Reembolso", "Otro"];
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Estoy contigo" title="Reportar siniestro" subtitle="Cuéntame qué pasó y te acompaño con el trámite." />
+      <Cab eyebrow="Estoy contigo" title="Reportar siniestro" subtitle="Cuéntame qué pasó y te acompaño con el trámite." />
       <div className="panel" style={{ padding: 14, marginBottom: 14, background: "var(--gold-soft)", borderColor: "transparent", fontSize: 13, color: "var(--ink)" }}>
         <b>Si es una emergencia</b>, primero llama a la línea de siniestros de tu aseguradora (viene en tu póliza) o al 911. Después cuéntame aquí.
       </div>
@@ -310,7 +349,7 @@ function Siniestro({ data }) {
         </div>
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>¿Qué pasó?</label>
         <textarea rows={4} value={relato} onChange={(e) => setRelato(e.target.value)} placeholder="Fecha, lugar y una breve descripción…" style={{ width: "100%", padding: "11px 13px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 14, background: "#fff", color: "var(--ink)", fontFamily: "inherit" }} />
-        <a href={wa(msg)} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, padding: "13px 14px", borderRadius: 10, background: "var(--gold)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}><MessageCircle size={18} /> Enviar a mi asesor por WhatsApp</a>
+        <a href={enlace(data, msg)} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, padding: "13px 14px", borderRadius: 10, background: "var(--gold)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}><MessageCircle size={18} /> Enviar a mi asesor por WhatsApp</a>
         <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 8 }}>Puedes adjuntar fotos y documentos directamente en la conversación de WhatsApp.</p>
       </div>
     </div>
@@ -321,10 +360,10 @@ function Asesoria({ data }) {
   const [tema, setTema] = useState("");
   const [duda, setDuda] = useState("");
   const nombre = `${data.cliente.nombre} ${data.cliente.apellido}`.trim();
-  const msg = `Hola Joshua, soy ${nombre}. Me gustaría una asesoría sobre: ${tema || "(por definir)"}.\n${duda}`.trim();
+  const msg = `Hola ${primerNombre(contactoDe(data))}, soy ${nombre}. Me gustaría una asesoría sobre: ${tema || "(por definir)"}.\n${duda}`.trim();
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Conversemos" title="Pedir asesoría" subtitle="Elige un tema y cuéntame tu duda." />
+      <Cab eyebrow="Conversemos" title="Pedir asesoría" subtitle="Elige un tema y cuéntame tu duda." />
       <div className="panel" style={{ padding: 16, marginBottom: 14 }}>
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6, fontWeight: 500 }}>Tema</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
@@ -332,11 +371,11 @@ function Asesoria({ data }) {
         </div>
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 4, fontWeight: 500 }}>Tu duda (opcional)</label>
         <textarea rows={4} value={duda} onChange={(e) => setDuda(e.target.value)} placeholder="Cuéntame brevemente qué necesitas…" style={{ width: "100%", padding: "11px 13px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 14, background: "#fff", color: "var(--ink)", fontFamily: "inherit" }} />
-        <a href={wa(msg)} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, padding: "13px 14px", borderRadius: 10, background: "var(--gold)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}><MessageCircle size={18} /> Solicitar por WhatsApp</a>
+        <a href={enlace(data, msg)} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, padding: "13px 14px", borderRadius: 10, background: "var(--gold)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}><MessageCircle size={18} /> Solicitar por WhatsApp</a>
       </div>
       <div className="panel" style={{ padding: 14, display: "flex", gap: 12, alignItems: "center", marginBottom: 18 }}>
         <Phone size={20} color="var(--gold-text)" />
-        <div style={{ fontSize: 13, color: "var(--ink)" }}><b>{ASESOR.nombre}</b><br /><span style={{ color: "var(--muted)" }}>{ASESOR.titulo}</span><br /><span style={{ color: "var(--muted)" }}>WhatsApp {ASESOR.whatsappVisible} · {ASESOR.correo}</span></div>
+        <div style={{ fontSize: 13, color: "var(--ink)" }}><b>{contactoDe(data).nombre}</b><br /><span style={{ color: "var(--muted)" }}>{contactoDe(data).titulo}</span><br /><span style={{ color: "var(--muted)" }}>{[contactoDe(data).whatsappVisible && `WhatsApp ${contactoDe(data).whatsappVisible}`, contactoDe(data).correo].filter(Boolean).join(" · ")}</span></div>
       </div>
     </div>
   );
@@ -346,12 +385,12 @@ function Productos({ data }) {
   const nombre = `${data.cliente.nombre} ${data.cliente.apellido}`.trim();
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Para crecer y proteger" title="Otros productos" subtitle="Conoce toda la gama de servicios que puedo ofrecerte." />
+      <Cab eyebrow="Para crecer y proteger" title="Otros productos" subtitle="Conoce toda la gama de servicios que puedo ofrecerte." />
       {PRODUCTOS.map((x) => (
         <div key={x.t} className="panel" style={{ padding: 16, marginBottom: 12 }}>
           <h3 className="serif" style={{ fontSize: 17, color: "var(--ink)" }}>{x.t}</h3>
           <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 10px" }}>{x.d}</p>
-          <a href={wa(`Hola Joshua, soy ${nombre}. Quiero información sobre ${x.q}.`)} target="_blank" rel="noreferrer" style={{ color: "var(--gold-text)", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>Quiero información →</a>
+          <a href={enlace(data, `Hola ${primerNombre(contactoDe(data))}, soy ${nombre}. Quiero información sobre ${x.q}.`)} target="_blank" rel="noreferrer" style={{ color: "var(--gold-text)", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>Quiero información →</a>
         </div>
       ))}
     </div>
@@ -393,7 +432,7 @@ export default function Portal() {
     let vivo = true;
     (async () => {
       setEstado("cargando");
-      const { data: d, error } = await supabase.functions.invoke("portal-cliente");
+      const { data: d, error } = await supabase.functions.invoke("portal-cliente", { body: { agentId: AGENTE_ID } });
       if (!vivo) return;
       if (error || !d || d.error) {
         let status = error?.context?.status;
@@ -440,7 +479,7 @@ export default function Portal() {
     <div style={{ minHeight: "100dvh", background: "var(--cream)", fontFamily: "'Manrope', system-ui, sans-serif", paddingBottom: 84 }}>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 14px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 10px" }}>
-          <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 40, objectFit: "contain" }} />
+          {ES_JL ? <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 40, objectFit: "contain" }} /> : <span className="serif" style={{ fontSize: 17, color: "var(--ink)" }}>{contactoDe(data).nombre}</span>}
           <div style={{ display: "flex", gap: 6 }}>
             {!esStandalone() && <button type="button" onClick={() => setInstalar(true)} style={{ display: "flex", alignItems: "center", gap: 6, border: "1px solid var(--line)", background: "#fff", color: "var(--ink)", borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}><Smartphone size={14} /> Instalar app</button>}
             <button type="button" onClick={salir} aria-label="Salir" style={{ border: "1px solid var(--line)", background: "#fff", color: "var(--ink)", borderRadius: 999, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}><LogOut size={14} /></button>
@@ -451,7 +490,7 @@ export default function Portal() {
         {tab === "siniestro" && <Siniestro data={data} />}
         {tab === "asesoria" && <Asesoria data={data} />}
         {tab === "productos" && <Productos data={data} />}
-        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", margin: "8px 0 20px" }}>© 2026 J L Consultoría Patrimonial</p>
+        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", margin: "8px 0 20px" }}>{ES_JL ? "© 2026 J L Consultoría Patrimonial" : "Portal de clientes"}</p>
       </div>
 
       <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "#fff", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", paddingBottom: "env(safe-area-inset-bottom)", zIndex: 50 }}>

@@ -2,7 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // Portal del cliente: devuelve SOLO los datos del cliente que inició sesión (por su correo).
-const AGENT_ID = "c3aca0b3-a1ae-4816-ab0c-4ebe5dddb777";
+const AGENT_ID_DEFAULT = "c3aca0b3-a1ae-4816-ab0c-4ebe5dddb777";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BUCKET = "documentos";
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,9 @@ const resp = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
+    let body: any = {};
+    try { body = await req.json(); } catch (_e) { /* sin cuerpo */ }
+    const AGENT_ID = UUID.test(String(body?.agentId || "")) ? String(body.agentId) : AGENT_ID_DEFAULT;
     const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: u, error: uerr } = await admin.auth.getUser(jwt);
@@ -41,7 +45,10 @@ Deno.serve(async (req: Request) => {
         docUrl,
       });
     }
-    return resp({ cliente: { nombre: c.nombre, apellido: c.apellido || "" }, polizas });
+    // Datos de contacto del agente (tarjeta pública)
+    const { data: card } = await admin.from("public_cards").select("nombre, correo, telefono, whatsapp").eq("agent_id", AGENT_ID).maybeSingle();
+    const agente = { id: AGENT_ID, nombre: card?.nombre || "", correo: card?.correo || "", whatsapp: card?.whatsapp || card?.telefono || "" };
+    return resp({ cliente: { nombre: c.nombre, apellido: c.apellido || "" }, polizas, agente });
   } catch (e) {
     return resp({ error: "error", detalle: String(e) }, 500);
   }

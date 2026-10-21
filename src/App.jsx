@@ -6,6 +6,7 @@ import { JL_LOGO } from "./brandAssets.js";
 import Comparativo from "./Comparativo.jsx";
 import CalculadoraFactura from "./CalculadoraFactura.jsx";
 import CalculadoraDeducible from "./CalculadoraDeducible.jsx";
+import PortalClientes from "./PortalClientes.jsx";
 import PageHeader from "./PageHeader.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
@@ -2233,7 +2234,7 @@ function DashPanel({ title, hint, children, action }) {
   );
 }
 
-function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo }) {
+function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo, userId }) {
   const allPolizas = useMemo(() => {
     const list = [];
     clients.forEach((c) => (c.polizas || []).forEach((p) => list.push(p)));
@@ -2396,6 +2397,8 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
             </>
           )}
         </DashPanel>
+
+        <PortalClientes clients={clients} agentId={userId} agenteNombre={nombre} />
       </div>
     </div>
   );
@@ -3887,6 +3890,7 @@ function migrateClient(c) {
             nombre={profile?.nombre}
             tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
             onGo={setTab}
+            userId={userId}
           />
         )}
 
