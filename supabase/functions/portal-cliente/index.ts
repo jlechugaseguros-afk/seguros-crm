@@ -46,8 +46,8 @@ Deno.serve(async (req: Request) => {
       });
     }
     // Datos de contacto del agente (tarjeta pública)
-    const { data: card } = await admin.from("public_cards").select("nombre, correo, telefono, whatsapp").eq("agent_id", AGENT_ID).maybeSingle();
-    const agente = { id: AGENT_ID, nombre: card?.nombre || "", correo: card?.correo || "", whatsapp: card?.whatsapp || card?.telefono || "" };
+    const { data: card } = await admin.from("public_cards").select("nombre, correo, telefono, whatsapp, foto_url").eq("agent_id", AGENT_ID).maybeSingle();
+    const agente = { id: AGENT_ID, nombre: card?.nombre || "", correo: card?.correo || "", whatsapp: card?.whatsapp || card?.telefono || "", telefono: card?.telefono || card?.whatsapp || "", fotoUrl: card?.foto_url || "" };
     return resp({ cliente: { nombre: c.nombre, apellido: c.apellido || "" }, polizas, agente });
   } catch (e) {
     return resp({ error: "error", detalle: String(e) }, 500);
