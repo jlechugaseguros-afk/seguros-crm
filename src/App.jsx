@@ -11,6 +11,7 @@ import PageHeader from "./PageHeader.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
+import VidaMas from "./VidaMas.jsx";
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 
 const DOCS_BUCKET = "documentos";
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "deducible", label: "Deducible y coaseguro", icon: Calculator },
   { id: "siniestros", label: "Siniestros", icon: ShieldAlert },
+  { id: "vidamas", label: "VidaMas", icon: Heart },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
@@ -163,7 +165,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "multicotizador", "directorios"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "vidamas", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
@@ -4258,6 +4260,8 @@ function migrateClient(c) {
         {tab === "factura" && <CalculadoraFactura />}
 
         {tab === "siniestros" && <SiniestrosCRM />}
+
+        {tab === "vidamas" && <VidaMas clients={clients} />}
 
         {tab === "deducible" && (
           <CalculadoraDeducible
