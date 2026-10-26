@@ -1189,6 +1189,8 @@ function EnConstruccion({ titulo, eyebrow, mensaje }) {
 
 function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesChange }) {
   const [mes, setMes] = useState(() => todayStr().slice(0, 7));
+  const [abiertos, setAbiertos] = useState([]);
+  const alternar = (k) => setAbiertos((a) => (a.includes(k) ? a.filter((x) => x !== k) : [...a, k]));
 
   function cambiarMes(delta) {
     const [y, m] = mes.split("-").map(Number);
@@ -1292,14 +1294,21 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
         </div>
         {porRamo.map((r, i) => (
           <div key={r.ramo}>
-            <div className="row-hover rise" style={{ "--i": i + 2, display: "grid", gridTemplateColumns: COLS, padding: "9px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center" }}>
-              <span style={{ fontWeight: 700 }}>{r.ramo}</span>
+            <div className="row-hover rise" role={r.subLista.length ? "button" : undefined} tabIndex={r.subLista.length ? 0 : undefined}
+              aria-expanded={r.subLista.length ? abiertos.includes("g:" + r.ramo) : undefined}
+              onClick={() => r.subLista.length && alternar("g:" + r.ramo)}
+              onKeyDown={(e) => { if (r.subLista.length && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); alternar("g:" + r.ramo); } }}
+              style={{ "--i": i + 2, display: "grid", gridTemplateColumns: COLS, padding: "9px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center", cursor: r.subLista.length ? "pointer" : "default" }}>
+              <span style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                {r.subLista.length > 0 && <ChevronDown size={14} style={{ transition: "transform .2s", transform: abiertos.includes("g:" + r.ramo) ? "none" : "rotate(-90deg)" }} />}
+                {r.ramo}
+              </span>
               <span><CountUp value={r.numPolizas} /></span>
               <span>$<CountUp value={r.primaTotal} /></span>
               <span>{r.numPolizas > 0 ? fmtPct(r.pct) : "—"}</span>
               <span style={{ fontWeight: 600, color: "var(--emerald)" }}>$<CountUp value={r.comision} /></span>
             </div>
-            {r.subLista.map((sr) => (
+            {abiertos.includes("g:" + r.ramo) && r.subLista.map((sr) => (
               <div key={sr.subramo} style={{ display: "grid", gridTemplateColumns: COLS, padding: "6px 10px 6px 22px", fontSize: 11.5, color: "var(--muted)", alignItems: "center", background: "rgba(11,42,68,.025)" }}>
                 <span>{sr.subramo}</span>
                 <span>{sr.num}</span>
@@ -1398,17 +1407,26 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           <span>Subramo</span>
           <span>% com.</span>
         </div>
-        {FAMILIAS.map((fam) => SUBRAMOS_POR_FAMILIA[fam].map((sr, i) => (
-          <div key={sr} style={{ display: "grid", gridTemplateColumns: "0.9fr 1.6fr 0.7fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>{i === 0 ? fam : ""}</span>
-            <span style={{ fontSize: 12 }}>{sr}</span>
-            <input
-              type="number" min="0" step="0.5" value={porcentajes[sr] ?? ""}
-              onChange={(e) => updatePorcentaje(sr, e.target.value)}
-              style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
-            />
+        {FAMILIAS.map((fam) => (
+          <div key={fam}>
+            <button type="button" onClick={() => alternar("e:" + fam)} aria-expanded={abiertos.includes("e:" + fam)}
+              style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", background: "none", border: 0, borderTop: "1px solid var(--line)", padding: "9px 10px", fontSize: 12, fontWeight: 700, color: "var(--ink)", cursor: "pointer", textAlign: "left" }}>
+              <ChevronDown size={14} style={{ transition: "transform .2s", transform: abiertos.includes("e:" + fam) ? "none" : "rotate(-90deg)" }} />
+              {fam} <small style={{ color: "var(--stone)", fontWeight: 500 }}>({SUBRAMOS_POR_FAMILIA[fam].length})</small>
+            </button>
+            {abiertos.includes("e:" + fam) && SUBRAMOS_POR_FAMILIA[fam].map((sr) => (
+              <div key={sr} style={{ display: "grid", gridTemplateColumns: "0.9fr 1.6fr 0.7fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
+                <span />
+                <span style={{ fontSize: 12 }}>{sr}</span>
+                <input
+                  type="number" min="0" step="0.5" value={porcentajes[sr] ?? ""}
+                  onChange={(e) => updatePorcentaje(sr, e.target.value)}
+                  style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
+                />
+              </div>
+            ))}
           </div>
-        )))}
+        ))}
         {[[RAMO_PPR, "Plan Personal de Retiro (PPR)"], ["Otro", "Otros productos (sin subramo)"]].map(([clave, etiqueta], i) => (
           <div key={clave} style={{ display: "grid", gridTemplateColumns: "0.9fr 1.6fr 0.7fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 700 }}>{i === 0 ? "Otros" : ""}</span>
@@ -2117,13 +2135,20 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
 
   function openAdd(dateStr) {
     setAddingFor(dateStr);
+    setErrAdd("");
     setDraft({ hora: "", tipo: TIPOS_ACTIVIDAD[0], descripcion: "", clienteId: "" });
   }
 
+  const [errAdd, setErrAdd] = useState("");
   function submitAdd(dateStr) {
-    if (!draft.descripcion.trim()) return;
-    onAddActivity({ ...draft, id: Date.now().toString(), fecha: dateStr });
-    setAddingFor(null);
+    if (!draft.descripcion.trim()) { setErrAdd("Escribe una descripción para guardar la actividad."); return; }
+    try {
+      onAddActivity({ ...draft, descripcion: draft.descripcion.trim(), id: Date.now().toString(), fecha: dateStr });
+      setErrAdd("");
+      setAddingFor(null);
+    } catch (e) {
+      setErrAdd("No se pudo guardar. Intenta de nuevo.");
+    }
   }
 
   const today = toISODate(new Date());
@@ -2241,6 +2266,7 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
                   <option value="">Sin cliente relacionado</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
+                {errAdd && <p role="alert" style={{ color: "#B23A2E", fontSize: 12, margin: "0 0 8px" }}>{errAdd}</p>}
                 <button
                   onClick={() => submitAdd(dateStr)}
                   style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}
@@ -2596,14 +2622,11 @@ export default function SegurosCRM() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirOpen, setDirOpen] = useState(false);
   // Grupos del menú lateral: abiertos/cerrados (se recuerda en este dispositivo).
-  const [gruposCerrados, setGruposCerrados] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("menuGruposCerrados") || "[]"); } catch { return []; }
-  });
-  const alternarGrupo = (titulo) => setGruposCerrados((prev) => {
-    const sig = prev.includes(titulo) ? prev.filter((t) => t !== titulo) : [...prev, titulo];
-    try { localStorage.setItem("menuGruposCerrados", JSON.stringify(sig)); } catch { /* sin almacenamiento */ }
-    return sig;
-  });
+  // Todos los grupos arrancan contraídos y se abren solo cuando el agente los toca.
+  const [gruposAbiertos, setGruposAbiertos] = useState([]);
+  const alternarGrupo = (titulo) => setGruposAbiertos((prev) => (
+    prev.includes(titulo) ? prev.filter((t) => t !== titulo) : [...prev, titulo]
+  ));
   const [showImport, setShowImport] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
 
@@ -3745,8 +3768,7 @@ function migrateClient(c) {
             </button>
           </div>
           {NAV_GROUPS.map((g) => {
-            const contieneActiva = g.ids.includes(tab);
-            const abierto = contieneActiva || !gruposCerrados.includes(g.title);
+            const abierto = gruposAbiertos.includes(g.title);
             return (
             <div className={"side-group" + (abierto ? " is-open" : "")} key={g.title}>
               <button type="button" className="side-group-toggle" aria-expanded={abierto}
