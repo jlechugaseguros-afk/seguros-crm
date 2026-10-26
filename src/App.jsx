@@ -9,6 +9,7 @@ import CalculadoraFactura from "./CalculadoraFactura.jsx";
 import CalculadoraDeducible from "./CalculadoraDeducible.jsx";
 import PortalClientes from "./PortalClientes.jsx";
 import PageHeader from "./PageHeader.jsx";
+import Ajustes from "./Ajustes.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
@@ -2706,6 +2707,7 @@ export default function SegurosCRM() {
   const [profileForm, setProfileForm] = useState({ nombre: "", correo: "" });
   const [profileError, setProfileError] = useState("");
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showAjustes, setShowAjustes] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -3876,6 +3878,17 @@ function migrateClient(c) {
           </a>
         </aside>
         {menuOpen && <div className="app-scrim" onClick={() => setMenuOpen(false)} />}
+        {showAjustes && (
+          <Ajustes
+            profile={profile}
+            onSaveProfile={(p) => { window.storage.set("agentProfile", JSON.stringify(p)).catch(() => {}); setProfile(p); }}
+            onClose={() => setShowAjustes(false)}
+            notifEstado={notifEstado}
+            notifError={notifError}
+            onActivarNotif={activarNotificaciones}
+            onDesactivarNotif={desactivarNotificaciones}
+          />
+        )}
 
         <div className="app-main">
       <header className="app-top">
@@ -3909,10 +3922,11 @@ function migrateClient(c) {
             )}
           </button>
           <button
-            onClick={() => { setProfileForm({ nombre: profile.nombre, correo: profile.correo }); setShowEditProfile(true); }}
-            style={{ background: "none", border: "none", fontSize: 13, fontWeight: 600, color: "var(--ink)", padding: "4px 0" }}
+            onClick={() => setShowAjustes(true)}
+            aria-label="Abrir ajustes"
+            style={{ background: "none", border: "none", fontSize: 13, fontWeight: 600, color: "var(--ink)", padding: "4px 0", display: "inline-flex", alignItems: "center", gap: 4 }}
           >
-            {profile.nombre}
+            {profile.nombre} <ChevronDown size={14} />
           </button>
 
           {showNotifs && (

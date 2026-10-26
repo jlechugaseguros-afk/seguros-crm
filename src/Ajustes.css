@@ -1,0 +1,76 @@
+.aj-overlay { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: flex-end; background: rgba(4,17,29,.38); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: fade .2s ease both; }
+.aj-sheet {
+  width: min(440px, 100%); height: 100%; display: flex; flex-direction: column;
+  background: linear-gradient(160deg, rgba(255,255,255,.9), rgba(244,247,250,.84));
+  -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+  border-left: 1px solid rgba(255,255,255,.85); box-shadow: -20px 0 60px -20px rgba(11,42,68,.55), inset 1px 0 0 #fff;
+  animation: ajIn .32s cubic-bezier(.2,.8,.2,1) both; color: var(--ink);
+}
+@keyframes ajIn { from { transform: translateX(40px); opacity: 0; } }
+.aj-head { display: flex; align-items: center; justify-content: space-between; padding: calc(16px + env(safe-area-inset-top, 0px)) 20px 12px; border-bottom: 1px solid rgba(11,42,68,.08); }
+.aj-head h2 { margin: 0; font-size: 22px; font-weight: 500; }
+.aj-x { width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.7); display: grid; place-items: center; color: var(--ink); cursor: pointer; }
+.aj-body { overflow-y: auto; padding: 8px 20px calc(28px + env(safe-area-inset-bottom, 0px)); -webkit-overflow-scrolling: touch; }
+.aj-sec { padding: 16px 0 18px; border-bottom: 1px solid rgba(11,42,68,.08); }
+.aj-sec h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--stone); font-weight: 700; }
+.aj-fila { display: block; margin-bottom: 12px; }
+.aj-et { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.aj-et em { font-style: normal; font-size: 12px; color: var(--stone); font-weight: 600; }
+.aj-et small { display: block; font-size: 11.5px; font-weight: 500; color: var(--stone); margin-top: 2px; }
+.aj-sheet input:not([type="range"]) { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(11,42,68,.15); background: rgba(255,255,255,.75); font-size: 14px; color: var(--ink); }
+.aj-sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
+.aj-lbl { font-size: 12.5px; color: var(--stone); margin: 4px 0 8px; font-weight: 600; word-break: break-all; }
+.aj-lbl b { color: var(--ink); }
+.aj-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 13.5px; cursor: pointer; background: var(--ink); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 8px 18px -10px rgba(11,42,68,.6); }
+.aj-btn:disabled { opacity: .45; cursor: default; }
+.aj-sec-btn { background: rgba(255,255,255,.75); color: var(--ink); border: 1px solid rgba(11,42,68,.15); box-shadow: none; }
+.aj-msg { font-size: 12.5px; margin: 10px 0 0; color: #1E5C4C; }
+.aj-err { color: #B23A2E; }
+.aj-foot { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--stone); margin: 14px 0 0; }
+
+.aj-temas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+.aj-tema { border: 2px solid transparent; background: rgba(255,255,255,.6); border-radius: 14px; padding: 6px 4px 5px; cursor: pointer; display: grid; justify-items: center; gap: 4px; }
+.aj-tema span { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 4px 10px -4px rgba(0,0,0,.4); }
+.aj-tema small { font-size: 9.5px; font-weight: 600; color: var(--ink); text-align: center; line-height: 1.1; }
+.aj-tema.on { border-color: var(--gold); background: #fff; }
+
+.aj-fila-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.aj-fila-sw .aj-et { margin: 0; display: block; }
+.aj-sw { flex: none; width: 50px; height: 30px; border-radius: 99px; border: 0; background: rgba(11,42,68,.22); position: relative; cursor: pointer; transition: background .25s ease; }
+.aj-sw i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); transition: transform .28s cubic-bezier(.2,.9,.3,1.4); }
+.aj-sw.on { background: #34C759; }
+.aj-sw.on i { transform: translateX(20px); }
+.aj-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: rgba(11,42,68,.08); margin-bottom: 14px; }
+.aj-seg button { border: 0; border-radius: 10px; padding: 8px 2px; font-size: 12px; font-weight: 600; background: transparent; color: var(--ink); cursor: pointer; }
+.aj-seg button.on { background: #fff; box-shadow: 0 2px 8px -2px rgba(11,42,68,.35); }
+
+/* ---- Variables que controlan el cristal y el menú desde Ajustes ---- */
+:root { --gp: 62; --gblur: 22px; --side-a: .9; --txt-zoom: 1; }
+.app-content { zoom: var(--txt-zoom); }
+
+/* Menú lateral más opaco (controlable) y foto opcional */
+.app-side {
+  background:
+    radial-gradient(90% 40% at 0% 0%, rgba(111,177,255,.22), transparent 70%),
+    radial-gradient(80% 40% at 100% 100%, rgba(224,85,154,.18), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) calc(var(--side-a) * 100%), transparent), color-mix(in srgb, var(--ink-2) calc(var(--side-a) * 100%), transparent)),
+    url("/fondos/zurich.jpg") center 30% / cover no-repeat !important;
+}
+html.aj-sin-foto-menu .app-side {
+  background:
+    radial-gradient(90% 40% at 0% 0%, rgba(111,177,255,.22), transparent 70%),
+    radial-gradient(80% 40% at 100% 100%, rgba(224,85,154,.18), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) calc(var(--side-a) * 100%), transparent), color-mix(in srgb, var(--ink-2) calc(var(--side-a) * 100%), transparent)) !important;
+}
+
+/* Cristal de tarjetas controlado por --gp y --gblur */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-bg .panel {
+    background: linear-gradient(145deg, color-mix(in srgb, #fff calc(var(--gp) * 1%), transparent), color-mix(in srgb, #fff calc(var(--gp) * .55%), transparent));
+    -webkit-backdrop-filter: blur(var(--gblur)) saturate(180%); backdrop-filter: blur(var(--gblur)) saturate(180%);
+  }
+}
+
+/* Animaciones y fondo con movimiento desactivables */
+html.aj-sin-animaciones *, html.aj-sin-animaciones *::before, html.aj-sin-animaciones *::after { animation: none !important; transition-duration: .01s !important; }
+html.aj-sin-fondo-animado .app-bg { animation: none !important; }

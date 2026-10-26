@@ -2,11 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './storage.js'
+import { aplicarAjustes } from './ajustesAparencia.js'
 import App from './App.jsx'
 import AuthGate from './AuthGate.jsx'
 import TarjetaPublica from './TarjetaPublica.jsx'
 import Portal from './Portal.jsx'
 import Landing from './Landing.jsx'
+
+aplicarAjustes()
 
 const path = window.location.pathname
 const publicMatch = path.match(/^\/t\/([^/]+)\/?$/)
