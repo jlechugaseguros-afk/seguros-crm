@@ -469,3 +469,130 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 /* Barra de Google Calendar en el Planificador */
 .gcal-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:space-between; padding:10px 14px; margin-bottom:14px; border-radius:14px; font-size:12.5px; background: linear-gradient(90deg, rgba(111,177,255,.16), rgba(79,214,196,.16)); border:1px solid rgba(111,177,255,.35); }
 .gcal-bar button { border:0; border-radius:10px; padding:7px 12px; font-weight:700; font-size:12.5px; cursor:pointer; background:#1a73e8; color:#fff; }
+
+/* ================= Liquid Glass (estilo iOS) ================= */
+/* Cristal translúcido: desenfoque + saturación del fondo, borde con brillo especular y sombra suave */
+:root {
+  --glass-bg: linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34));
+  --glass-bg-strong: linear-gradient(145deg, rgba(255,255,255,.74), rgba(255,255,255,.5));
+  --glass-border: rgba(255,255,255,.7);
+  --glass-edge: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(255,255,255,.25), inset 1px 0 0 rgba(255,255,255,.5), inset -1px 0 0 rgba(255,255,255,.2);
+  --glass-shadow: 0 1px 2px rgba(11,42,68,.06), 0 18px 40px -18px rgba(11,42,68,.35);
+  --glass-blur: blur(22px) saturate(180%);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* Tarjetas y paneles */
+  .app-bg .panel {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-edge), var(--glass-shadow);
+  }
+  .app-bg .panel::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(120% 70% at 12% -10%, rgba(255,255,255,.55), transparent 55%);
+    mix-blend-mode: soft-light; opacity: .9;
+  }
+  .app-bg .panel.lift { transition: transform .35s cubic-bezier(.2,.9,.3,1.3), box-shadow .3s ease; }
+  .app-bg .panel.lift:hover { transform: translateY(-2px) scale(1.005); }
+
+  /* Bloques con estilos en línea (tarjetas de clientes, prospectos, etc.) */
+  .app-content div[style*="border: 1px solid var(--line)"] {
+    background-color: rgba(255,255,255,.5) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+    border-color: rgba(255,255,255,.65) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 10px 24px -20px rgba(11,42,68,.4);
+  }
+
+  /* Barra superior */
+  .app-top {
+    background: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.28));
+    -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,.6);
+    box-shadow: 0 8px 24px -18px rgba(11,42,68,.4), inset 0 1px 0 rgba(255,255,255,.9);
+  }
+
+  /* Botones de ícono */
+  .icon-btn {
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(14px) saturate(180%); backdrop-filter: blur(14px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-edge), 0 6px 14px -8px rgba(11,42,68,.35);
+    transition: transform .25s cubic-bezier(.2,.9,.3,1.5), box-shadow .2s ease;
+  }
+  .icon-btn:hover { border-color: rgba(255,255,255,.95); transform: scale(1.06); }
+  .icon-btn:active { transform: scale(.94); }
+
+  /* Barra inferior en celular: píldora flotante de cristal */
+  .app-tabbar {
+    left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding: 6px; border-radius: 26px;
+    background: linear-gradient(145deg, rgba(255,255,255,.68), rgba(255,255,255,.4));
+    -webkit-backdrop-filter: blur(26px) saturate(190%); backdrop-filter: blur(26px) saturate(190%);
+    border: 1px solid rgba(255,255,255,.75);
+    box-shadow: var(--glass-edge), 0 18px 40px -14px rgba(11,42,68,.5);
+  }
+  .app-tabbar button { border-radius: 20px; transition: background .25s ease, transform .25s cubic-bezier(.2,.9,.3,1.5); }
+  .app-tabbar button.active {
+    background: linear-gradient(145deg, rgba(255,255,255,.85), rgba(255,255,255,.45));
+    box-shadow: inset 0 1px 0 #fff, 0 6px 16px -8px color-mix(in srgb, var(--tc, #2F80ED) 60%, transparent);
+  }
+  .app-tabbar button.active::before { display: none; }
+  .app-tabbar button:active { transform: scale(.94); }
+  .app-content { padding-bottom: 120px; }
+
+  /* Menú lateral: cristal oscuro */
+  .app-side {
+    background:
+      radial-gradient(90% 40% at 0% 0%, rgba(111,177,255,.28), transparent 70%),
+      radial-gradient(80% 40% at 100% 100%, rgba(224,85,154,.22), transparent 70%),
+      linear-gradient(180deg, rgba(7,29,49,.62), rgba(7,29,49,.78)), url("/fondos/zurich.jpg") center 30% / cover no-repeat;
+    -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+    border-right: 1px solid rgba(255,255,255,.18);
+    box-shadow: inset -1px 0 0 rgba(255,255,255,.12), 16px 0 40px -12px rgba(0,0,0,.45);
+  }
+  .side-link { border: 1px solid transparent; transition: background .2s ease, border-color .2s ease; }
+  .side-link:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.14); }
+  .side-link.active {
+    background: linear-gradient(145deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+    border-color: rgba(255,255,255,.28);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 18px -10px rgba(0,0,0,.5);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .side-link.active::before { display: none; }
+  .app-scrim { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(4,17,29,.35); }
+
+  /* Ventanas emergentes (modales) */
+  div[style*="position: fixed"][style*="inset: 0"] { -webkit-backdrop-filter: blur(10px) saturate(130%); backdrop-filter: blur(10px) saturate(130%); }
+  div[style*="position: fixed"][style*="inset: 0"] > div {
+    background: var(--glass-bg-strong) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+    border: 1px solid rgba(255,255,255,.8);
+    box-shadow: var(--glass-edge), 0 30px 70px -20px rgba(11,42,68,.55);
+  }
+
+  /* Campos de captura */
+  .app-bg input:not([type="checkbox"]):not([type="radio"]), .app-bg select, .app-bg textarea {
+    background-color: rgba(255,255,255,.55) !important;
+    border: 1px solid rgba(255,255,255,.8) !important;
+    box-shadow: inset 0 1px 3px rgba(11,42,68,.08), inset 0 1px 0 rgba(255,255,255,.9);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+
+  /* Botones principales: gota de cristal con brillo superior */
+  .app-bg button[style*="background: var(--gold)"], .app-bg button[style*="background: var(--ink)"] {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 6px rgba(0,0,0,.12), 0 10px 22px -10px rgba(11,42,68,.55) !important;
+    border: 1px solid rgba(255,255,255,.35) !important;
+  }
+}
+
+/* Sin soporte de desenfoque: fondo más opaco para mantener legibilidad */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-bg .panel { background: rgba(255,255,255,.92); }
+  .app-tabbar { background: rgba(255,255,255,.96); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .app-bg .panel, .app-top, .app-tabbar, .icon-btn { background: #fff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .app-bg .panel.lift:hover, .icon-btn:hover { transform: none; } }
