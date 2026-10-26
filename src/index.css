@@ -465,3 +465,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .side-group-inner { overflow:hidden; min-height:0; display:flex; flex-direction:column; }
 .side-group:not(.is-open) .side-group-inner { visibility:hidden; transition: visibility 0s .28s; }
 @media (prefers-reduced-motion: reduce) { .side-group-body, .side-group-chev { transition:none; } }
+
+/* Barra de Google Calendar en el Planificador */
+.gcal-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:space-between; padding:10px 14px; margin-bottom:14px; border-radius:14px; font-size:12.5px; background: linear-gradient(90deg, rgba(111,177,255,.16), rgba(79,214,196,.16)); border:1px solid rgba(111,177,255,.35); }
+.gcal-bar button { border:0; border-radius:10px; padding:7px 12px; font-weight:700; font-size:12.5px; cursor:pointer; background:#1a73e8; color:#fff; }

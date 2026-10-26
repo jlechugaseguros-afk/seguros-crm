@@ -1,3 +1,4 @@
+import { gcalDisponible, gcalActivo, gcalConectar, gcalDesactivar, gcalCrear, gcalBorrar, gcalLinkManual } from "./googleCalendar.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -2093,6 +2094,13 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
   const [addingFor, setAddingFor] = useState(null);
   const [draft, setDraft] = useState({ hora: "", tipo: TIPOS_ACTIVIDAD[0], descripcion: "", clienteId: "" });
+  const [gcalOn, setGcalOn] = useState(gcalActivo());
+  const [gcalErr, setGcalErr] = useState("");
+  async function alternarGcal() {
+    setGcalErr("");
+    if (gcalOn) { gcalDesactivar(); setGcalOn(false); return; }
+    try { await gcalConectar(); setGcalOn(true); } catch (e) { setGcalErr(e.message || "No se pudo conectar"); }
+  }
 
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -2124,6 +2132,17 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
   return (
     <div>
       <PageHeader eyebrow="Agenda" title="Planificador" subtitle="Tu semana: pagos, renovaciones, cumpleaños y actividades." />
+      <div className="gcal-bar">
+        {gcalDisponible() ? (
+          <>
+            <span>{gcalOn ? "✅ Google Calendar conectado: lo que agregues aquí se crea en tu calendario." : "Conecta Google Calendar para que tus actividades se creen solas en tu calendario."}</span>
+            <button type="button" onClick={alternarGcal}>{gcalOn ? "Desconectar" : "Conectar Google Calendar"}</button>
+          </>
+        ) : (
+          <span>Cada actividad tiene un botón 📅 para agregarla a Google Calendar. (La sincronización automática se activa configurando el ID de cliente de Google.)</span>
+        )}
+        {gcalErr && <small style={{ color: "#c0392b" }}>{gcalErr}</small>}
+      </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>‹</button>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{rangeLabel}</span>
@@ -2175,6 +2194,12 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
                   <span style={{ flex: 1 }}>
                     {a.hora && `${a.hora} · `}{a.tipo}: {a.descripcion}{relacionado ? ` (${relacionado})` : ""}
                   </span>
+                  {a.gcalId ? (
+                    <span title="Ya está en tu Google Calendar" style={{ fontSize: 12 }}>✅📅</span>
+                  ) : (
+                    <a href={gcalLinkManual(a, client ? client.nombre : (prospecto ? prospecto.nombre : ""))} target="_blank" rel="noreferrer"
+                      title="Agregar a Google Calendar" style={{ fontSize: 14, textDecoration: "none" }}>📅</a>
+                  )}
                   <button onClick={() => onRemoveActivity(a.id)} style={{ background: "none", border: "none", color: "#8794A0" }}>
                     <X size={13} />
                   </button>
@@ -3095,6 +3120,11 @@ function migrateClient(c) {
 
   function handleAddActivity(a) {
     setActivities((as) => [...as, a]);
+    // Si Google Calendar está conectado, la actividad se crea también allá y se guarda su id.
+    const nombre = (clients.find((c) => c.id === a.clienteId) || {}).nombre || "";
+    gcalCrear(a, nombre).then((eventId) => {
+      if (eventId) setActivities((as) => as.map((x) => (x.id === a.id ? { ...x, gcalId: eventId } : x)));
+    });
   }
 
   // Mi meta y actividad: registro diario, meta económica y comisión real del mes en curso.
@@ -3105,6 +3135,8 @@ function migrateClient(c) {
   );
 
   function handleRemoveActivity(id) {
+    const gid = (activities.find((a) => a.id === id) || {}).gcalId;
+    if (gid) gcalBorrar(gid);
     setActivities((as) => as.filter((a) => a.id !== id));
   }
 
