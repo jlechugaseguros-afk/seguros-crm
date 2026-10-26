@@ -12,6 +12,8 @@ import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import VidaMas from "./VidaMas.jsx";
+import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
+import { Target } from "lucide-react";
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 
 const DOCS_BUCKET = "documentos";
@@ -24,6 +26,7 @@ const NAV_ITEMS = [
   { id: "planificador", label: "Planificador", icon: CalendarDays },
   { id: "recordatorios", label: "Recordatorios", icon: Bell },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "actividad", label: "Mi meta y actividad", icon: Target },
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "prospectos", label: "Prospectos", icon: UserPlus },
   { id: "condiciones", label: "Condiciones generales", icon: FileText },
@@ -164,7 +167,7 @@ const MULTICOTIZADOR_MENU = [
 ];
 
 const NAV_GROUPS = [
-  { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "clientes", "prospectos"] },
+  { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "prospectos"] },
   { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "vidamas", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
@@ -553,7 +556,7 @@ const MOTIVOS_PERDIDO = [
 const ACCIONES_SEGUIMIENTO = ["Correo", "Llamada", "Whatsapp", "Reunión Virtual", "Cita Presencial"];
 
 const emptyProspecto = {
-  nombre: "", telefono: "", correo: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "",
+  nombre: "", telefono: "", correo: "", origen: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "",
   requiereSeguimiento: false, accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "",
   cotizaciones: [],
 };
@@ -780,6 +783,12 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 <Field label="Correo electrónico">
                   <input type="email" value={editDraft.correo || ""} onChange={(e) => setEditDraft((d) => ({ ...d, correo: e.target.value }))} style={inputStyle} />
                 </Field>
+                <Field label="Origen del prospecto">
+                  <select value={editDraft.origen || ""} onChange={(e) => setEditDraft((d) => ({ ...d, origen: e.target.value }))} style={inputStyle}>
+                    <option value="">Sin especificar</option>
+                    {ORIGENES_PROSPECTO.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </Field>
                 <Field label="Estado">
                   <select value={editDraft.estado} onChange={(e) => handleEstadoSelect(e.target.value, "edit")} style={inputStyle}>
                     {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
@@ -844,6 +853,12 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
             </Field>
             <Field label="Correo electrónico">
               <input type="email" value={form.correo} onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))} style={inputStyle} />
+            </Field>
+            <Field label="Origen del prospecto">
+              <select value={form.origen || ""} onChange={(e) => setForm((f) => ({ ...f, origen: e.target.value }))} style={inputStyle}>
+                <option value="">Sin especificar</option>
+                {ORIGENES_PROSPECTO.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
             </Field>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, marginBottom: form.requiereSeguimiento ? 10 : 14, cursor: "pointer" }}>
               <input
@@ -2285,7 +2300,7 @@ function CalendarioPlegable({ clients }) {
   );
 }
 
-function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo, userId }) {
+function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo, userId, actividad, comisionMes }) {
   const allPolizas = useMemo(() => {
     const list = [];
     clients.forEach((c) => (c.polizas || []).forEach((p) => list.push(p)));
@@ -2319,6 +2334,8 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
     <div className="dash-grid">
       <div className="dash-col stagger">
         <PanelHoy nombre={nombre} items={itemsHoy} agenda={agenda} tonos={tonos} onVer={() => onGo("recordatorios")} />
+
+        {actividad && <MetaMiniCard actividad={actividad} comisionMes={comisionMes || 0} onGo={onGo} />}
 
         <DashPanel title="Próximos 7 días" hint={proximos.length ? `${proximos.length} aviso${proximos.length === 1 ? "" : "s"}` : ""}>
           {proximos.length === 0 ? (
@@ -2941,6 +2958,8 @@ function migrateClient(c) {
       nombre: p.nombre,
       telefono: p.telefono,
       correo: p.correo || "",
+      origen: p.origen || "",
+      prospectoId: p.id,
       polizas: [],
       id: Date.now().toString(),
     }]);
@@ -2971,6 +2990,13 @@ function migrateClient(c) {
   function handleAddActivity(a) {
     setActivities((as) => [...as, a]);
   }
+
+  // Mi meta y actividad: registro diario, meta económica y comisión real del mes en curso.
+  const actividad = useActividad();
+  const comisionMesActual = useMemo(
+    () => comisionesDelMes(clients, metasComisiones || {}, porcentajes || {}, todayStr().slice(0, 7)).reduce((s, r) => s + r.comision, 0),
+    [clients, metasComisiones, porcentajes],
+  );
 
   function handleRemoveActivity(id) {
     setActivities((as) => as.filter((a) => a.id !== id));
@@ -3784,7 +3810,7 @@ function migrateClient(c) {
         </div>
       </header>
 
-      <main className="app-content page-enter" key={tab}>
+      <main className="app-content page-enter" key={tab} data-tab={tab}>
         {tab === "planificador" && (
           <Planificador
             clients={clients}
@@ -3940,6 +3966,18 @@ function migrateClient(c) {
             tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
             onGo={setTab}
             userId={userId}
+            actividad={actividad}
+            comisionMes={comisionMesActual}
+          />
+        )}
+
+        {tab === "actividad" && (
+          <MiActividad
+            actividad={actividad}
+            clients={clients}
+            prospectos={prospectos}
+            porcentajes={porcentajes}
+            comisionMes={comisionMesActual}
           />
         )}
 
