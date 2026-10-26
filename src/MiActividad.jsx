@@ -5,6 +5,7 @@ import {
   TrendingUp, TrendingDown, Clock, ChevronDown, Plus,
 } from "lucide-react";
 import PageHeader from "./PageHeader.jsx";
+import { comisionDePoliza } from "./comisiones.js";
 import "./MiActividad.css";
 
 // ---------------------------------------------------------------------------
@@ -156,9 +157,6 @@ export function useActividad() {
 // Cálculos
 // ---------------------------------------------------------------------------
 
-function comisionDePoliza(p, porcentajes) {
-  return ((Number(p.primaAnual) || 0) * (Number((porcentajes || {})[p.ramo]) || 0)) / 100;
-}
 
 // Todo lo que pasó entre dos fechas: etapas del embudo, minutos por tipo y por categoría, comisión y cierres por origen.
 function resumenRango({ log, prospectos, clients, porcentajes, desde, hasta }) {

@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { TODOS_LOS_SUBRAMOS, ramoDeSubramo } from "./comisiones.js";
 
 // Lógica para importar una cartera (clientes + pólizas) desde Excel o CSV.
 // Una fila por póliza. También lee el Excel que exporta este mismo CRM (hojas "Clientes" y "Pólizas").
@@ -16,6 +17,7 @@ const ALIAS = {
   fechaCumple: ["cumpleanos", "fecha de nacimiento", "nacimiento", "fecha cumpleanos", "fecha de cumpleanos"],
   aseguradora: ["aseguradora", "compania", "cia", "aseguradora compania"],
   ramo: ["ramo", "producto", "tipo de seguro", "tipo seguro"],
+  subramo: ["subramo", "sub ramo", "subproducto", "producto especifico"],
   numeroPoliza: ["numero de poliza", "no de poliza", "no poliza", "poliza", "num poliza", "n poliza", "numero poliza"],
   primaAnual: ["prima anual", "prima", "prima neta", "prima neta anual", "prima total"],
   moneda: ["moneda"],
@@ -92,11 +94,15 @@ function normalizaPoliza(r, o) {
 
   let ramo = txt(r.ramo);
   const ramoLista = buscarOpcion(ramo, o.RAMOS.filter((x) => x !== "Otro"));
+  let ramoReconocido = !!ramoLista;
   if (ramoLista) ramo = ramoLista;
   else {
     const hit = RAMO_ALIAS.find(([re]) => re.test(norm(ramo)));
-    if (hit) ramo = hit[1];
+    if (hit) { ramo = hit[1]; ramoReconocido = true; }
   }
+  // Subramo (define la comisión): viene en su propia columna o directamente en "Ramo" (ej. "Viajero").
+  const subramo = buscarOpcion(txt(r.subramo), TODOS_LOS_SUBRAMOS) || buscarOpcion(txt(r.ramo), TODOS_LOS_SUBRAMOS);
+  if (subramo && !ramoReconocido) ramo = ramoDeSubramo(subramo);
 
   const monedaN = norm(r.moneda);
   let moneda = buscarOpcion(r.moneda, o.MONEDAS);
@@ -118,6 +124,7 @@ function normalizaPoliza(r, o) {
   return {
     aseguradora: asegCanon,
     ramo,
+    subramo,
     numeroPoliza: txt(r.numeroPoliza),
     primaAnual: r.primaAnual === "" || r.primaAnual === null ? "" : String(r.primaAnual),
     pagoFraccionado: pago,
@@ -308,12 +315,12 @@ export function descargarPlantilla(opciones) {
   const wb = XLSX.utils.book_new();
   const encabezados = [
     "Nombre", "Teléfono", "Correo", "Cumpleaños", "Requiere factura",
-    "Aseguradora", "Ramo", "Número de póliza", "Prima anual", "Moneda", "Pago fraccionado", "Método de pago", "Clasificación",
+    "Aseguradora", "Ramo", "Subramo", "Número de póliza", "Prima anual", "Moneda", "Pago fraccionado", "Método de pago", "Clasificación",
     "Inicio de vigencia", "Fin de vigencia", "Fecha de contratación", "Fecha de pago", "Fecha de renovación",
   ];
   const ejemplo = [
     "Ejemplo: María López (borra esta fila)", "5212221234567", "maria@correo.com", "15/03/1985", "No",
-    "GNP", "Autos", "ABC123456", 12500, "MXN", "Mensual", "Tarjeta de crédito", "Nueva",
+    "GNP", "Autos", "Automóviles Individuales", "ABC123456", 12500, "MXN", "Mensual", "Tarjeta de crédito", "Nueva",
     "01/02/2026", "01/02/2027", "01/02/2026", "01/11/2026", "01/02/2027",
   ];
   const ws = XLSX.utils.aoa_to_sheet([encabezados, ejemplo]);
@@ -332,6 +339,7 @@ export function descargarPlantilla(opciones) {
     ["Valores sugeridos"],
     ["Aseguradora", opciones.ASEGURADORAS.filter((a) => a !== "Otra").join(", ")],
     ["Ramo", opciones.RAMOS.filter((a) => a !== "Otro").join(", ")],
+    ["Subramo (define la comisión)", TODOS_LOS_SUBRAMOS.join(", ")],
     ["Moneda", opciones.MONEDAS.join(", ")],
     ["Pago fraccionado", opciones.PAGOS.join(", ")],
     ["Método de pago", opciones.METODOS.join(", ")],

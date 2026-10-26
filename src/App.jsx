@@ -14,6 +14,10 @@ import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import VidaMas from "./VidaMas.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
 import { Target } from "lucide-react";
+import {
+  GRUPOS, GRUPO_OTROS, FAMILIAS, SUBRAMOS_POR_FAMILIA, PORCENTAJES_INICIALES, RAMO_PPR,
+  SUBRAMO_POR_DEFECTO, subramosDeRamo, resolverComision, migrarMetas, metasIniciales,
+} from "./comisiones.js";
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 
 const DOCS_BUCKET = "documentos";
@@ -42,7 +46,7 @@ const NAV_ITEMS = [
   { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
 ];
 
-const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar", "Plan Personal de Retiro (PPR)", "Otro"];
+const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar", "Daños", "Salud", "Plan Personal de Retiro (PPR)", "Otro"];
 const ASEGURADORAS = [
   "GNP Seguros",
   "AXA Seguros",
@@ -111,6 +115,7 @@ const emptyClientForm = {
 const emptyPolicyForm = {
   aseguradora: "Zurich",
   ramo: "Autos",
+  subramo: "Automóviles Individuales",
   numeroPoliza: "",
   primaAnual: "",
   pagoFraccionado: "",
@@ -125,7 +130,9 @@ const emptyPolicyForm = {
   documento: null, // { name, path }
 };
 
-const COMISION_PORCENTAJE_DEFAULT = { Autos: 8, Vida: 25, GMM: 8, Mascotas: 0, Hogar: 0, "Plan Personal de Retiro (PPR)": 0 };
+// Esquema de comisiones por subramo (ver src/comisiones.js). "__esquema" marca que los porcentajes ya usan la tabla nueva.
+const ESQUEMA_COMISIONES = "2026-10-26";
+const COMISION_PORCENTAJE_DEFAULT = { ...PORCENTAJES_INICIALES, __esquema: ESQUEMA_COMISIONES };
 
 const VAPID_PUBLIC_KEY = "BLdEb7gA1qb0ZZXckV0X3206SY474OiqZ58R8PtK87fEhC-_ak994Yl9PAuwoVyxO1L-tZFafg-jXGwYzXEDo6k";
 
@@ -433,13 +440,29 @@ function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
         <Field label="Ramo" style={{ flex: 1 }}>
           <select
             value={ramoSel}
-            onChange={(e) => onChange("ramo", e.target.value === "Otro" ? "" : e.target.value)}
+            onChange={(e) => {
+              const nuevo = e.target.value === "Otro" ? "" : e.target.value;
+              onChange("ramo", nuevo);
+              onChange("subramo", SUBRAMO_POR_DEFECTO[nuevo] || "");
+            }}
             style={inputStyle}
           >
             {RAMOS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </Field>
       </div>
+      {subramosDeRamo(ramoSel).length > 0 && (
+        <Field label="Subramo (define tu comisión)">
+          <select
+            value={data.subramo || SUBRAMO_POR_DEFECTO[ramoSel] || ""}
+            onChange={(e) => onChange("subramo", e.target.value)}
+            style={inputStyle}
+          >
+            {!SUBRAMO_POR_DEFECTO[ramoSel] && <option value="">Elige el subramo…</option>}
+            {subramosDeRamo(ramoSel).map((sr) => <option key={sr} value={sr}>{sr}</option>)}
+          </select>
+        </Field>
+      )}
       {aseguradoraSel === "Otra" && (
         <Field label="Nombre de la aseguradora">
           <input
@@ -1182,27 +1205,45 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
     return list;
   }, [clients]);
 
+  // Cada póliza del mes se ubica en su grupo (Daños, Salud, Vehículos, Vida u Otros) y su subramo.
   const porRamo = useMemo(() => {
-    return RAMOS.map((ramo) => {
-      const polizas = allPolizas.filter(
-        (p) => p.ramo === ramo && p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0
-      );
-      const numPolizas = polizas.length;
-      const primaTotal = polizas.reduce((sum, p) => sum + Number(p.primaAnual || 0), 0);
-      const pct = Number(porcentajes[ramo] || 0);
-      const comision = (primaTotal * pct) / 100;
-      const meta = metas[ramo] || { metaPolizas: "", metaPrimaNeta: "" };
+    const mapa = Object.fromEntries(GRUPOS.map((g) => [g, { ramo: g, polizas: [], subs: {}, numPolizas: 0, primaTotal: 0, comision: 0 }]));
+    allPolizas.forEach((p) => {
+      if (!(p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0)) return;
+      const r = resolverComision(p, porcentajes);
+      const g = mapa[r.familia] || mapa[GRUPO_OTROS];
+      const prima = Number(p.primaAnual) || 0;
+      const com = (prima * r.pct) / 100;
+      g.polizas.push({ ...p, _sub: r.subramo, _pct: r.pct, _sin: r.sinSubramo });
+      g.numPolizas += 1;
+      g.primaTotal += prima;
+      g.comision += com;
+      const sr = g.subs[r.subramo] || (g.subs[r.subramo] = { subramo: r.subramo, pct: r.pct, num: 0, prima: 0, comision: 0 });
+      sr.num += 1;
+      sr.prima += prima;
+      sr.comision += com;
+    });
+    return GRUPOS.map((g) => {
+      const r = mapa[g];
+      const meta = metas[g] || { metaPolizas: "", metaPrimaNeta: "" };
       const metaPolizas = Number(meta.metaPolizas || 0);
-      const avance = metaPolizas > 0 ? (numPolizas / metaPolizas) * 100 : null;
-      return { ramo, polizas, numPolizas, primaTotal, pct, comision, meta, avance };
+      return {
+        ...r,
+        subLista: Object.values(r.subs),
+        pct: r.primaTotal > 0 ? (r.comision / r.primaTotal) * 100 : 0,
+        meta,
+        avance: metaPolizas > 0 ? (r.numPolizas / metaPolizas) * 100 : null,
+      };
     });
   }, [allPolizas, mes, porcentajes, metas]);
 
   const totalComision = porRamo.reduce((s, r) => s + r.comision, 0);
   const totalPolizas = porRamo.reduce((s, r) => s + r.numPolizas, 0);
   const totalPrima = porRamo.reduce((s, r) => s + r.primaTotal, 0);
+  const sinSubramo = porRamo.reduce((n, r) => n + r.polizas.filter((p) => p._sin).length, 0);
 
   const fmt = (n) => `$${Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const fmtPct = (n) => `${Math.round(n * 10) / 10}%`;
 
   function semaforoColor(avance) {
     if (avance === null) return "var(--line)";
@@ -1211,12 +1252,12 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
     return "#B23A2E";
   }
 
-  function updateMeta(ramo, campo, valor) {
-    onMetasChange({ ...metas, [ramo]: { ...(metas[ramo] || {}), [campo]: valor } });
+  function updateMeta(grupo, campo, valor) {
+    onMetasChange({ ...metas, [grupo]: { ...(metas[grupo] || {}), [campo]: valor } });
   }
 
-  function updatePorcentaje(ramo, valor) {
-    onPorcentajesChange({ ...porcentajes, [ramo]: valor });
+  function updatePorcentaje(clave, valor) {
+    onPorcentajesChange({ ...porcentajes, [clave]: valor });
   }
 
   const mesLabel = (() => {
@@ -1225,9 +1266,11 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
     return `${meses[m - 1]} ${y}`;
   })();
 
+  const COLS = "1.5fr 0.7fr 1fr 0.7fr 1.1fr";
+
   return (
     <div className="stagger">
-      <PageHeader eyebrow="Ingresos" title="Comisiones" subtitle="Cálculo automático a partir de la prima anual de cada cliente." />
+      <PageHeader eyebrow="Ingresos" title="Comisiones" subtitle="Cálculo automático a partir de la prima anual y el subramo de cada póliza." />
 
       {/* Selector de mes */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 20 }}>
@@ -1236,26 +1279,37 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
         <button onClick={() => cambiarMes(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "6px 10px" }}>›</button>
       </div>
 
-      {/* SECCIÓN 1: Ramo, aseguradora y prima -> comisión */}
-      <SectionTitle>Comisiones del mes por ramo</SectionTitle>
-      <div className="panel" style={{ overflow: "hidden", marginBottom: 24 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
-          <span>Ramo</span>
+      {/* SECCIÓN 1: Ramo y subramo -> comisión */}
+      <SectionTitle>Comisiones del mes por ramo y subramo</SectionTitle>
+      <div className="panel" style={{ overflow: "hidden", marginBottom: sinSubramo ? 10 : 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: COLS, background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
+          <span>Ramo / subramo</span>
           <span>Pólizas</span>
           <span>Prima anual</span>
           <span>%</span>
           <span>Comisión</span>
         </div>
         {porRamo.map((r, i) => (
-          <div key={r.ramo} className="row-hover rise" style={{ "--i": i + 2, display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "9px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center" }}>
-            <span style={{ fontWeight: 500 }}>{r.ramo}</span>
-            <span><CountUp value={r.numPolizas} /></span>
-            <span>$<CountUp value={r.primaTotal} /></span>
-            <span>{r.pct}%</span>
-            <span style={{ fontWeight: 600, color: "var(--emerald)" }}>$<CountUp value={r.comision} /></span>
+          <div key={r.ramo}>
+            <div className="row-hover rise" style={{ "--i": i + 2, display: "grid", gridTemplateColumns: COLS, padding: "9px 10px", fontSize: 12, borderTop: "1px solid var(--line)", alignItems: "center" }}>
+              <span style={{ fontWeight: 700 }}>{r.ramo}</span>
+              <span><CountUp value={r.numPolizas} /></span>
+              <span>$<CountUp value={r.primaTotal} /></span>
+              <span>{r.numPolizas > 0 ? fmtPct(r.pct) : "—"}</span>
+              <span style={{ fontWeight: 600, color: "var(--emerald)" }}>$<CountUp value={r.comision} /></span>
+            </div>
+            {r.subLista.map((sr) => (
+              <div key={sr.subramo} style={{ display: "grid", gridTemplateColumns: COLS, padding: "6px 10px 6px 22px", fontSize: 11.5, color: "var(--muted)", alignItems: "center", background: "rgba(11,42,68,.025)" }}>
+                <span>{sr.subramo}</span>
+                <span>{sr.num}</span>
+                <span>{fmt(sr.prima)}</span>
+                <span>{fmtPct(sr.pct)}</span>
+                <span style={{ color: "var(--emerald)", fontWeight: 600 }}>{fmt(sr.comision)}</span>
+              </div>
+            ))}
           </div>
         ))}
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.8fr 1fr 0.7fr 1.1fr", padding: "12px 10px", fontSize: 12, borderTop: "2px solid var(--ink)", background: "var(--cream-2)", fontWeight: 700, alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: COLS, padding: "12px 10px", fontSize: 12, borderTop: "2px solid var(--ink)", background: "var(--cream-2)", fontWeight: 700, alignItems: "center" }}>
           <span>Total</span>
           <span><CountUp value={totalPolizas} /></span>
           <span>$<CountUp value={totalPrima} /></span>
@@ -1263,16 +1317,22 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
           <span className="serif" style={{ color: "var(--emerald)", fontSize: 17, fontWeight: 600 }}>$<CountUp value={totalComision} duration={1200} /></span>
         </div>
       </div>
-      {/* Detalle de aseguradoras por ramo */}
+      {sinSubramo > 0 && (
+        <p style={{ fontSize: 12, color: "#B23A2E", margin: "0 0 24px" }}>
+          {sinSubramo} póliza{sinSubramo === 1 ? "" : "s"} de Daños o Salud sin subramo no están generando comisión. Edítalas y elige su subramo.
+        </p>
+      )}
+
+      {/* Detalle de aseguradoras por grupo */}
       {porRamo.some((r) => r.numPolizas > 0) && (
         <div style={{ marginBottom: 24 }}>
           {porRamo.filter((r) => r.numPolizas > 0).map((r) => (
             <div key={r.ramo} style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", margin: "0 0 4px" }}>{r.ramo}</p>
               {r.polizas.map((p) => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", padding: "3px 0" }}>
-                  <span>{p.aseguradora} — {p.clienteNombre}</span>
-                  <span>{fmt(p.primaAnual)}</span>
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11, color: "var(--muted)", padding: "3px 0" }}>
+                  <span>{p.aseguradora} — {p.clienteNombre} · {p._sub}</span>
+                  <span style={{ whiteSpace: "nowrap" }}>{fmt(p.primaAnual)} · {fmtPct(p._pct)}</span>
                 </div>
               ))}
             </div>
@@ -1302,38 +1362,72 @@ function Comisiones({ clients, metas, onMetasChange, porcentajes, onPorcentajesC
         Verde: meta cumplida · Amarillo: a la mitad o más · Rojo: por debajo de la mitad · Gris: sin meta capturada.
       </p>
 
-      {/* SECCIÓN 3: Metas manuales y % de comisión */}
-      <SectionTitle>Metas mensuales y % de comisión</SectionTitle>
-      <div className="panel" style={{ overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
+      {/* SECCIÓN 3: Metas manuales por grupo */}
+      <SectionTitle>Metas mensuales por ramo</SectionTitle>
+      <div className="panel" style={{ overflow: "hidden", marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
           <span>Ramo</span>
-          <span>% com.</span>
           <span>Meta pólizas</span>
           <span>Meta prima neta</span>
         </div>
-        {RAMOS.map((ramo) => (
-          <div key={ramo} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1fr 1fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 500 }}>{ramo}</span>
+        {GRUPOS.map((g) => (
+          <div key={g} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>{g}</span>
             <input
-              type="number" min="0" value={porcentajes[ramo] ?? ""}
-              onChange={(e) => updatePorcentaje(ramo, e.target.value)}
-              style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
-            />
-            <input
-              type="number" min="0" value={metas[ramo]?.metaPolizas ?? ""}
-              onChange={(e) => updateMeta(ramo, "metaPolizas", e.target.value)}
+              type="number" min="0" value={metas[g]?.metaPolizas ?? ""}
+              onChange={(e) => updateMeta(g, "metaPolizas", e.target.value)}
               style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
               placeholder="Núm."
             />
             <input
-              type="number" min="0" value={metas[ramo]?.metaPrimaNeta ?? ""}
-              onChange={(e) => updateMeta(ramo, "metaPrimaNeta", e.target.value)}
+              type="number" min="0" value={metas[g]?.metaPrimaNeta ?? ""}
+              onChange={(e) => updateMeta(g, "metaPrimaNeta", e.target.value)}
               style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
               placeholder="$"
             />
           </div>
         ))}
       </div>
+
+      {/* SECCIÓN 4: Esquema de comisiones (tabla de porcentajes por subramo) */}
+      <SectionTitle>Esquema de comisiones</SectionTitle>
+      <div className="panel" style={{ overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.6fr 0.7fr", background: "var(--ink)", color: "var(--cream)", fontSize: 11, fontWeight: 600, padding: "8px 10px" }}>
+          <span>Ramo</span>
+          <span>Subramo</span>
+          <span>% com.</span>
+        </div>
+        {FAMILIAS.map((fam) => SUBRAMOS_POR_FAMILIA[fam].map((sr, i) => (
+          <div key={sr} style={{ display: "grid", gridTemplateColumns: "0.9fr 1.6fr 0.7fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{i === 0 ? fam : ""}</span>
+            <span style={{ fontSize: 12 }}>{sr}</span>
+            <input
+              type="number" min="0" step="0.5" value={porcentajes[sr] ?? ""}
+              onChange={(e) => updatePorcentaje(sr, e.target.value)}
+              style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
+            />
+          </div>
+        )))}
+        {[[RAMO_PPR, "Plan Personal de Retiro (PPR)"], ["Otro", "Otros productos (sin subramo)"]].map(([clave, etiqueta], i) => (
+          <div key={clave} style={{ display: "grid", gridTemplateColumns: "0.9fr 1.6fr 0.7fr", padding: "6px 10px", borderTop: "1px solid var(--line)", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{i === 0 ? "Otros" : ""}</span>
+            <span style={{ fontSize: 12 }}>{etiqueta}</span>
+            <input
+              type="number" min="0" step="0.5" value={porcentajes[clave] ?? ""}
+              onChange={(e) => updatePorcentaje(clave, e.target.value)}
+              style={{ ...inputStyle, padding: "4px 6px", fontSize: 12 }}
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="link-btn"
+        style={{ marginTop: 10 }}
+        onClick={() => { if (window.confirm("¿Restablecer todos los porcentajes a la tabla oficial?")) onPorcentajesChange({ ...COMISION_PORCENTAJE_DEFAULT }); }}
+      >
+        Restablecer a la tabla oficial
+      </button>
     </div>
   );
 }
@@ -1483,7 +1577,7 @@ function PolizasTab({
               <div key={p.id} style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: "14px 16px", marginBottom: 10, boxShadow: "var(--shadow)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{p.aseguradora} · {p.ramo}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{p.aseguradora} · {p.ramo}{p.subramo && p.subramo !== p.ramo ? ` · ${p.subramo}` : ""}</div>
                     <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>
                       Póliza {p.numeroPoliza || "—"} · {p.clasificacion} · {p.moneda} {p.primaAnual ? `$${Number(p.primaAnual).toLocaleString("es-MX")}` : ""}
                     </div>
@@ -2160,12 +2254,12 @@ function CountUp({ value, prefix = "", suffix = "", decimals = 0, duration = 900
 function comisionesDelMes(clients, metas, porcentajes, mes) {
   const polizas = [];
   clients.forEach((c) => (c.polizas || []).forEach((p) => polizas.push(p)));
-  return RAMOS.map((ramo) => {
-    const del = polizas.filter((p) => p.ramo === ramo && p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0);
+  return GRUPOS.map((grupo) => {
+    const del = polizas.filter((p) => p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0 && (resolverComision(p, porcentajes).familia === grupo || (grupo === GRUPO_OTROS && !FAMILIAS.includes(resolverComision(p, porcentajes).familia))));
     const prima = del.reduce((s, p) => s + Number(p.primaAnual || 0), 0);
-    const pct = Number(porcentajes[ramo] || 0);
-    const metaP = Number((metas[ramo] || {}).metaPolizas || 0);
-    return { ramo, num: del.length, prima, pct, comision: (prima * pct) / 100, metaP, avance: metaP > 0 ? (del.length / metaP) * 100 : null };
+    const comision = del.reduce((s, p) => s + ((Number(p.primaAnual) || 0) * resolverComision(p, porcentajes).pct) / 100, 0);
+    const metaP = Number((metas[grupo] || {}).metaPolizas || 0);
+    return { ramo: grupo, num: del.length, prima, pct: prima > 0 ? Math.round((comision / prima) * 1000) / 10 : 0, comision, metaP, avance: metaP > 0 ? (del.length / metaP) * 100 : null };
   });
 }
 
@@ -2476,6 +2570,15 @@ export default function SegurosCRM() {
   const [tab, setTab] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirOpen, setDirOpen] = useState(false);
+  // Grupos del menú lateral: abiertos/cerrados (se recuerda en este dispositivo).
+  const [gruposCerrados, setGruposCerrados] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("menuGruposCerrados") || "[]"); } catch { return []; }
+  });
+  const alternarGrupo = (titulo) => setGruposCerrados((prev) => {
+    const sig = prev.includes(titulo) ? prev.filter((t) => t !== titulo) : [...prev, titulo];
+    try { localStorage.setItem("menuGruposCerrados", JSON.stringify(sig)); } catch { /* sin almacenamiento */ }
+    return sig;
+  });
   const [showImport, setShowImport] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
 
@@ -2584,9 +2687,7 @@ export default function SegurosCRM() {
   }
 
   // --- Comisiones ---
-  const [metasComisiones, setMetasComisiones] = useState(
-    Object.fromEntries(RAMOS.map((r) => [r, { metaPolizas: "", metaPrimaNeta: "" }]))
-  );
+  const [metasComisiones, setMetasComisiones] = useState(metasIniciales());
   const [metasLoaded, setMetasLoaded] = useState(false);
   const [porcentajes, setPorcentajes] = useState(COMISION_PORCENTAJE_DEFAULT);
   const [porcentajesLoaded, setPorcentajesLoaded] = useState(false);
@@ -2595,7 +2696,7 @@ export default function SegurosCRM() {
     (async () => {
       try {
         const res = await window.storage.get("metasComisiones");
-        if (res && res.value) setMetasComisiones((m) => ({ ...m, ...JSON.parse(res.value) }));
+        if (res && res.value) setMetasComisiones((m) => ({ ...m, ...migrarMetas(JSON.parse(res.value)) }));
         setMetasLoaded(true);
       } catch (e) {
         console.error("No se pudieron cargar las metas de comisiones:", e);
@@ -2606,7 +2707,12 @@ export default function SegurosCRM() {
     (async () => {
       try {
         const res = await window.storage.get("porcentajesComision");
-        if (res && res.value) setPorcentajes((p) => ({ ...p, ...JSON.parse(res.value) }));
+        if (res && res.value) {
+          const guardados = JSON.parse(res.value);
+          // Los porcentajes anteriores estaban por ramo (Autos, Vida, GMM...): se sustituyen por la tabla nueva.
+          if (guardados.__esquema === ESQUEMA_COMISIONES) setPorcentajes((p) => ({ ...p, ...guardados }));
+          else setPorcentajes((p) => ({ ...p, [RAMO_PPR]: Number(guardados[RAMO_PPR]) || 0 }));
+        }
         setPorcentajesLoaded(true);
       } catch (e) {
         console.error("No se pudieron cargar los porcentajes de comisión:", e);
@@ -3023,6 +3129,7 @@ function migrateClient(c) {
           Teléfono: c.telefono,
           Aseguradora: p.aseguradora,
           Ramo: p.ramo,
+          Subramo: p.subramo || "",
           "Número de póliza": p.numeroPoliza,
           "Prima anual": p.primaAnual,
           Moneda: p.moneda,
@@ -3201,6 +3308,7 @@ function migrateClient(c) {
         id: policyId,
         aseguradora: form.aseguradora,
         ramo: form.ramo,
+        subramo: form.subramo || "",
         numeroPoliza: form.numeroPoliza,
         primaAnual: form.primaAnual,
         pagoFraccionado: form.pagoFraccionado,
@@ -3604,9 +3712,17 @@ function migrateClient(c) {
               <X size={18} />
             </button>
           </div>
-          {NAV_GROUPS.map((g) => (
-            <div className="side-group" key={g.title}>
-              <h4>{g.title}</h4>
+          {NAV_GROUPS.map((g) => {
+            const contieneActiva = g.ids.includes(tab);
+            const abierto = contieneActiva || !gruposCerrados.includes(g.title);
+            return (
+            <div className={"side-group" + (abierto ? " is-open" : "")} key={g.title}>
+              <button type="button" className="side-group-toggle" aria-expanded={abierto}
+                onClick={() => alternarGrupo(g.title)}>
+                <h4>{g.title}</h4>
+                <ChevronDown size={14} className="side-group-chev" />
+              </button>
+              <div className="side-group-body"><div className="side-group-inner">
               {g.ids.map((id) => {
                 const item = NAV_ITEMS.find((n) => n.id === id);
                 if (!item) return null;
@@ -3657,8 +3773,10 @@ function migrateClient(c) {
                   </button>
                 );
               })}
+              </div></div>
             </div>
-          ))}
+            );
+          })}
           <div style={{ flex: 1, minHeight: 16 }} />
           <div style={{ borderTop: "1px solid rgba(255,255,255,.1)", margin: "8px 0 12px" }} />
           <button
