@@ -1,0 +1,12 @@
+.desliza { position: relative; overflow: hidden; border-radius: inherit; }
+.desliza-frente { position: relative; touch-action: pan-y; will-change: transform; }
+.desliza-frente.en-uso { background: var(--surface, #fff); }
+.desliza-acciones { position: absolute; top: 0; right: 0; bottom: 0; display: flex; }
+.desliza-btn {
+  flex: 1; border: 0; display: grid; place-content: center; justify-items: center; gap: 4px;
+  font: 700 12px/1 'Manrope', sans-serif; cursor: pointer; transition: filter .12s ease-out;
+}
+.desliza-btn:active { filter: brightness(.92); }
+.desliza-avanzar { background: #C9A24B; color: #0B1F3A; }
+.desliza-perdido { background: #B42318; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .desliza-btn { transition: none; } }

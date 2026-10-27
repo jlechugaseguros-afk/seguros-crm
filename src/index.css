@@ -596,3 +596,19 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
   .app-bg .panel, .app-top, .app-tabbar, .icon-btn { background: #fff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .app-bg .panel.lift:hover, .icon-btn:hover { transform: none; } }
+
+/* ===== Respuesta táctil y carrusel de etapas (diseño Apple) ===== */
+.embudo-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 899px) {
+  .embudo-chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 4px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .embudo-chips::-webkit-scrollbar { display: none; }
+  .embudo-chips > button { flex: none; white-space: nowrap; scroll-snap-align: start; min-height: 36px; }
+}
+/* Respuesta inmediata al tocar: el botón se hunde al presionar, no al soltar */
+.app-bg button.lift, .app-bg .side-link, .app-bg .row-hover { transition: transform .12s ease-out, background-color .15s ease; }
+.app-bg button.lift:active, .app-bg .side-link:active { transform: scale(.97); }
+.app-bg .row-hover:active { background: rgba(11, 31, 58, .06); }
+@media (prefers-reduced-motion: reduce) {
+  .app-bg button.lift:active, .app-bg .side-link:active { transform: none; }
+  .embudo-chips { scroll-behavior: auto; }
+}

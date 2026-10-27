@@ -1,6 +1,6 @@
 import { gcalDisponible, gcalActivo, gcalConectar, gcalDesactivar, gcalCrear, gcalBorrar, gcalLinkManual } from "./googleCalendar.js";
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert } from "lucide-react";
+import { MessageCircle, Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
@@ -21,6 +21,8 @@ import {
   SUBRAMO_POR_DEFECTO, subramosDeRamo, resolverComision, migrarMetas, metasIniciales,
 } from "./comisiones.js";
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
+import Hoja from "./Hoja.jsx";
+import Deslizable from "./Deslizable.jsx";
 
 const DOCS_BUCKET = "documentos";
 const TARJETAS_BUCKET = "tarjetas-fotos";
@@ -673,7 +675,8 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
   const [expandedId, setExpandedId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [filter, setFilter] = useState(null);
-  const [perdidoTarget, setPerdidoTarget] = useState(null); // "edit" | "new" | null
+  const [perdidoTarget, setPerdidoTarget] = useState(null); // "edit" | "new" | "swipe" | null
+  const [perdidoSwipe, setPerdidoSwipe] = useState(null); // prospecto marcado como Perdido deslizando la tarjeta
   const [motivoPerdido, setMotivoPerdido] = useState(MOTIVOS_PERDIDO[0]);
   const [comentarioPerdido, setComentarioPerdido] = useState("");
   const [draftFolder, setDraftFolder] = useState(() => `nuevo-${Date.now()}`);
@@ -692,8 +695,30 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
     else setForm((f) => ({ ...f, estado: value, motivoPerdido: "", comentarioPerdido: "" }));
   }
 
+  // Siguiente etapa del embudo. Convertir a cliente sigue siendo un paso explícito dentro de la ficha.
+  function siguienteEstado(estado) {
+    const flujo = ESTADOS_PROSPECTO.filter((e) => e !== "Perdido");
+    const i = flujo.indexOf(estado);
+    const sig = i >= 0 ? flujo[i + 1] : null;
+    return sig && sig !== "Cliente" ? sig : null;
+  }
+
+  function avanzarPorGesto(p, sig) {
+    onUpdate(p.id, { ...p, estado: sig, motivoPerdido: "", comentarioPerdido: "" });
+  }
+
+  function perderPorGesto(p) {
+    setMotivoPerdido(MOTIVOS_PERDIDO[0]);
+    setComentarioPerdido("");
+    setPerdidoSwipe(p);
+    setPerdidoTarget("swipe");
+  }
+
   function confirmPerdido() {
-    if (perdidoTarget === "edit") {
+    if (perdidoTarget === "swipe") {
+      if (perdidoSwipe) onUpdate(perdidoSwipe.id, { ...perdidoSwipe, estado: "Perdido", motivoPerdido, comentarioPerdido });
+      setPerdidoSwipe(null);
+    } else if (perdidoTarget === "edit") {
       setEditDraft((d) => ({ ...d, estado: "Perdido", motivoPerdido, comentarioPerdido }));
     } else {
       setForm((f) => ({ ...f, estado: "Perdido", motivoPerdido, comentarioPerdido }));
@@ -757,7 +782,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
       />
       <div className="panel" style={{ marginBottom: 20, padding: "14px 16px" }}>
         <h3 className="serif" style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>Embudo de prospectos</h3>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="embudo-chips">
           {funnelData.map(([estado, count]) => (
             <button
               key={estado}
@@ -780,8 +805,14 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
 
       {visible.map((p) => {
         const isOpen = expandedId === p.id;
+        const sigEstado = isOpen ? null : siguienteEstado(p.estado);
+        const sePuedePerder = !isOpen && p.estado !== "Perdido" && p.estado !== "Cliente";
         return (
           <div key={p.id} className="panel lift" style={{ marginBottom: 10, overflow: "hidden" }}>
+            <Deslizable
+              onAvanzar={sigEstado ? () => avanzarPorGesto(p, sigEstado) : undefined}
+              onPerdido={sePuedePerder ? () => perderPorGesto(p) : undefined}
+            >
             <button
               onClick={() => toggleExpand(p)}
               style={{ width: "100%", background: "none", border: "none", textAlign: "left", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
@@ -796,6 +827,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
               </div>
               <ChevronDown size={18} color="var(--stone)" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
             </button>
+            </Deslizable>
 
             {isOpen && editDraft && (
               <div style={{ padding: "4px 16px 20px" }}>
@@ -4332,7 +4364,26 @@ function migrateClient(c) {
                   </button>
 
                   {isOpen && editDraft && (
-                    <div className="expand" style={{ padding: "4px 4px 20px" }}>
+                    <Hoja
+                      titulo={c.nombre}
+                      subtitulo={(c.polizas || []).length
+                        ? `${(c.polizas || []).length} póliza${(c.polizas || []).length === 1 ? "" : "s"} · ${(c.polizas || [])[0].aseguradora || "Sin compañía"}`
+                        : "Sin pólizas registradas"}
+                      onCerrar={() => toggleExpand(c)}
+                    >
+                    <div style={{ padding: "4px 0 8px" }}>
+                      {c.telefono && (
+                        <div className="hoja-acciones">
+                          <a className="hoja-accion" href={`tel:${c.telefono.replace(/[^\d+]/g, "")}`}>
+                            <span className="disco"><Phone size={21} /></span>
+                            Llamar
+                          </a>
+                          <a className="hoja-accion dorada" href={waLink(c, "")} target="_blank" rel="noopener noreferrer">
+                            <span className="disco"><MessageCircle size={21} /></span>
+                            WhatsApp
+                          </a>
+                        </div>
+                      )}
                       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                         <button
                           onClick={() => openEditModal(c)}
@@ -4420,6 +4471,7 @@ function migrateClient(c) {
                         />
                       )}
                     </div>
+                    </Hoja>
                   )}
                 </div>
                 );

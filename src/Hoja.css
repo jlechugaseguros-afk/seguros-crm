@@ -1,0 +1,59 @@
+/* Hoja inferior (ficha de cliente). Sin backdrop-filter ni transform en reposo:
+   así los formularios internos con position: fixed siguen funcionando. */
+.hoja-fondo {
+  position: fixed; inset: 0; z-index: 25;
+  background: rgba(6, 15, 30, .42);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.hoja {
+  position: relative; width: 100%; max-width: 600px;
+  max-height: calc(100dvh - 40px);
+  display: flex; flex-direction: column;
+  background: var(--cream, #F6F7FB);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -12px 40px rgba(6, 15, 30, .35), inset 0 1px 0 rgba(255, 255, 255, .9);
+  will-change: transform;
+}
+/* Cubre el hueco si la hoja se levanta un poco al arrastrar hacia arriba */
+.hoja::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 240px; background: inherit; }
+.hoja-asa { flex: none; padding: 8px 14px 6px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.hoja-asa:active { cursor: grabbing; }
+.hoja-grabber { display: block; width: 38px; height: 5px; border-radius: 3px; background: rgba(11, 31, 58, .22); margin: 0 auto 6px; }
+.hoja-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 2px 0 6px; }
+.hoja-titulos { min-width: 0; }
+.hoja-titulos h2 { margin: 0; font-size: 20px; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.hoja-titulos p { margin: 2px 0 0; font-size: 13px; color: var(--muted, #55627A); }
+.hoja-cerrar {
+  flex: none; width: 44px; height: 44px; display: grid; place-items: center;
+  border: 0; background: none; color: #3F4B63; cursor: pointer; border-radius: 22px;
+  transition: transform .12s ease-out;
+}
+.hoja-cerrar:active { transform: scale(.92); }
+.hoja-cuerpo {
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 8px 14px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Acciones rápidas de la ficha */
+.hoja-acciones { display: flex; justify-content: center; gap: 22px; margin: 2px 0 16px; }
+.hoja-accion { display: grid; justify-items: center; gap: 5px; width: 76px; text-decoration: none; color: #3F4B63; font-size: 12px; font-weight: 600; }
+.hoja-accion span.disco {
+  width: 52px; height: 52px; border-radius: 26px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .9); color: #0B1F3A;
+  box-shadow: inset 0 1px 0 #fff, 0 8px 18px -10px rgba(11, 42, 68, .5);
+  transition: transform .12s ease-out;
+}
+.hoja-accion:active span.disco { transform: scale(.94); }
+.hoja-accion.dorada span.disco { background: #C9A24B; box-shadow: 0 8px 18px -8px rgba(154, 116, 24, .6); }
+.hoja-accion.dorada { color: #0B1F3A; font-weight: 700; }
+
+@media (min-width: 900px) {
+  .hoja-fondo { align-items: center; }
+  .hoja { border-radius: 24px; max-height: 86dvh; }
+  .hoja::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hoja-fondo { animation: hojaFade .2s ease; }
+  .hoja-cerrar, .hoja-accion span.disco { transition: none; }
+}
+@keyframes hojaFade { from { opacity: 0; } }
