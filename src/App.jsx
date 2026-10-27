@@ -15,7 +15,8 @@ import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import VidaMas from "./VidaMas.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
-import { Target } from "lucide-react";
+import { Target, Compass } from "lucide-react";
+import Diagnostico from "./Diagnostico.jsx";
 import {
   GRUPOS, GRUPO_OTROS, FAMILIAS, SUBRAMOS_POR_FAMILIA, PORCENTAJES_INICIALES, RAMO_PPR,
   SUBRAMO_POR_DEFECTO, subramosDeRamo, resolverComision, migrarMetas, metasIniciales,
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "deducible", label: "Deducible y coaseguro", icon: Calculator },
   { id: "siniestros", label: "Siniestros", icon: ShieldAlert },
+  { id: "diagnostico", label: "Diagnóstico y propuesta", icon: Compass },
   { id: "vidamas", label: "VidaMas", icon: Heart },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
@@ -179,7 +181,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "vidamas", "multicotizador", "directorios"] },
+  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "diagnostico", "vidamas", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
@@ -4536,6 +4538,7 @@ function migrateClient(c) {
         {tab === "factura" && <CalculadoraFactura />}
 
         {tab === "siniestros" && <SiniestrosCRM />}
+        {tab === "diagnostico" && <Diagnostico clients={clients} prospectos={prospectos} agente={profile?.nombre || ""} />}
 
         {tab === "vidamas" && <VidaMas clients={clients} />}
 
