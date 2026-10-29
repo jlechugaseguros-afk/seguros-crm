@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Shield, Landmark, PiggyBank, Gem, Home, MessageCircle, Mail, ArrowRight, Check, Smartphone, FileText, Bell } from "lucide-react";
+import { Shield, Landmark, PiggyBank, Gem, Home, MessageCircle, Mail, ArrowRight, Check, Smartphone, FileText, Bell, ClipboardCheck } from "lucide-react";
 import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
+import { registrarEvento } from "./landingTrack.js";
 
 // Datos de contacto (editar aquí)
 const WHATSAPP = "522441071011";
@@ -29,6 +30,7 @@ export default function Landing() {
 
   useEffect(() => {
     document.title = "J L Consultoría Patrimonial · Protege tu presente. Construye tu futuro.";
+    registrarEvento("visita", "inicio");
   }, []);
 
   async function enviar(e) {
@@ -71,6 +73,7 @@ export default function Landing() {
           <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 60, objectFit: "contain" }} />
           <nav className="lp-nav-links" style={{ fontSize: 14, fontWeight: 600 }}>
             <a href="#servicios" style={{ color: "var(--ink)", textDecoration: "none" }}>Servicios</a>
+            <a href="/diagnostico" style={{ color: "var(--gold-text)", textDecoration: "none" }}>Diagnóstico gratis</a>
             <a href="#asesoria" style={{ color: "var(--ink)", textDecoration: "none" }}>Cómo trabajo</a>
             <a href="#contacto" style={{ color: "var(--ink)", textDecoration: "none" }}>Contacto</a>
           </nav>
@@ -90,7 +93,7 @@ export default function Landing() {
               Soy Joshua Lechuga, asesor en protección y planeación patrimonial. Te ayudo a elegir lo que de verdad te conviene, sin presiones: <b style={{ color: "#fff" }}>si no te conviene, no te lo vendo.</b>
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
-              <a href="#contacto" style={{ background: "var(--gold)", color: "#fff", padding: "13px 22px", borderRadius: 12, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>Quiero una asesoría <ArrowRight size={16} /></a>
+              <a href="/diagnostico" style={{ background: "var(--gold)", color: "#fff", padding: "13px 22px", borderRadius: 12, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>Hacer mi diagnóstico gratis <ArrowRight size={16} /></a>
               <a href={wa("Hola Joshua, vi tu página y me gustaría una asesoría.")} target="_blank" rel="noreferrer" style={{ border: "1px solid rgba(255,255,255,.35)", color: "#fff", padding: "13px 20px", borderRadius: 12, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}><MessageCircle size={16} /> WhatsApp</a>
             </div>
           </div>
@@ -99,6 +102,19 @@ export default function Landing() {
           <div style={{ borderRadius: 22, overflow: "hidden", boxShadow: "0 30px 60px -30px rgba(0,0,0,.7)", border: "1px solid rgba(255,255,255,.12)" }}>
             <img src="/fondos/banner-jl.jpg" alt="J L Consultoría Patrimonial" style={{ display: "block", width: "100%", height: "auto" }} />
           </div>
+        </div>
+      </section>
+
+      {/* Diagnóstico patrimonial */}
+      <section className="lp-wrap" style={{ padding: "40px 20px 0" }}>
+        <div style={{ background: "var(--gold-soft)", border: "1px solid #E7D49A", borderRadius: 22, padding: "26px 24px", display: "grid", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--gold)", display: "grid", placeItems: "center" }}><ClipboardCheck size={22} color="#fff" /></span>
+            <span style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--gold-text)", fontWeight: 800 }}>Gratis · menos de 3 minutos</span>
+          </div>
+          <h2 className="serif" style={{ fontSize: 28, fontWeight: 500, lineHeight: 1.15 }}>Descubre qué tan protegidos están tu patrimonio y tu familia</h2>
+          <p style={{ color: "var(--muted)", maxWidth: 620, lineHeight: 1.55 }}>Responde unas preguntas y recibe al instante tu puntaje, un mapa de tus áreas más débiles y los primeros pasos para fortalecerlas.</p>
+          <div><a href="/diagnostico" style={{ background: "var(--ink)", color: "#fff", padding: "13px 22px", borderRadius: 12, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>Hacer mi diagnóstico <ArrowRight size={16} /></a></div>
         </div>
       </section>
 

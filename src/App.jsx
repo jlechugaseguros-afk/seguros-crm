@@ -17,6 +17,9 @@ import VidaMas from "./VidaMas.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
 import { Target, Compass } from "lucide-react";
 import DiagnosticoPatrimonial from "./DiagnosticoPatrimonial.jsx";
+import LandingMetricas from "./LandingMetricas.jsx";
+import { calcular as calcularDiagWeb, resumenParaCrm } from "./diagLanding/motor.js";
+import { esRedSocial } from "./landingTrack.js";
 import {
   GRUPOS, GRUPO_OTROS, FAMILIAS, SUBRAMOS_POR_FAMILIA, PORCENTAJES_INICIALES, RAMO_PPR,
   SUBRAMO_POR_DEFECTO, subramosDeRamo, resolverComision, migrarMetas, metasIniciales,
@@ -2644,6 +2647,10 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
           )}
         </DashPanel>
 
+        <DashPanel title="Landing page" hint="Visitas y diagnósticos">
+          <LandingMetricas />
+        </DashPanel>
+
         <PortalClientes clients={clients} agentId={userId} agenteNombre={nombre} />
       </div>
     </div>
@@ -3185,6 +3192,61 @@ function migrateClient(c) {
       if (eventId) setActivities((as) => as.map((x) => (x.id === a.id ? { ...x, gcalId: eventId } : x)));
     });
   }
+
+  // Diagnósticos que llegan desde la landing (/diagnostico): se vuelven prospectos solos, con tarea de seguimiento.
+  useEffect(() => {
+    if (!prospectosLoaded || !activitiesLoaded) return undefined;
+    let activo = true;
+    const pad = (n) => String(n).padStart(2, "0");
+    const proximoHorario = () => {
+      const d = new Date();
+      if (d.getHours() >= 18) { d.setDate(d.getDate() + 1); d.setHours(10, 0, 0, 0); }
+      else if (d.getHours() < 9) d.setHours(10, 0, 0, 0);
+      else d.setHours(d.getHours() + 1, 0, 0, 0);
+      return { fecha: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, hora: `${pad(d.getHours())}:${pad(d.getMinutes())}` };
+    };
+    const importar = async () => {
+      const { data, error } = await supabase.from("diagnosticos_web").select("*").eq("importado", false).order("created_at", { ascending: true }).limit(50);
+      if (!activo || error || !data || !data.length) return;
+      const nuevos = [];
+      const acts = [];
+      data.forEach((d) => {
+        const res = calcularDiagWeb(d.respuestas || {});
+        const { fecha, hora } = proximoHorario();
+        const idP = `web-${d.id}`;
+        nuevos.push({
+          ...emptyProspecto,
+          id: idP, diagId: d.id,
+          nombre: d.nombre, telefono: d.telefono || "", correo: d.correo || "",
+          origen: esRedSocial(d.fuente) ? "Redes sociales" : "Landing page",
+          estado: ESTADOS_PROSPECTO[0],
+          notas: resumenParaCrm(d.respuestas || {}, res, d.fuente && d.fuente !== "directo" ? d.fuente : ""),
+          requiereSeguimiento: true, accionSeguimiento: "Whatsapp", horaSeguimiento: hora, fechaSeguimiento: fecha,
+          diagnosticoWeb: { puntaje: d.puntaje, nivel: d.nivel, fecha: d.created_at },
+        });
+        acts.push({
+          id: `web-act-${d.id}`, diagId: d.id, fecha, hora, tipo: "Whatsapp",
+          descripcion: `Seguimiento a prospecto: ${d.nombre} (diagnóstico ${d.puntaje}/100)`,
+          clienteId: "", prospectoId: idP, prospectoNombre: d.nombre, prospectoTelefono: d.telefono || "",
+        });
+      });
+      setProspectos((ps) => { const ya = new Set(ps.map((p) => p.diagId).filter(Boolean)); return [...ps, ...nuevos.filter((n) => !ya.has(n.diagId))]; });
+      setActivities((as) => { const ya = new Set(as.map((a) => a.diagId).filter(Boolean)); return [...as, ...acts.filter((a) => !ya.has(a.diagId))]; });
+      // Se marcan como importados solo cuando ya quedaron guardados en el CRM.
+      setTimeout(async () => {
+        try {
+          const r = await window.storage.get("prospectos");
+          const guardados = new Set((r && r.value ? JSON.parse(r.value) : []).map((p) => p.diagId).filter(Boolean));
+          const ok = nuevos.map((n) => n.diagId).filter((id) => guardados.has(id));
+          if (ok.length) await supabase.from("diagnosticos_web").update({ importado: true }).in("id", ok);
+        } catch (e) { console.error("No se pudo confirmar la importación de diagnósticos:", e); }
+      }, 3000);
+    };
+    importar();
+    const alVolver = () => { if (document.visibilityState === "visible") importar(); };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => { activo = false; document.removeEventListener("visibilitychange", alVolver); };
+  }, [prospectosLoaded, activitiesLoaded]);
 
   // Mi meta y actividad: registro diario, meta económica y comisión real del mes en curso.
   const actividad = useActividad();
