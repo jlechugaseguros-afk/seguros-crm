@@ -257,7 +257,7 @@ const SI_NO=['Sí','No'];
 const STEPS=[
  {id:'datos',t:'Datos generales',intro:'Rompe el hielo y conoce a la persona. Estas preguntas vienen de los dos formatos.',f:[
   ['nombre','¿Cómo te llamas?','text',{s2:1}],
-  ['nacimiento','¿Cuál es tu fecha de nacimiento? (dd/mm/aaaa)','date'],
+  ['nacimiento','¿Cuál es tu fecha de nacimiento? (elige en el calendario)','date'],
   ['ecivil','Estado civil','sel',{o:['Soltero/a','Casado/a','Unión libre','Divorciado/a','Viudo/a']}],
   ['tel','Teléfono','tel'],['correo','Correo electrónico','email'],
   ['ocupacion','¿A qué te dedicas actualmente?','text'],['estudios','¿Qué estudiaste?','text'],
@@ -315,7 +315,7 @@ function inp(path,type,extra){
  const v=getp(S,path);const a='data-k="'+esc(path)+'" data-t="'+type+'" '+(extra||'');
  if(type==='money'||type==='num'||type==='pct')return '<input '+a+' inputmode="decimal" value="'+esc(type==='money'?fmtNum(v):(v==null?'':v))+'" placeholder="'+(type==='money'?'$':'')+'">';
  if(type==='area')return '<textarea '+a+'>'+esc(v||'')+'</textarea>';
- if(type==='date')return '<input '+a+' value="'+esc(v||'')+'" placeholder="dd/mm/aaaa" inputmode="numeric">';
+ if(type==='date'){const dm=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(v||'').trim());const iso=dm?dm[3]+'-'+('0'+dm[2]).slice(-2)+'-'+('0'+dm[1]).slice(-2):'';return '<input type="date" '+a+' value="'+iso+'" min="1900-01-01" max="'+new Date().toISOString().slice(0,10)+'">';}
  return '<input '+a+' type="'+(type==='email'?'email':type==='tel'?'tel':'text')+'" value="'+esc(v||'')+'">';
 }
 function sel(path,opts,extra){const v=getp(S,path)||'';const arr=opts.map(o=>Array.isArray(o)?o:[o,o]);
@@ -324,7 +324,7 @@ function fieldHtml(f,i){
  const [k,lab,type,o]=f;const op=o||{};const id='f_'+k.replace(/\./g,'_');
  let ctl=type==='sel'?sel(k,op.o,'id="'+id+'"'):inp(k,type,'id="'+id+'"');
  let hint='';if(op.hint)hint='<span class="hint">'+esc(op.hint)+'</span>';
- if(k==='nacimiento'){const a=ageFrom(S.nacimiento);hint='<span class="hint" id="ageHint">'+(a!=null?'Edad: '+a+' años':(S.nacimiento?'Escribe la fecha como dd/mm/aaaa':''))+'</span>'}
+ if(k==='nacimiento'){const a=ageFrom(S.nacimiento);hint='<span class="hint" id="ageHint">'+(a!=null?'Edad: '+a+' años':(S.nacimiento?'Elige la fecha en el calendario':''))+'</span>'}
  return '<div class="fld'+(op.s2?' s2':'')+'"><label for="'+id+'">'+esc(lab)+'</label>'+ctl+hint+'</div>';
 }
 function tableHtml(t){
@@ -576,12 +576,12 @@ function render(){
 }
 function go(t){tab=t;if(opts.onTab)opts.onTab(t);render();toTop()}
 
-function readEl(el){const t=el.dataset.t;if(t==='chk')return el.checked;if(t==='money'||t==='num'||t==='pct')return el.value.replace(/[^\d.]/g,'');return el.value}
+function readEl(el){const t=el.dataset.t;if(t==='date'){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(el.value);return m?m[3]+'/'+m[2]+'/'+m[1]:''}if(t==='chk')return el.checked;if(t==='money'||t==='num'||t==='pct')return el.value.replace(/[^\d.]/g,'');return el.value}
 function onEdit(el){
  setp(S,el.dataset.k,readEl(el));
  save();
  if(el.dataset.k==='nombre'){const s=$('.brand small');if(s)s.textContent=S.nombre||'Caso nuevo'}
- if(el.dataset.k==='nacimiento'){const a=ageFrom(S.nacimiento);const h=$('#ageHint');if(h)h.textContent=a!=null?'Edad: '+a+' años':(S.nacimiento?'Escribe la fecha como dd/mm/aaaa':'')}
+ if(el.dataset.k==='nacimiento'){const a=ageFrom(S.nacimiento);const h=$('#ageHint');if(h)h.textContent=a!=null?'Edad: '+a+' años':(S.nacimiento?'Elige la fecha en el calendario':'')}
  if(el.dataset.newprod!=null){applyProd(+el.dataset.newprod)}
  if(el.dataset.r){render();return}
  const sm=$('#sum');if(sm)sm.innerHTML=sumHtml(calc());
