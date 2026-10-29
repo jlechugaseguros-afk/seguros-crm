@@ -523,8 +523,15 @@ function sResultado(C){
  return b;
 }
 function qrBlock(small){return '<div class="qrbox'+(small?' sm':'')+'"><img class="qr" src="'+QR+'" alt="Código QR de J L Consultoría Patrimonial"><div><b>Conoce toda la gama de productos que tenemos para proteger y hacer crecer tu patrimonio.</b><span>Escanea el código con la cámara de tu celular.</span></div></div>'}
+function sobreMi(){
+ return '<div class="about"><img class="ap" src="'+FOTO+'" alt="'+esc(S.asesor)+'"><div class="at"><span class="ak">Sobre mí</span><b class="an">'+esc(S.asesor)+'</b><em>'+esc(S.asesorTit)+'</em>'+
+  '<p>Soy asesor especializado en ayudar a familias, emprendedores y profesionistas a tomar decisiones financieras inteligentes para proteger lo que más les importa y construir un futuro con mayor certeza.</p>'+
+  '<p>Desde hace más de diez años me dedico a analizar la situación financiera de cada cliente de forma personalizada, identificando riesgos, oportunidades de protección y estrategias que les permitan cuidar su patrimonio y el bienestar de su familia.</p>'+
+  '<p>Mi enfoque no es vender productos, sino entender a las personas, sus objetivos, sus preocupaciones y lo que quieren construir a largo plazo. A partir de ese análisis, diseño soluciones de protección financiera claras, sostenibles y alineadas a cada etapa de la vida.</p>'+
+  '<p class="aq">Creo firmemente que una buena planeación financiera no solo protege el presente, sino que también permite construir tranquilidad y legado para las personas que más queremos.</p></div></div>';
+}
 function sCierre(){
- return '<div style="display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding-top:10px"><h3 style="font-size:24px;max-width:26ch;text-wrap:balance">Gracias por tu confianza</h3>'+qrBlock(false)+
+ return '<div style="display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding-top:4px"><h3 style="font-size:24px;max-width:26ch;text-wrap:balance;margin:0">Gracias por tu confianza</h3>'+sobreMi()+qrBlock(false)+
   '<div><b style="font-family:var(--f-display);font-size:18px;color:var(--p-navy)">'+esc(S.asesor)+'</b><p>'+esc(S.asesorTit)+'</p><p>WhatsApp '+esc(S.asesorWA)+' · '+esc(S.asesorMail)+'</p></div>'+
   '<div class="conf"><b>Aviso de confidencialidad.</b> Toda la información contenida en este documento es de carácter confidencial y de uso exclusivo de '+esc(S.nombre||'el cliente')+'. Queda prohibida su reproducción, difusión o entrega a terceros.</div></div>';
 }
@@ -547,7 +554,7 @@ function metasSheet(){
 }
 
 /* ===== Controlador dentro del CRM ===== */
-const LOGO=opts.logo, QR=opts.qr;
+const LOGO=opts.logo, QR=opts.qr, FOTO=opts.foto;
 const $=s=>root.querySelector(s);
 let S=opts.state;
 if(!Array.isArray(S.props))S.props=[];if(!S.notas)S.notas={};if(!S.pri)S.pri={};if(!S.preoc)S.preoc={};

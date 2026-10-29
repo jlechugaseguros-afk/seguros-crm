@@ -241,6 +241,19 @@
 .dp button{background-image:none}
 .dp .tabs .tab[aria-selected="false"],.dp .st:not([aria-current]){background:transparent}
 .dp-tip{position:fixed;z-index:3000;background:#10202D;color:#fff;padding:6px 10px;border-radius:8px;font-size:12.5px;pointer-events:none;max-width:260px;font-family:'Manrope',system-ui,sans-serif}
+
+/* ---- Sobre mí (última hoja) ---- */
+.dp .about{display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:center;text-align:left;width:100%;background:var(--p-soft);border-radius:14px;padding:22px 26px;border-left:4px solid var(--p-gold)}
+.dp .about .ap{width:190px;height:238px;border-radius:10px;display:block;box-shadow:0 8px 20px -10px rgba(18,50,74,.5)}
+.dp .about .at{display:flex;flex-direction:column;gap:8px}
+.dp .about .ak{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--p-goldtx);font-weight:800}
+.dp .about .an{font-family:var(--f-display);font-size:21px;color:var(--p-navy);line-height:1.15}
+.dp .about em{font-style:normal;font-size:12.5px;color:var(--p-ink3);margin-top:-4px;padding-bottom:6px;border-bottom:1px solid var(--p-line)}
+.dp .about p{font-size:12.5px;line-height:1.5;text-align:left}
+.dp .about p.aq{color:var(--p-navy);font-weight:600;font-style:italic}
+.dp:not(.nw) .qrbox:not(.sm) .qr{width:168px;height:168px}
+.dp.nw .about{grid-template-columns:minmax(0,1fr);justify-items:center;padding:18px}
+.dp.nw .about .at{width:100%}
 /* contenedor oculto para generar el PDF: siempre ancho carta, sin cambios de móvil */
 .dp-cap{position:fixed;left:-12000px;top:0;width:816px;background:#fff}
 .dp-cap .sheets{display:block;gap:0}

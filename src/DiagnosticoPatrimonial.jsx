@@ -4,6 +4,7 @@ import PageHeader from "./PageHeader.jsx";
 import { mountDiagnostico, crearCasoVacio, crearCasoEjemplo } from "./diagPat/engine.js";
 import logo from "./diagPat/logo.png";
 import qr from "./diagPat/qr.png";
+import foto from "./diagPat/asesor.jpg";
 import "./DiagnosticoPatrimonial.css";
 
 const KEY = "dpat_casos";
@@ -60,7 +61,7 @@ export default function DiagnosticoPatrimonial({ clients = [], prospectos = [], 
     if (!caso || !ref.current) return undefined;
     const c = caso;
     const e = mountDiagnostico(ref.current, {
-      state: c.data, logo, qr, tab: c.tab || "entrevista",
+      state: c.data, logo, qr, foto, tab: c.tab || "entrevista",
       onTab: (t) => { c.tab = t; },
       onChange: () => {
         if (abierto === "ejemplo") return;
