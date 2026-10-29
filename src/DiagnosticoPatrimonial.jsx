@@ -48,7 +48,7 @@ export default function DiagnosticoPatrimonial({ clients = [], prospectos = [], 
   async function hacerPdf() {
     try {
       const { generarPdf } = await import("./diagPat/pdf.js");
-      const blob = await generarPdf(eng.current.reportHtml());
+      const blob = await generarPdf(eng.current.reportHtml(), { alProgreso: (i, n) => { const b = document.querySelector('.dp [data-act="pdf"]'); if (b) b.textContent = `Generando PDF… ${i}/${n}`; } });
       const nombre = `Diagnostico-patrimonial-${slug(eng.current.state().nombre)}.pdf`;
       setPdf({ blob, url: URL.createObjectURL(blob), nombre });
     } catch (e) {
