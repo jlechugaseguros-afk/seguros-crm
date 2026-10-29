@@ -23,7 +23,16 @@ function fijarEstilosSvg(raiz) {
       const cs = getComputedStyle(el);
       PROPS_SVG.forEach((p) => { const v = cs.getPropertyValue(p); if (v) el.style.setProperty(p, v); });
     });
-    if (r.width) { svg.setAttribute("width", r.width); svg.setAttribute("height", r.height); }
+    if (!r.width) return;
+    svg.setAttribute("width", r.width); svg.setAttribute("height", r.height);
+    svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    // Se pasa a imagen con tamaño fijo: así el motor no recorta ni reacomoda la gráfica.
+    const cs = getComputedStyle(svg);
+    const img = document.createElement("img");
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+    img.style.cssText = `display:${cs.display === "inline" ? "inline-block" : cs.display};width:${r.width}px;height:${r.height}px;margin:${cs.margin};max-width:none;flex:none`;
+    img.className = svg.getAttribute("class") || "";
+    svg.replaceWith(img);
   });
 }
 
@@ -54,6 +63,7 @@ export async function generarPdf(htmlReporte, { alProgreso } = {}) {
     await conTiempo(incrustarImagenes(cap), 20000, "preparar el logo y el QR");
     await respiro();
     fijarEstilosSvg(cap);
+    await conTiempo(Promise.all([...cap.querySelectorAll("img")].map((im) => (im.decode ? im.decode().catch(() => {}) : null))), 15000, "preparar las gráficas");
     const hojas = [...cap.querySelectorAll(".sheet")];
     const escala = esIOS() ? 1.5 : 2;
     let doc = null;

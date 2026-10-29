@@ -104,7 +104,7 @@
 .dp .leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;margin-top:8px;color:var(--p-ink2)}
 .dp .leg u{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;text-decoration:none}
 .dp .leg b{color:var(--p-ink)}
-.dp svg.donut{width:100%;max-width:190px;display:block;margin:0 auto}
+.dp svg.donut{width:190px;height:190px;max-width:100%;display:block;margin:0 auto}
 .dp .dn1{font-family:var(--f-display);font-size:17px;fill:var(--p-navy);font-weight:700}
 .dp .dn2{font-size:9px;fill:var(--p-ink3)}
 .dp svg.lc,.dp svg.cy{width:100%;height:auto;display:block}
