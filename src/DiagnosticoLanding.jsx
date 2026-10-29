@@ -25,6 +25,15 @@ export default function DiagnosticoLanding() {
   useEffect(() => {
     document.title = "Diagnóstico Patrimonial · J L Consultoría Patrimonial";
     registrarEvento("visita", "diagnostico");
+    // Si viene del portal de clientes, ya trae sus datos de contacto para no volver a escribirlos.
+    try {
+      const raw = localStorage.getItem("jl_diag_prefill");
+      if (raw) {
+        const d = JSON.parse(raw);
+        localStorage.removeItem("jl_diag_prefill");
+        if (d && Date.now() - (d.t || 0) < 6 * 3600 * 1000) setForm((f) => ({ ...f, nombre: d.nombre || f.nombre, tel: d.tel || f.tel, correo: d.correo || f.correo }));
+      }
+    } catch { /* sin datos previos */ }
     return () => clearTimeout(timer.current);
   }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [paso]);

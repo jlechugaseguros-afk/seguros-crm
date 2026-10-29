@@ -3218,7 +3218,7 @@ function migrateClient(c) {
           ...emptyProspecto,
           id: idP, diagId: d.id,
           nombre: d.nombre, telefono: d.telefono || "", correo: d.correo || "",
-          origen: esRedSocial(d.fuente) ? "Redes sociales" : "Landing page",
+          origen: d.fuente === "portal" ? "Cartera actual" : esRedSocial(d.fuente) ? "Redes sociales" : "Landing page",
           estado: ESTADOS_PROSPECTO[0],
           notas: resumenParaCrm(d.respuestas || {}, res, d.fuente && d.fuente !== "directo" ? d.fuente : ""),
           requiereSeguimiento: true, accionSeguimiento: "Whatsapp", horaSeguimiento: hora, fechaSeguimiento: fecha,

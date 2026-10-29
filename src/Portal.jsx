@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Home, FileText, ShieldAlert, MessageCircle, LayoutGrid, Download, LogOut, X, Share, MoreVertical, Smartphone, CalendarClock, ChevronRight, Phone, Car, HeartPulse, Heart, PawPrint, PiggyBank, Shield, FolderOpen, MoreHorizontal, Camera, ScanFace } from "lucide-react";
+import { Home, FileText, ShieldAlert, MessageCircle, LayoutGrid, Download, LogOut, X, Share, MoreVertical, Smartphone, CalendarClock, ChevronRight, Phone, Car, HeartPulse, Heart, PawPrint, PiggyBank, Shield, FolderOpen, MoreHorizontal, Camera, ScanFace, ClipboardCheck, ArrowRight } from "lucide-react";
 import { bioDisponible, bioActivaPara, bioRechazada, bioRechazar, bioActivar, bioVerificar, bioDesactivar } from "./biometria.js";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import { supabasePortal as supabase } from "./supabasePortal.js";
@@ -410,6 +410,38 @@ function TuAgente({ data }) {
   );
 }
 
+// ───────── Diagnóstico patrimonial (solo en el portal de J L): abre /diagnostico con los datos del cliente ya listos ─────────
+function irADiagnostico(data) {
+  try {
+    const c = data?.cliente || {};
+    localStorage.setItem("jl_diag_prefill", JSON.stringify({
+      nombre: [c.nombre, c.apellido].filter(Boolean).join(" ").trim(),
+      tel: c.telefono || "", correo: c.correo || "", t: Date.now(),
+    }));
+  } catch { /* sin almacenamiento: se abre igual */ }
+  window.location.href = "/diagnostico?f=portal";
+}
+
+function Nuevo({ chico = false }) {
+  return <span className={`nuevo-badge${chico ? " chico" : ""}`} aria-label="Novedad">NUEVO</span>;
+}
+
+function TarjetaDiagnostico({ data }) {
+  if (!ES_JL) return null;
+  return (
+    <button type="button" onClick={() => irADiagnostico(data)} className="diag-card" style={{ width: "100%", textAlign: "left", cursor: "pointer", marginBottom: 14, border: "none", display: "block" }}>
+      <span className="diag-card-brillo" aria-hidden="true" />
+      <span style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <Nuevo />
+        <span style={{ fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "#E0B44A", fontWeight: 700 }}>Gratis · 3 minutos</span>
+      </span>
+      <span className="serif" style={{ display: "block", fontSize: 19, lineHeight: 1.2, color: "#fff" }}>Diagnóstico patrimonial</span>
+      <span style={{ display: "block", fontSize: 13, color: "#D6DEE5", margin: "4px 0 10px", lineHeight: 1.45 }}>Descubre qué tan protegidos están tu patrimonio y tu familia, con tu puntaje y los pasos para mejorarlo.</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--gold)", color: "#fff", fontWeight: 700, fontSize: 13.5, padding: "9px 16px", borderRadius: 10 }}><ClipboardCheck size={16} /> Hacer mi diagnóstico <ArrowRight size={15} /></span>
+    </button>
+  );
+}
+
 function MisSeguros({ data, setTab, irSiniestro, fotos = {}, onFoto }) {
   const ps = data.polizas || [];
   const ramos = useMemo(() => {
@@ -448,6 +480,8 @@ function MisSeguros({ data, setTab, irSiniestro, fotos = {}, onFoto }) {
           <span className="serif" style={{ fontSize: 19, color: "var(--ink)", whiteSpace: "nowrap" }}>{mxn(proximo.monto)}</span>
         </button>
       )}
+
+      <TarjetaDiagnostico data={data} />
 
       {ramos.length > 0 && (
         <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "4px 2px 10px", margin: "0 -2px" }}>
@@ -639,6 +673,13 @@ function Mas({ data, setTab, salir, abrirInstalar, bioOk, bioOn, alternarBio }) 
       <h1 className="serif" style={{ fontSize: 26, color: "var(--ink)", margin: "4px 0 12px" }}>Más</h1>
       {item(CalendarClock, "Calendario de pagos", "Tus próximos pagos y vigencias", () => setTab("pagos"))}
       {item(MessageCircle, "Pedir asesoría", "Resuelve tus dudas con tu agente", () => setTab("asesoria"))}
+      {ES_JL && (
+        <button type="button" onClick={() => irADiagnostico(data)} className="panel" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", marginBottom: 10, cursor: "pointer", textAlign: "left" }}>
+          <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--gold-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><ClipboardCheck size={19} color="var(--gold-text)" /></span>
+          <span style={{ flex: 1 }}><span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "var(--ink)", fontSize: 14 }}>Diagnóstico patrimonial <Nuevo chico /></span><span style={{ fontSize: 12, color: "var(--muted)" }}>Conoce qué tan protegido estás</span></span>
+          <ChevronRight size={17} color="var(--muted)" />
+        </button>
+      )}
       {item(LayoutGrid, "Otros productos", "Conoce toda la gama de servicios", () => setTab("productos"))}
       {bioOk && item(ScanFace, "Face ID / huella", bioOn ? "Activado en este dispositivo · toca para desactivar" : "Entra sin escribir tu contraseña", alternarBio)}
       {!esStandalone() && item(Smartphone, "Instalar la app", "Agrégala a tu pantalla de inicio", abrirInstalar)}
