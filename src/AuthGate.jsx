@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient.js'
 import { JL_LOGO } from './brandAssets.js'
+import { DEMO_EMAIL, DEMO_PASSWORD, restablecerDemo } from './demo.js'
 
 
 export default function AuthGate({ children }) {
@@ -39,6 +40,25 @@ export default function AuthGate({ children }) {
       if (error) setError(error.message)
       else setNotice('Cuenta creada. Revisa tu correo para confirmarla antes de entrar.')
     }
+  }
+
+  // Entra a la cuenta demo (datos ficticios). Si está vacía, la deja lista con datos de ejemplo.
+  const [entrandoDemo, setEntrandoDemo] = useState(false)
+  async function handleDemo() {
+    setError('')
+    setNotice('')
+    setEntrandoDemo(true)
+    const { error } = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD })
+    if (error) {
+      setEntrandoDemo(false)
+      setError('La demo no está disponible por ahora. Intenta de nuevo en un momento.')
+      return
+    }
+    try {
+      const existe = await window.storage.get('clients')
+      if (!existe) await restablecerDemo()
+    } catch { /* si falla, la app abre vacía y se puede restablecer desde el menú */ }
+    window.location.reload()
   }
 
   async function handleGoogle() {
@@ -186,6 +206,21 @@ export default function AuthGate({ children }) {
                   style={{ width: '100%', background: 'none', border: 'none', color: '#5B5646', fontSize: 13, marginBottom: 6, fontFamily: 'inherit' }}
                 >
                   ¿Olvidaste tu contraseña?
+                </button>
+              )}
+
+              {mode === 'signin' && (
+                <button
+                  type="button"
+                  onClick={handleDemo}
+                  disabled={entrandoDemo}
+                  style={{
+                    width: '100%', background: 'transparent', border: '1.5px solid var(--gold, #C9A227)', color: 'var(--ink)',
+                    borderRadius: 7, padding: 11, fontWeight: 600, margin: '6px 0 10px', fontFamily: 'inherit', fontSize: 14,
+                    opacity: entrandoDemo ? 0.6 : 1,
+                  }}
+                >
+                  {entrandoDemo ? 'Preparando la demo…' : 'Probar demo (datos de ejemplo)'}
                 </button>
               )}
 

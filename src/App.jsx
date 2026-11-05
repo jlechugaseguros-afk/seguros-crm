@@ -27,6 +27,7 @@ import {
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 import Hoja from "./Hoja.jsx";
 import Deslizable from "./Deslizable.jsx";
+import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
 
 const DOCS_BUCKET = "documentos";
 const TARJETAS_BUCKET = "tarjetas-fotos";
@@ -2759,6 +2760,13 @@ export default function SegurosCRM() {
   const [profileError, setProfileError] = useState("");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAjustes, setShowAjustes] = useState(false);
+  const [restableciendoDemo, setRestableciendoDemo] = useState(false);
+  const esDemo = (profile?.correo || "").toLowerCase() === DEMO_EMAIL;
+  async function handleRestablecerDemo() {
+    if (!window.confirm("Se borrará lo que hayas movido en la demo y volverán los datos de ejemplo. ¿Continuar?")) return;
+    setRestableciendoDemo(true);
+    try { await restablecerDemo(); } finally { window.location.reload(); }
+  }
 
   useEffect(() => {
     (async () => {
@@ -3913,6 +3921,25 @@ function migrateClient(c) {
           })}
           <div style={{ flex: 1, minHeight: 16 }} />
           <div style={{ borderTop: "1px solid rgba(255,255,255,.1)", margin: "8px 0 12px" }} />
+          {esDemo && (
+            <>
+              <div style={{ fontSize: 11.5, lineHeight: 1.45, color: "#E6BC55", textAlign: "center", marginBottom: 8 }}>
+                Estás en la <b>demo</b>: todos los datos son ficticios.
+              </div>
+              <button
+                onClick={handleRestablecerDemo}
+                disabled={restableciendoDemo}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8, width: "100%",
+                  background: "rgba(230,188,85,.14)", color: "#E6BC55",
+                  border: "1px solid rgba(230,188,85,.5)", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 600,
+                  opacity: restableciendoDemo ? 0.6 : 1,
+                }}
+              >
+                {restableciendoDemo ? "Restableciendo…" : "Restablecer demo"}
+              </button>
+            </>
+          )}
           <button
             onClick={() => { handleExportExcel(); setMenuOpen(false); }}
             style={{

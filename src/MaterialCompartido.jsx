@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, ExternalLink, FileImage, FileSpreadsheet, FileText, Trash2, Upload } from "lucide-react";
 import { supabase } from "./supabaseClient.js";
 import PageHeader from "./PageHeader.jsx";
+import { esCuentaDemo } from "./demo.js";
 
 // Material compartido entre todos los agentes (tabla material_compartido + bucket privado "documentos").
 // Cualquier agente con sesión puede ver, descargar y agregar archivos; solo quien subió un archivo puede borrarlo.
@@ -95,6 +96,7 @@ export function useMaterialCompartido(seccion, nombreAgente = "") {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Sin sesión activa.");
+        if (esCuentaDemo(user)) throw new Error("En la demo no se pueden subir archivos al material compartido.");
         const path = `${CARPETAS[seccion]}/${user.id}/${Date.now()}-${slug(file.name)}`;
         const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
         if (upErr) throw upErr;
@@ -132,6 +134,8 @@ export function useMaterialCompartido(seccion, nombreAgente = "") {
   const quitar = useCallback(async (item) => {
     setError("");
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (esCuentaDemo(user)) throw new Error("en la demo no se puede borrar material compartido");
       const { error: delErr } = await supabase.from("material_compartido").delete().eq("id", item.id);
       if (delErr) throw delErr;
       setItems((xs) => xs.filter((x) => x.id !== item.id));
