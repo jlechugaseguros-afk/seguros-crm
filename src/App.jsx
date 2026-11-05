@@ -1,6 +1,6 @@
 import { gcalDisponible, gcalActivo, gcalConectar, gcalDesactivar, gcalCrear, gcalBorrar, gcalLinkManual } from "./googleCalendar.js";
 import React, { useState, useEffect, useMemo } from "react";
-import { MessageCircle, Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert } from "lucide-react";
+import { MessageCircle, Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert, FolderOpen } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
@@ -13,7 +13,7 @@ import Ajustes from "./Ajustes.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
-import VidaMas from "./VidaMas.jsx";
+import MaterialApoyo, { useMaterialCompartido } from "./MaterialCompartido.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
 import { Target, Compass } from "lucide-react";
 import DiagnosticoPatrimonial from "./DiagnosticoPatrimonial.jsx";
@@ -42,13 +42,13 @@ const NAV_ITEMS = [
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "prospectos", label: "Prospectos", icon: UserPlus },
   { id: "condiciones", label: "Condiciones generales", icon: FileText },
+  { id: "material", label: "Material de apoyo", icon: FolderOpen },
   { id: "tarjeta", label: "Tarjeta digital", icon: CreditCard },
   { id: "comisiones", label: "Comisiones", icon: Calculator },
   { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "deducible", label: "Deducible y coaseguro", icon: Calculator },
   { id: "siniestros", label: "Siniestros", icon: ShieldAlert },
   { id: "diagnostico", label: "Diagnóstico patrimonial", icon: Compass },
-  { id: "vidamas", label: "VidaMas", icon: Heart },
   { id: "multicotizador", label: "Multicotizador", icon: LayoutGrid },
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
@@ -184,7 +184,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "diagnostico", "vidamas", "multicotizador", "directorios"] },
+  { title: "Herramientas", ids: ["condiciones", "material", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "diagnostico", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
 ];
 
@@ -1042,7 +1042,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
   );
 }
 
-function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
+function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUpload, onRemove }) {
   const [query, setQuery] = useState("");
   const [ramo, setRamo] = useState(RAMOS[0]);
   const [aseguradora, setAseguradora] = useState(ASEGURADORAS[0]);
@@ -1066,7 +1066,14 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
 
   return (
     <div>
-      <PageHeader eyebrow="Biblioteca" title="Condiciones generales" subtitle="Sube las condiciones por ramo y compañía. Toca el nombre para abrir el PDF." />
+      <PageHeader eyebrow="Biblioteca" title="Condiciones generales" subtitle="Biblioteca compartida por todos los agentes: sube y consulta las condiciones por ramo y compañía. Toca el nombre para abrir el PDF." />
+
+      {error && (
+        <div style={{ background: "#B23A2E", color: "#fff", borderRadius: 10, padding: "10px 12px", fontSize: 13, marginBottom: 12, display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <span>{error}</span>
+          <button onClick={onClearError} style={{ background: "none", border: "none", color: "#fff" }}>✕</button>
+        </div>
+      )}
 
       <div className="panel" style={{ padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
@@ -1118,7 +1125,7 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
 
       {filtered.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--stone)", textAlign: "center", padding: "20px 0" }}>
-          {docs.length === 0 ? "Aún no subes condiciones generales." : "Sin resultados para tu búsqueda."}
+          {docs.length === 0 ? "Aún no hay condiciones generales. Sube la primera." : "Sin resultados para tu búsqueda."}
         </p>
       )}
 
@@ -1151,15 +1158,18 @@ function CondicionesGenerales({ docs, urls, onUpload, onRemove }) {
                   {d.name} (preparando enlace...)
                 </div>
               )}
-              <div style={{ fontSize: 12, color: "var(--stone)" }}>{d.aseguradora} · {d.ramo}</div>
+              <div style={{ fontSize: 12, color: "var(--stone)" }}>{d.aseguradora} · {d.ramo}{d.subido_por_nombre ? ` · Subido por ${d.subido_por_nombre}` : ""}</div>
             </div>
           </div>
-          <button
-            onClick={() => onRemove(d.id)}
-            style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, color: "#B23A2E", padding: "6px 10px", flexShrink: 0 }}
-          >
-            <Trash2 size={14} />
-          </button>
+          {d.subido_por === userId && (
+            <button
+              onClick={() => { if (window.confirm(`¿Borrar "${d.name}" para todos los agentes?`)) onRemove(d); }}
+              aria-label={`Borrar ${d.name}`}
+              style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, color: "#B23A2E", padding: "6px 10px", flexShrink: 0 }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -3070,51 +3080,23 @@ function migrateClient(c) {
   }
 
 
-  const [conditionDocs, setConditionDocs] = useState([]);
+  // Condiciones generales: compartidas entre todos los agentes (tabla material_compartido).
+  const {
+    items: conditionDocs,
+    urls: condSignedUrls,
+    agregar: agregarCondicion,
+    quitar: quitarCondicion,
+    error: condError,
+    setError: setCondError,
+    userId: condUserId,
+  } = useMaterialCompartido("condiciones", profile?.nombre || "");
 
-  useEffect(() => {
-    conditionDocs.forEach((d) => {
-      if (!d.path || docSignedUrls[d.path]) return;
-      supabase.storage.from(DOCS_BUCKET).createSignedUrl(d.path, 3600).then(({ data, error }) => {
-        if (!error && data) setDocSignedUrls((u) => ({ ...u, [d.path]: data.signedUrl }));
-      });
-    });
-  }, [conditionDocs]);
-  const [condDocsLoaded, setCondDocsLoaded] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get("conditionDocs");
-        if (res && res.value) setConditionDocs(JSON.parse(res.value));
-        setCondDocsLoaded(true);
-      } catch (e) {
-        console.error("No se pudieron cargar las condiciones generales:", e);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!condDocsLoaded) return;
-    window.storage.set("conditionDocs", JSON.stringify(conditionDocs)).catch(() => {});
-  }, [conditionDocs, condDocsLoaded]);
-
-  async function handleAddConditionDoc({ file, ramo, aseguradora }) {
-    setDocError("");
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sin sesión activa.");
-      const path = `condiciones/${user.id}/${Date.now()}-${slugifyFileName(file.name)}`;
-      const { error: upErr } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      setConditionDocs((cs) => [...cs, { id: Date.now().toString(), name: file.name, path, ramo, aseguradora }]);
-    } catch (e) {
-      setDocError(`No se pudo subir "${file.name}": ${e.message}`);
-    }
+  function handleAddConditionDoc({ file, ramo, aseguradora }) {
+    return agregarCondicion({ file, ramo, aseguradora });
   }
 
-  function handleRemoveConditionDoc(id) {
-    setConditionDocs((cs) => cs.filter((d) => d.id !== id));
+  function handleRemoveConditionDoc(doc) {
+    return quitarCondicion(doc);
   }
 
   const [prospectos, setProspectos] = useState([]);
@@ -4561,7 +4543,10 @@ function migrateClient(c) {
         {tab === "condiciones" && (
           <CondicionesGenerales
             docs={conditionDocs}
-            urls={docSignedUrls}
+            urls={condSignedUrls}
+            userId={condUserId}
+            error={condError}
+            onClearError={() => setCondError("")}
             onUpload={handleAddConditionDoc}
             onRemove={handleRemoveConditionDoc}
           />
@@ -4602,7 +4587,7 @@ function migrateClient(c) {
         {tab === "siniestros" && <SiniestrosCRM />}
         {tab === "diagnostico" && <DiagnosticoPatrimonial clients={clients} prospectos={prospectos} agente={profile?.nombre || ""} correo={profile?.correo || ""} />}
 
-        {tab === "vidamas" && <VidaMas clients={clients} />}
+        {tab === "material" && <MaterialApoyo nombreAgente={profile?.nombre || ""} />}
 
         {tab === "deducible" && (
           <CalculadoraDeducible

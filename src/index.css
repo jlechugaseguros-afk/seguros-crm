@@ -334,7 +334,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .app-content[data-tab="factura"] { --accent: #F5B820; }
 .app-content[data-tab="deducible"] { --accent: #F2994A; }
 .app-content[data-tab="siniestros"] { --accent: #EB5757; }
-.app-content[data-tab="vidamas"] { --accent: #E0559A; }
+.app-content[data-tab="material"] { --accent: #2F80ED; }
 .app-content[data-tab="multicotizador"] { --accent: #8E5CF6; }
 .app-content[data-tab="directorios"] { --accent: #14B8A6; }
 
