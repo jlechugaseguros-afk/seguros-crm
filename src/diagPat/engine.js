@@ -390,8 +390,7 @@ function renderProducto(){
  const sp=[['infl','Inflación anual (%)','pct'],['rend','Rendimiento anual del capital (%)','pct'],['inflEdu','Inflación educativa anual (%)','pct'],['costoCarrera','Costo de una carrera hoy','money'],['udi','Valor de la UDI (actualízalo)','num'],['tc','Tipo de cambio USD a MXN (actualízalo)','num']];
  sp.forEach(x=>{h+='<div class="fld"><label for="s_'+x[0]+'">'+x[1]+'</label>'+inp(x[0],x[2],'id="s_'+x[0]+'" data-live="1"')+'</div>'});
  h+='<div class="fld s2"><label class="chk"><input type="checkbox" data-k="descConyuge" data-t="chk" data-live="1"'+(S.descConyuge?' checked':'')+'>Descontar la aportación del cónyuge al calcular el gasto que debe cubrirse</label></div>';
- h+='<div class="sub">Datos del asesor (salen en la portada y el cierre)</div>';
- [['asesor','Nombre','text'],['asesorTit','Título','text'],['asesorWA','WhatsApp','tel'],['asesorMail','Correo','email']].forEach(x=>{h+='<div class="fld"><label for="s_'+x[0]+'">'+x[1]+'</label>'+inp(x[0],x[2],'id="s_'+x[0]+'"')+'</div>'});
+ h+='<div class="sub">Datos del asesor (portada y última hoja)</div><div class="fld s2"><p class="intro" style="margin:0 0 8px">Tu foto, nombre, teléfono, QR y presentación se guardan una sola vez y salen en todos tus entregables.</p><button class="btn" data-act="perfil">Editar mis datos de asesor</button></div>';
  h+='</div><div class="nav"><button class="btn" data-act="goEnt">Volver a la entrevista</button><button class="btn gold" data-act="goRep">Ver entregable</button></div></section></div>';
  return h;
 }
@@ -404,7 +403,7 @@ const RESUELVE={vida:'Protege el ingreso de tu familia si faltaras.',ahorro:'Con
 const FAMICO={vida:'shield',ahorro:'cap',retiro:'sun',gmm:'hand',otro:'doc'};
 
 function sheetWrap(kick,title,body,pn,nombre,ic){
- return '<section class="sheet"><header class="sh"><img src="'+LOGO+'" alt="J L Consultoría Patrimonial"><div class="kt"><span>'+esc(kick)+'</span><h2>'+esc(title)+'</h2></div>'+(ic?'<span class="badge">'+ico(ic)+'</span>':'')+'<span class="pn">'+pn+'</span></header><div class="sb">'+body+'</div>'+
+ return '<section class="sheet"><header class="sh"><img src="'+LOGO+'" alt="Logotipo"><div class="kt"><span>'+esc(kick)+'</span><h2>'+esc(title)+'</h2></div>'+(ic?'<span class="badge">'+ico(ic)+'</span>':'')+'<span class="pn">'+pn+'</span></header><div class="sb">'+body+'</div>'+
  '<footer class="sf"><span>Documento confidencial. Toda la información es de carácter confidencial y de uso exclusivo de '+esc(nombre)+'. Prohibida su reproducción o difusión.</span><span>J L Consultoría Patrimonial</span></footer></section>';
 }
 function kpi(l,v,cls,ic){return '<div class="kpi '+(cls||'')+'">'+(ic?'<i class="ki">'+ico(ic)+'</i>':'')+'<small>'+esc(l)+'</small><b>'+v+'</b></div>'}
@@ -522,27 +521,37 @@ function sResultado(C){
  b+='<div><h3>Próximos pasos</h3><div class="steps3"><div><i>'+ico('target')+'</i><b>Ajustar</b><p>Revisamos juntos la propuesta y la adaptamos a tu presupuesto.</p></div><div><i>'+ico('doc')+'</i><b>Solicitud</b><p>Llenamos la solicitud y, si aplica, el cuestionario médico.</p></div><div><i>'+ico('shield')+'</i><b>Emisión</b><p>Recibes tu póliza y te acompañamos en renovaciones y cambios.</p></div></div></div>';
  return b;
 }
-function qrBlock(small){return '<div class="qrbox'+(small?' sm':'')+'"><img class="qr" src="'+QR+'" alt="Código QR de J L Consultoría Patrimonial"><div><b>Conoce toda la gama de productos que tenemos para proteger y hacer crecer tu patrimonio.</b><span>Escanea el código con la cámara de tu celular.</span></div></div>'}
+const QR_LEYENDA='Conoce toda la gama de productos que tenemos para proteger y hacer crecer tu patrimonio.';
+function qrBlock(small){
+ if(!QR)return '';
+ return '<div class="qrbox'+(small?' sm':'')+'"><img class="qr" src="'+QR+'" alt="Código QR"><div><b>'+esc(A().qrTxt||QR_LEYENDA)+'</b><span>Escanea el código con la cámara de tu celular.</span></div></div>'
+}
+function parrafos(t){return String(t||'').split(/\n\s*\n|\n/).map(x=>x.trim()).filter(Boolean)}
 function sobreMi(){
- return '<div class="about"><img class="ap" src="'+FOTO+'" alt="'+esc(S.asesor)+'"><div class="at"><span class="ak">Sobre mí</span><b class="an">'+esc(S.asesor)+'</b><em>'+esc(S.asesorTit)+'</em>'+
-  '<p>Soy asesor especializado en ayudar a familias, emprendedores y profesionistas a tomar decisiones financieras inteligentes para proteger lo que más les importa y construir un futuro con mayor certeza.</p>'+
-  '<p>Desde hace más de diez años me dedico a analizar la situación financiera de cada cliente de forma personalizada, identificando riesgos, oportunidades de protección y estrategias que les permitan cuidar su patrimonio y el bienestar de su familia.</p>'+
-  '<p>Mi enfoque no es vender productos, sino entender a las personas, sus objetivos, sus preocupaciones y lo que quieren construir a largo plazo. A partir de ese análisis, diseño soluciones de protección financiera claras, sostenibles y alineadas a cada etapa de la vida.</p>'+
-  '<p class="aq">Creo firmemente que una buena planeación financiera no solo protege el presente, sino que también permite construir tranquilidad y legado para las personas que más queremos.</p></div></div>';
+ const a=A(),ps=parrafos(a.sobre);
+ if(!FOTO&&!ps.length)return '';
+ return '<div class="about'+(FOTO?'':' nf')+'">'+(FOTO?'<img class="ap" src="'+FOTO+'" alt="'+esc(a.nombre)+'">':'')+'<div class="at"><span class="ak">Sobre mí</span><b class="an">'+esc(a.nombre)+'</b>'+(a.tit?'<em>'+esc(a.tit)+'</em>':'')+
+  ps.map((x,i)=>'<p'+(ps.length>=3&&i===ps.length-1?' class="aq"':'')+'>'+esc(x)+'</p>').join('')+'</div></div>';
+}
+function contactoLinea(){
+ const a=A();const partes=[];if(a.wa)partes.push('WhatsApp '+esc(a.wa));if(a.mail)partes.push(esc(a.mail));
+ return (partes.length?'<p>'+partes.join(' · ')+'</p>':'')+(a.web?'<p>'+esc(a.web)+'</p>':'');
 }
 function sCierre(){
+ const a=A();
  return '<div style="display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding-top:4px"><h3 style="font-size:24px;max-width:26ch;text-wrap:balance;margin:0">Gracias por tu confianza</h3>'+sobreMi()+qrBlock(false)+
-  '<div><b style="font-family:var(--f-display);font-size:18px;color:var(--p-navy)">'+esc(S.asesor)+'</b><p>'+esc(S.asesorTit)+'</p><p>WhatsApp '+esc(S.asesorWA)+' · '+esc(S.asesorMail)+'</p></div>'+
+  '<div><b style="font-family:var(--f-display);font-size:18px;color:var(--p-navy)">'+esc(a.nombre)+'</b>'+(a.tit?'<p>'+esc(a.tit)+'</p>':'')+contactoLinea()+'</div>'+
   '<div class="conf"><b>Aviso de confidencialidad.</b> Toda la información contenida en este documento es de carácter confidencial y de uso exclusivo de '+esc(S.nombre||'el cliente')+'. Queda prohibida su reproducción, difusión o entrega a terceros.</div></div>';
 }
 function renderReporte(){
+ syncPerfil();
  const C=calc();const nom=S.nombre||'el cliente';const fecha=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
  const list=[['Punto de partida','Quién eres hoy',sPartida(C),'fam'],['Situación financiera','Tu panorama actual',sSituacion(C),'wallet'],['Riesgos','Lo que está en juego',sRiesgos(C),'shield'],['Protección','Protección para tu familia',sProteccion(C),'hand']];
  if(C.kids.length)list.push(['Educación','El futuro de tus hijos',sEducacion(C),'cap']);
  else if(S.metaC||S.metaM||S.metaL)list.push(['Metas','Tus metas',metasSheet(),'target']);
  if(C.ret)list.push(['Retiro','Tu retiro',sRetiro(C),'sun']);
  list.push(['Propuesta','Tu propuesta de protección',sPropuesta(C),'doc'],['Resultado','Antes y después de tu propuesta',sResultado(C),'up'],['Cierre','Tu siguiente paso',sCierre(),'qr']);
- let h='<div class="sheets"><section class="sheet cover"><div class="cv"><img src="'+LOGO+'" alt="J L Consultoría Patrimonial"><div class="rule"></div><div><div class="for">Preparado para</div><p class="nm">'+esc(nom)+'</p></div><h1>Diagnóstico patrimonial y propuesta de protección</h1><div class="coverico"><span>'+ico('shield')+'<em>Proteger</em></span><span>'+ico('cap')+'<em>Educar</em></span><span>'+ico('sun')+'<em>Retirarte</em></span><span>'+ico('up')+'<em>Crecer</em></span></div>'+qrBlock(true)+'</div><div class="band"><div><b>'+esc(S.asesor)+'</b>'+esc(S.asesorTit)+'<br>'+esc(fecha)+'</div><div><small>Toda la información es de carácter confidencial y de uso exclusivo de '+esc(nom)+'.</small></div></div></section>';
+ let h='<div class="sheets"><section class="sheet cover"><div class="cv"><img src="'+LOGO+'" alt="Logotipo"><div class="rule"></div><div><div class="for">Preparado para</div><p class="nm">'+esc(nom)+'</p></div><h1>Diagnóstico patrimonial y propuesta de protección</h1><div class="coverico"><span>'+ico('shield')+'<em>Proteger</em></span><span>'+ico('cap')+'<em>Educar</em></span><span>'+ico('sun')+'<em>Retirarte</em></span><span>'+ico('up')+'<em>Crecer</em></span></div>'+qrBlock(true)+'</div><div class="band"><div><b>'+esc(A().nombre)+'</b>'+esc(A().tit)+'<br>'+esc(fecha)+'</div><div><small>Toda la información es de carácter confidencial y de uso exclusivo de '+esc(nom)+'.</small></div></div></section>';
  h+=list.map((s,i)=>sheetWrap(s[0],s[1],s[2],i+2,nom,s[3]==='qr'?'':s[3])).join('')+'</div>';
  return h;
 }
@@ -554,7 +563,11 @@ function metasSheet(){
 }
 
 /* ===== Controlador dentro del CRM ===== */
-const LOGO=opts.logo, QR=opts.qr, FOTO=opts.foto;
+let LOGO=opts.logo, QR='', FOTO='';
+function A(){const p=opts.perfil||{};return{nombre:p.nombre||'',tit:p.titulo||'',wa:p.whatsapp||'',mail:p.correo||'',web:p.web||'',sobre:p.sobreMi||'',qrTxt:p.qrLeyenda||''}}
+function syncPerfil(){const p=opts.perfil||{};LOGO=p.logoUrl||opts.logo;QR=p.qrUrl||'';FOTO=p.fotoUrl||''}
+syncPerfil();
+function faltantes(){const p=opts.perfil||{};const f=[];if(!p.nombre)f.push('nombre');if(!p.whatsapp)f.push('teléfono');if(!p.fotoUrl)f.push('foto');if(!p.sobreMi)f.push('“Sobre mí”');if(!p.qrUrl)f.push('código QR');return f}
 const $=s=>root.querySelector(s);
 let S=opts.state;
 if(!Array.isArray(S.props))S.props=[];if(!S.notas)S.notas={};if(!S.pri)S.pri={};if(!S.preoc)S.preoc={};
@@ -567,15 +580,16 @@ function toTop(){try{root.scrollIntoView({block:'start'})}catch(e){window.scroll
 
 function shell(inner){
  const tabs=[['entrevista','Entrevista'],['producto','Producto'],['entregable','Entregable']];
- return '<header class="top"><div class="wrap"><div class="brand"><img src="'+LOGO+'" alt="J L Consultoría Patrimonial"><div><b>Diagnóstico patrimonial</b><small>'+esc(S.nombre||'Caso nuevo')+'</small></div></div>'+
+ return '<header class="top"><div class="wrap"><div class="brand"><img src="'+LOGO+'" alt="Logotipo"><div><b>Diagnóstico patrimonial</b><small>'+esc(S.nombre||'Caso nuevo')+'</small></div></div>'+
   '<div class="tabs" role="tablist">'+tabs.map(t=>'<button class="tab" role="tab" data-act="tab" data-t="'+t[0]+'" aria-selected="'+(t[0]===tab)+'">'+t[1]+'</button>').join('')+'</div></div></header>'+
   '<main><div class="wrap">'+
   '<div class="case noprint" style="margin-bottom:14px;justify-content:flex-start"><button class="btn sm" data-act="volver">← Mis diagnósticos</button></div>'+
   (S.ejemplo?'<div class="banner noprint"><span><b>Caso de ejemplo.</b> Las cifras y los datos son inventados para que veas cómo se ve el entregable.</span></div>':'')+
-  (tab==='entregable'?'<div class="pdfbar noprint"><div><b>Entregable para tu cliente</b><span>Incluye gráficas, proyecciones, tu logo y tu QR. Se descarga en PDF tamaño carta.</span></div><button class="btn gold" data-act="pdf">Descargar PDF</button></div>':'')+
+  (tab==='entregable'?'<div class="pdfbar noprint"><div><b>Entregable para tu cliente</b><span>Incluye gráficas, proyecciones, tu logo y tu QR. Se descarga en PDF tamaño carta.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="perfil">Editar última hoja</button><button class="btn gold" data-act="pdf">Descargar PDF</button></div></div>'+(faltantes().length?'<div class="banner noprint"><span><b>Tu última hoja está incompleta.</b> Falta: '+faltantes().join(', ')+'. Usa “Editar última hoja” para cargarlos.</span></div>':''):'')+
   inner+'</div></main>';
 }
 function render(){
+ syncPerfil();
  const sc=scroller();const y=sc.scrollTop;
  const inner=tab==='entrevista'?renderEntrevista():tab==='producto'?renderProducto():renderReporte();
  root.innerHTML=shell(inner);
@@ -606,6 +620,7 @@ H.click=e=>{
  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
  if(a==='tab')go(b.dataset.t);
  else if(a==='volver'){if(opts.onBack)opts.onBack()}
+ else if(a==='perfil'){if(opts.onEditarPerfil)opts.onEditarPerfil()}
  else if(a==='step'){S.step=+b.dataset.i;save();render();toTop()}
  else if(a==='next'){S.step=Math.min((S.step||0)+1,STEPS.length-1);save();render();toTop()}
  else if(a==='prev'){S.step=Math.max((S.step||0)-1,0);save();render();toTop()}
@@ -629,6 +644,7 @@ render();
 return{
  destroy(){root.removeEventListener('input',H.input);root.removeEventListener('change',H.change);root.removeEventListener('change',H.changeCap,true);root.removeEventListener('click',H.click);root.removeEventListener('mouseover',H.over);root.removeEventListener('mousemove',H.move);root.removeEventListener('mouseleave',H.leave);if(ro)ro.disconnect();tip.remove();root.innerHTML=''},
  reportHtml(){return renderReporte()},
+ refresh(){render()},
  state(){return S}
 };
 }

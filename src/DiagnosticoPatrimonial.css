@@ -244,7 +244,7 @@
 
 /* ---- Sobre mí (última hoja) ---- */
 .dp .about{display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:center;text-align:left;width:100%;background:var(--p-soft);border-radius:14px;padding:22px 26px;border-left:4px solid var(--p-gold)}
-.dp .about .ap{width:190px;height:238px;border-radius:10px;display:block;box-shadow:0 8px 20px -10px rgba(18,50,74,.5)}
+.dp .about .ap{width:190px;height:238px;object-fit:cover;border-radius:10px;display:block;box-shadow:0 8px 20px -10px rgba(18,50,74,.5)}
 .dp .about .at{display:flex;flex-direction:column;gap:8px}
 .dp .about .ak{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--p-goldtx);font-weight:800}
 .dp .about .an{font-family:var(--f-display);font-size:21px;color:var(--p-navy);line-height:1.15}
@@ -283,3 +283,5 @@
 .dpl-card a.dpl-btn{text-decoration:none}
 .dp-cap .sheet{min-height:1056px}
 .dp-cap .sheet.cover{min-height:1056px}
+
+.dp .about.nf{grid-template-columns:minmax(0,1fr)}
