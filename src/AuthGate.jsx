@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient.js'
 import { JL_LOGO } from './brandAssets.js'
 import { DEMO_EMAIL, DEMO_PASSWORD, restablecerDemo } from './demo.js'
-
+import { PerfilContext } from './perfil.js'
+import CambiarClave from './CambiarClave.jsx'
 
 export default function AuthGate({ children }) {
   const [session, setSession] = useState(undefined)
@@ -17,6 +18,24 @@ export default function AuthGate({ children }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
     return () => listener.subscription.unsubscribe()
   }, [])
+
+  // Perfil del usuario (rol, suspensión, cambio obligatorio de contraseña).
+  // undefined = cargando · null = sin perfil (cuenta no dada de alta por el administrador)
+  const [perfil, setPerfil] = useState(undefined)
+  const userId = session?.user?.id
+  const rolMeta = session?.user?.user_metadata?.rol
+  useEffect(() => {
+    if (!userId || rolMeta === 'cliente') { setPerfil(undefined); return }
+    let vigente = true
+    setPerfil(undefined)
+    supabase.from('perfiles').select('*').eq('user_id', userId).maybeSingle().then(({ data, error }) => {
+      if (!vigente) return
+      // Si la consulta falla (red), no se bloquea a nadie: solo se niega cuando se confirma que no hay perfil
+      if (error) setPerfil({ user_id: userId, rol: 'agente', activo: true, debe_cambiar_clave: false })
+      else setPerfil(data || null)
+    })
+    return () => { vigente = false }
+  }, [userId, rolMeta])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -224,13 +243,19 @@ export default function AuthGate({ children }) {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setNotice('') }}
-                style={{ width: '100%', background: 'none', border: 'none', color: '#5B5646', fontSize: 13, fontFamily: 'inherit' }}
-              >
-                {mode === 'signin' ? '¿No tienes cuenta? Créala' : '¿Ya tienes cuenta? Inicia sesión'}
-              </button>
+              {mode === 'signin' ? (
+                <p style={{ textAlign: 'center', fontSize: 13, color: '#5B5646' }}>
+                  ¿No tienes cuenta? Solicítala a tu administrador.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setMode('signin'); setError(''); setNotice('') }}
+                  style={{ width: '100%', background: 'none', border: 'none', color: '#5B5646', fontSize: 13, fontFamily: 'inherit' }}
+                >
+                  Volver a iniciar sesión
+                </button>
+              )}
             </form>
           </div>
         </div>
@@ -242,5 +267,47 @@ export default function AuthGate({ children }) {
     )
   }
 
-  return children
+  if (perfil === undefined) {
+    return <div className="min-h-dvh" style={{ background: 'var(--cream)' }} />
+  }
+
+  // Cuenta que no fue dada de alta por el administrador, o que fue suspendida
+  if (perfil === null || perfil.activo === false) {
+    const suspendida = perfil?.activo === false
+    return (
+      <div className="min-h-dvh" style={{
+        fontFamily: "'Manrope', system-ui, sans-serif", background: 'var(--cream)', display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center',
+      }}>
+        <img src={JL_LOGO} alt="J L Consultoría Patrimonial" style={{ height: 64, objectFit: 'contain', marginBottom: 18 }} />
+        <h1 className="serif" style={{ fontSize: 22, fontWeight: 500, color: 'var(--ink)', marginBottom: 8 }}>
+          {suspendida ? 'Tu acceso está suspendido' : 'Tu cuenta aún no está autorizada'}
+        </h1>
+        <p style={{ fontSize: 13.5, color: 'var(--stone)', maxWidth: 340, lineHeight: 1.5, marginBottom: 20 }}>
+          {suspendida
+            ? 'Comunícate con tu administrador para reactivarlo.'
+            : 'Pide a tu administrador que te dé de alta y te entregue tu contraseña temporal.'}
+        </p>
+        <button type="button" onClick={() => supabase.auth.signOut()} style={{
+          background: 'var(--ink)', color: 'var(--cream)', border: 'none', borderRadius: 7, padding: '11px 22px',
+          fontWeight: 600, fontFamily: 'inherit', fontSize: 14,
+        }}>
+          Cerrar sesión
+        </button>
+      </div>
+    )
+  }
+
+  // Contraseña temporal: debe crear una personal antes de usar el CRM
+  if (perfil.debe_cambiar_clave) {
+    return (
+      <CambiarClave
+        correo={session.user.email}
+        onListo={() => setPerfil({ ...perfil, debe_cambiar_clave: false })}
+        onSalir={() => supabase.auth.signOut()}
+      />
+    )
+  }
+
+  return <PerfilContext.Provider value={perfil}>{children}</PerfilContext.Provider>
 }

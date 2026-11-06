@@ -15,7 +15,9 @@ import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import MaterialApoyo, { useMaterialCompartido } from "./MaterialCompartido.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
-import { Target, Compass } from "lucide-react";
+import { Target, Compass, ShieldCheck } from "lucide-react";
+import Administracion from "./Administracion.jsx";
+import { usePerfil, esAdmin } from "./perfil.js";
 import DiagnosticoPatrimonial from "./DiagnosticoPatrimonial.jsx";
 import LandingMetricas from "./LandingMetricas.jsx";
 import { calcular as calcularDiagWeb, resumenParaCrm } from "./diagLanding/motor.js";
@@ -44,6 +46,7 @@ const NAV_ITEMS = [
   { id: "prospectos", label: "Prospectos", icon: UserPlus },
   { id: "condiciones", label: "Condiciones generales", icon: FileText },
   { id: "material", label: "Material de apoyo", icon: FolderOpen },
+  { id: "admin", label: "Administración", icon: ShieldCheck },
   { id: "tarjeta", label: "Tarjeta digital", icon: CreditCard },
   { id: "comisiones", label: "Comisiones", icon: Calculator },
   { id: "factura", label: "Calculadora de factura", icon: FileText },
@@ -187,6 +190,7 @@ const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "prospectos"] },
   { title: "Herramientas", ids: ["condiciones", "material", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "diagnostico", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
+  { title: "Administración", ids: ["admin"], soloAdmin: true },
 ];
 
 const DIRECTORIOS_MEDICOS = [
@@ -2672,6 +2676,8 @@ export default function SegurosCRM() {
   const [clients, setClients] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("dashboard");
+  const perfilSesion = usePerfil();
+  const soyAdmin = esAdmin(perfilSesion);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirOpen, setDirOpen] = useState(false);
   // Grupos del menú lateral: abiertos/cerrados (se recuerda en este dispositivo).
@@ -3855,7 +3861,7 @@ function migrateClient(c) {
               <X size={18} />
             </button>
           </div>
-          {NAV_GROUPS.map((g) => {
+          {NAV_GROUPS.filter((g) => !g.soloAdmin || soyAdmin).map((g) => {
             const abierto = gruposAbiertos.includes(g.title);
             return (
             <div className={"side-group" + (abierto ? " is-open" : "")} key={g.title}>
@@ -4615,6 +4621,8 @@ function migrateClient(c) {
         {tab === "diagnostico" && <DiagnosticoPatrimonial clients={clients} prospectos={prospectos} agente={profile?.nombre || ""} correo={profile?.correo || ""} />}
 
         {tab === "material" && <MaterialApoyo nombreAgente={profile?.nombre || ""} />}
+
+        {tab === "admin" && soyAdmin && <Administracion miId={perfilSesion?.user_id} />}
 
         {tab === "deducible" && (
           <CalculadoraDeducible
