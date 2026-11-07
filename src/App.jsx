@@ -2397,7 +2397,7 @@ function comisionesDelMes(clients, metas, porcentajes, mes) {
   });
 }
 
-function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
+function PanelHoy({ nombre, items, agenda, tonos, onVer, onAbrir, onAbrirActividad }) {
   const h = new Date().getHours();
   const saludo = h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches";
   const fecha = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
@@ -2426,7 +2426,7 @@ function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
           {items.slice(0, 5).map((r, i) => {
             const TI = tonos.icon[r.tone] || Bell;
             return (
-              <button key={i} onClick={onVer} className="row-hover" style={{
+              <button key={i} onClick={() => (onAbrir ? onAbrir(r) : onVer())} className="row-hover" style={{
                 width: "100%", display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center",
                 background: "none", border: "none", textAlign: "left", padding: "10px 10px", borderRadius: 12,
               }}>
@@ -2449,7 +2449,7 @@ function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
             </button>
           )}
           {agenda.map((a) => (
-            <div key={a.id} style={{ display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "10px 10px" }}>
+            <button key={a.id} type="button" onClick={() => onAbrirActividad && onAbrirActividad(a)} className="row-hover" style={{ width: "100%", display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "10px 10px", background: "none", border: "none", textAlign: "left", borderRadius: 12, cursor: "pointer", color: "inherit", font: "inherit" }}>
               <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--gold-soft)", color: "var(--gold-text)", display: "grid", placeItems: "center" }}>
                 <CalendarDays size={18} />
               </span>
@@ -2458,7 +2458,7 @@ function PanelHoy({ nombre, items, agenda, tonos, onVer }) {
                 <small style={{ display: "block", color: "var(--stone)", fontSize: 12.5 }}>{a.descripcion || "Planificador"}</small>
               </span>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>{a.hora || ""}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -2516,7 +2516,13 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
   return (
     <div className="dash-grid">
       <div className="dash-col stagger">
-        <PanelHoy nombre={nombre} items={itemsHoy} agenda={agenda} tonos={tonos} onVer={() => onGo("recordatorios")} />
+        <PanelHoy nombre={nombre} items={itemsHoy} agenda={agenda} tonos={tonos} onVer={() => onGo("recordatorios")}
+          onAbrir={(r) => {
+            // Un seguimiento de prospecto abre primero su historial y luego la siguiente acción.
+            const act = r.tone === "seguimiento" && r.actId ? (activities || []).find((a) => a.id === r.actId) : null;
+            if (act && onEditarEvento) onEditarEvento(act, "historial"); else onGo("recordatorios");
+          }}
+          onAbrirActividad={(a) => onEditarEvento && onEditarEvento(a, "form")} />
 
         {actividad && <MetaMiniCard actividad={actividad} comisionMes={comisionMes || 0} onGo={onGo} />}
 
@@ -4343,7 +4349,7 @@ function migrateClient(c) {
             nombre={profile?.nombre}
             tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
             onGo={setTab}
-            onEditarEvento={(actividad) => setEvento({ modo: "editar", actividad })}
+            onEditarEvento={(actividad, paso) => setEvento({ modo: "editar", actividad, paso })}
             userId={userId}
             actividad={actividad}
             comisionMes={comisionMesActual}
@@ -4901,6 +4907,7 @@ function migrateClient(c) {
           modo={evento.modo}
           actividad={evento.actividad}
           fechaInicial={evento.fecha || todayStr()}
+          pasoInicial={evento.paso || "form"}
           clients={clients}
           prospectos={prospectos}
           onGuardar={guardarEvento}

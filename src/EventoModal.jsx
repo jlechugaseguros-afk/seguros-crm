@@ -8,7 +8,7 @@ import {
 // Ventana "Evento" del Planificador y del Dashboard (Próximos 7 días).
 // Crea o edita una actividad; si está ligada a un prospecto muestra su historial de cambios con fecha y hora
 // y pide un comentario obligatorio cuando hay un movimiento.
-export default function EventoModal({ modo, actividad, fechaInicial, clients, prospectos, onGuardar, onEliminar, onCerrar }) {
+export default function EventoModal({ modo, actividad, fechaInicial, pasoInicial = "form", clients, prospectos, onGuardar, onEliminar, onCerrar }) {
   const editar = modo === "editar" && actividad;
   const [f, setF] = useState(() => ({
     descripcion: editar ? actividad.descripcion || "" : "",
@@ -20,6 +20,7 @@ export default function EventoModal({ modo, actividad, fechaInicial, clients, pr
     repite: editar ? actividad.repite || "" : "",
     contacto: editar ? (actividad.prospectoId ? `p:${actividad.prospectoId}` : actividad.clienteId ? `c:${actividad.clienteId}` : "") : "",
   }));
+  const [paso, setPaso] = useState(pasoInicial === "historial" && modo === "editar" && actividad && actividad.prospectoId ? "historial" : "form");
   const [comentario, setComentario] = useState("");
   const [err, setErr] = useState("");
   const [confirmarBorrar, setConfirmarBorrar] = useState(false);
@@ -72,6 +73,48 @@ export default function EventoModal({ modo, actividad, fechaInicial, clients, pr
       a.prospectoTelefono = prospecto ? prospecto.telefono : base.prospectoTelefono || "";
     } else { a.clienteId = ""; delete a.prospectoId; delete a.prospectoNombre; delete a.prospectoTelefono; }
     onGuardar({ actividad: a, anterior: editar ? actividad : null, comentario: comentario.trim() });
+  }
+
+  if (paso === "historial") {
+    const ultimo = historial[0];
+    const anteriores = historial.slice(1);
+    return (
+      <div className="fade-in evm-back" role="dialog" aria-modal="true" aria-label="Historial del prospecto">
+        <div className="dialog-in evm">
+          <div className="evm-head">
+            <h3 className="serif">Historial · {nombreProspectoFijo}</h3>
+            <button type="button" onClick={onCerrar} aria-label="Cerrar" className="evm-x"><X size={18} /></button>
+          </div>
+          <div className="evm-body">
+            {!ultimo ? (
+              <p className="evm-nota" style={{ margin: "4px 0 12px" }}>Aún no hay cambios registrados para este prospecto.</p>
+            ) : (
+              <>
+                <div className="evm-ultimo">
+                  <small>Último cambio · {fmtFechaHoraTs(ultimo.ts)}</small>
+                  <strong>{ultimo.titulo}</strong>
+                  {ultimo.detalle && <strong className="d">{ultimo.detalle}</strong>}
+                  {ultimo.comentario && <strong className="c">“{ultimo.comentario}”</strong>}
+                </div>
+                {anteriores.length > 0 && <h4 className="evm-prev">Cambios anteriores</h4>}
+                {anteriores.map((h) => (
+                  <div key={h.id} className="evm-h-item">
+                    <small>{fmtFechaHoraTs(h.ts)}</small>
+                    <span className="t">{h.titulo}</span>
+                    {h.detalle && <span>{h.detalle}</span>}
+                    {h.comentario && <p>{h.comentario}</p>}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+          <div className="evm-foot">
+            <button type="button" className="evm-volver" onClick={onCerrar}>Volver</button>
+            <button type="button" className="evm-guardar" onClick={() => setPaso("form")} autoFocus>Siguiente acción →</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

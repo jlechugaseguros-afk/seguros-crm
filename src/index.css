@@ -725,3 +725,10 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
   .evm-trio > div:first-child { grid-column: 1 / -1; }
   .evm-duo { grid-template-columns: 1fr; }
 }
+.evm-ultimo { background: #FBF4E2; border: 1px solid #E8D49A; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; margin-bottom: 14px; }
+.evm-ultimo small { font-size: 11.5px; color: var(--stone); font-weight: 600; }
+.evm-ultimo strong { font-size: 15px; font-weight: 800; color: var(--ink); }
+.evm-ultimo strong.d { font-size: 13px; }
+.evm-ultimo strong.c { font-size: 14px; white-space: pre-wrap; margin-top: 2px; }
+.evm-prev { font-size: 12.5px; margin: 4px 0 4px; color: var(--muted); }
+.evm-h-item .t { font-size: 13px; color: var(--ink); }
