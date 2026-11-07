@@ -6,6 +6,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //  - crear:       alta de un agente con contraseña temporal de 6 dígitos (debe cambiarla al entrar)
 //  - restablecer: nueva contraseña temporal de 6 dígitos para un agente
 //  - suspender / reactivar: bloquea o devuelve el acceso
+//  - permisos:    define qué pestañas puede ver un agente y su letra distintiva de perfil
 //  - clave_cambiada: cualquier usuario autenticado avisa que ya puso su contraseña personal
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,19 @@ const resp = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 const codigo6 = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
 const BAN_LARGO = "876000h"; // ~100 años
+
+// Pestañas: lista de ids (null = todas) y letra A-Z del perfil de acceso.
+function limpiarAccesos(body: any): { pestanas: string[] | null; letra: string | null } | null {
+  const p = body?.pestanas;
+  const l = body?.letra;
+  let pestanas: string[] | null = null;
+  if (Array.isArray(p)) {
+    pestanas = [...new Set(p.map((x: unknown) => String(x)).filter((x: string) => /^[a-zA-Z0-9_-]{1,40}$/.test(x)))].slice(0, 60);
+    if (pestanas.length === 0) return null; // al menos una pestaña
+  }
+  const letra = typeof l === "string" && /^[A-Z]$/.test(l) ? l : null;
+  return { pestanas, letra };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -63,6 +77,8 @@ Deno.serve(async (req: Request) => {
             rol: p?.rol || (x.user_metadata?.rol === "demo" ? "demo" : "agente"),
             activo: p ? !!p.activo : true,
             debe_cambiar_clave: !!p?.debe_cambiar_clave,
+            pestanas_permitidas: p?.pestanas_permitidas ?? null,
+            perfil_letra: p?.perfil_letra ?? null,
             google: proveedores.includes("google"),
             ultimo_acceso: x.last_sign_in_at || null,
             creado: x.created_at,
@@ -77,6 +93,8 @@ Deno.serve(async (req: Request) => {
       const correo = String(body?.correo || "").trim().toLowerCase();
       const nombre = String(body?.nombre || "").trim().slice(0, 120);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return resp({ error: "correo_invalido" }, 400);
+      const accesos = limpiarAccesos(body);
+      if (!accesos) return resp({ error: "accesos_invalidos" }, 400);
       const clave = codigo6();
       const { data: nuevo, error } = await admin.auth.admin.createUser({
         email: correo, password: clave, email_confirm: true,
@@ -90,6 +108,7 @@ Deno.serve(async (req: Request) => {
       const { error: perr } = await admin.from("perfiles").upsert({
         user_id: nuevo.user.id, rol: "agente", nombre: nombre || null, activo: true,
         debe_cambiar_clave: true, creado_por: yo.id,
+        pestanas_permitidas: accesos.pestanas, perfil_letra: accesos.letra,
       }, { onConflict: "user_id" });
       if (perr) return resp({ error: "error", detalle: perr.message }, 500);
       return resp({ ok: true, id: nuevo.user.id, correo, clave });
@@ -109,6 +128,16 @@ Deno.serve(async (req: Request) => {
       if (error) return resp({ error: "error", detalle: error.message }, 500);
       await admin.from("perfiles").upsert({ user_id: id, debe_cambiar_clave: true }, { onConflict: "user_id" });
       return resp({ ok: true, correo: objetivo.user.email, clave });
+    }
+
+    if (accion === "permisos") {
+      const accesos = limpiarAccesos(body);
+      if (!accesos) return resp({ error: "accesos_invalidos" }, 400);
+      const { error } = await admin.from("perfiles").upsert({
+        user_id: id, pestanas_permitidas: accesos.pestanas, perfil_letra: accesos.letra,
+      }, { onConflict: "user_id" });
+      if (error) return resp({ error: "error", detalle: error.message }, 500);
+      return resp({ ok: true });
     }
 
     if (accion === "suspender") {

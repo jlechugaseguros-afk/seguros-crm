@@ -197,6 +197,15 @@ const NAV_GROUPS = [
   { title: "Administración", ids: ["admin"], soloAdmin: true },
 ];
 
+// Pestañas que el administrador puede activar o quitar a cada usuario (check list de Administración).
+const PESTANAS_CHECKLIST = [
+  ...NAV_GROUPS.filter((g) => !g.soloAdmin).map((g) => ({
+    titulo: g.title,
+    items: g.ids.map((id) => ({ id, label: (NAV_ITEMS.find((n) => n.id === id) || {}).label || id })),
+  })),
+  { titulo: "Broker", items: [{ id: "mcbrokers", label: "McBrokers" }] },
+];
+
 const DIRECTORIOS_MEDICOS = [
   { label: "GNP", aseguradora: "GNP Seguros", url: "https://www.gnp.com.mx/directorio-proveedores-medicos" },
   { label: "AXA", aseguradora: "AXA", url: "https://axa.mx/servicios/buscador-de-servicios" },
@@ -2669,9 +2678,14 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
 export default function SegurosCRM() {
   const [clients, setClients] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState("dashboard");
   const perfilSesion = usePerfil();
   const soyAdmin = esAdmin(perfilSesion);
+  const [tabSel, setTab] = useState("dashboard");
+  // Accesos por pestaña definidos por el administrador (sin lista = ve todo; el administrador siempre ve todo).
+  const accesos = !soyAdmin && Array.isArray(perfilSesion?.pestanas_permitidas) && perfilSesion.pestanas_permitidas.length
+    ? perfilSesion.pestanas_permitidas : null;
+  const puedeVer = (id) => !accesos || accesos.includes(id);
+  const tab = puedeVer(tabSel) ? tabSel : (NAV_GROUPS.flatMap((g) => g.ids).find(puedeVer) || "dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirOpen, setDirOpen] = useState(false);
   // Grupos del menú lateral: abiertos/cerrados (se recuerda en este dispositivo).
@@ -3939,7 +3953,7 @@ function migrateClient(c) {
               <X size={18} />
             </button>
           </div>
-          <button
+          {puedeVer("mcbrokers") && <button
             type="button"
             className={"side-mcb" + (tab === "mcbrokers" ? " active" : "")}
             onClick={() => { setTab("mcbrokers"); setMenuOpen(false); }}
@@ -3947,8 +3961,8 @@ function migrateClient(c) {
             aria-current={tab === "mcbrokers" ? "page" : undefined}
           >
             <img src="/mcbrokers-logo.png" alt="McBrokers" />
-          </button>
-          {NAV_GROUPS.filter((g) => !g.soloAdmin || soyAdmin).map((g) => {
+          </button>}
+          {NAV_GROUPS.filter((g) => (!g.soloAdmin || soyAdmin) && g.ids.some(puedeVer)).map((g) => {
             const abierto = gruposAbiertos.includes(g.title);
             return (
             <div className={"side-group" + (abierto ? " is-open" : "")} key={g.title}>
@@ -3958,7 +3972,7 @@ function migrateClient(c) {
                 <ChevronDown size={14} className="side-group-chev" />
               </button>
               <div className="side-group-body"><div className="side-group-inner">
-              {g.ids.map((id) => {
+              {g.ids.filter(puedeVer).map((id) => {
                 const item = NAV_ITEMS.find((n) => n.id === id);
                 if (!item) return null;
                 const externalUrl = NAV_EXTERNAL_LINKS[item.id];
@@ -4734,7 +4748,7 @@ function migrateClient(c) {
           />
         )}
 
-        {tab === "admin" && soyAdmin && <Administracion miId={perfilSesion?.user_id} />}
+        {tab === "admin" && soyAdmin && <Administracion miId={perfilSesion?.user_id} pestanas={PESTANAS_CHECKLIST} />}
 
         {tab === "deducible" && (
           <CalculadoraDeducible
@@ -4776,7 +4790,7 @@ function migrateClient(c) {
           { id: "clientes", label: "Clientes", Icon: Users },
           { id: "recordatorios", label: "Avisos", Icon: Bell },
           { id: "prospectos", label: "Prospectos", Icon: UserPlus },
-        ].map(({ id, label, Icon }) => (
+        ].filter(({ id }) => puedeVer(id)).map(({ id, label, Icon }) => (
           <button key={id} onClick={() => setTab(id)} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined}>
             <Icon size={20} />
             {label}
