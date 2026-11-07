@@ -1,5 +1,5 @@
 import { gcalDisponible, gcalActivo, gcalConectar, gcalDesactivar, gcalCrear, gcalBorrar, gcalLinkManual } from "./googleCalendar.js";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { MessageCircle, Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert, FolderOpen } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
@@ -9,6 +9,9 @@ import CalculadoraFactura from "./CalculadoraFactura.jsx";
 import CalculadoraDeducible from "./CalculadoraDeducible.jsx";
 import PortalClientes from "./PortalClientes.jsx";
 import PageHeader from "./PageHeader.jsx";
+import EventoModal from "./EventoModal.jsx";
+import CalendarioPlanificador from "./CalendarioPlanificador.jsx";
+import { SEMAFORO, colorDeActividad, COLOR_RECORDATORIO, ocurreEn, actividadesDelDia, duracionMin, ESTATUS_CERRADOS, fmtFechaCortaISO } from "./actividades.js";
 import Ajustes from "./Ajustes.jsx";
 import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
@@ -2077,7 +2080,6 @@ function Documentos({ clientId, docs, urls, onUpload, onRemove }) {
   );
 }
 
-const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 const MESES_LARGO = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 function countBy(list, key) {
@@ -2192,124 +2194,7 @@ function StatChart({ title, data, inicial = "pie" }) {
   );
 }
 
-function buildCalendarEvents(clients, year, month) {
-  // month: 0-indexed. Devuelve { "YYYY-MM-DD": [{tone, client, label}] }
-  const events = {};
-  function add(dateStr, tone, client, label, policy) {
-    events[dateStr] = events[dateStr] || [];
-    events[dateStr].push({ tone, client: client.nombre, label, clientObj: client, policy: policy || null });
-  }
-  clients.forEach((c) => {
-    (c.polizas || []).forEach((p) => {
-      pagosDePoliza(p).forEach((pg) => {
-        const [y, m] = pg.date.split("-").map(Number);
-        if (y === year && m - 1 === month) {
-          add(pg.date, "pago", c, pg.total > 1 ? `Pago ${pg.numero} de ${pg.total}` : "Pago", p);
-        }
-      });
-      if (p.fechaRenovacion) {
-        const [y, m] = p.fechaRenovacion.split("-").map(Number);
-        if (y === year && m - 1 === month) add(p.fechaRenovacion, "renovacion", c, "Renovación", p);
-      }
-    });
-    if (c.fechaCumple) {
-      const [, m, d] = c.fechaCumple.split("-").map(Number);
-      if (m - 1 === month) {
-        const dateStr = `${year}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-        add(dateStr, "cumple", c, "Cumpleaños");
-      }
-    }
-  });
-  return events;
-}
-
-const TONE_COLOR = { pago: "#B23A2E", renovacion: "var(--gold)", cumple: "var(--emerald)" };
-
-function Calendar({ clients }) {
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [selectedDate, setSelectedDate] = useState(null);
-
-  const events = useMemo(() => buildCalendarEvents(clients, viewYear, viewMonth), [clients, viewYear, viewMonth]);
-
-  const firstOfMonth = new Date(viewYear, viewMonth, 1);
-  const startWeekday = (firstOfMonth.getDay() + 6) % 7; // lunes = 0
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-  const cells = [];
-  for (let i = 0; i < startWeekday; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  function changeMonth(delta) {
-    let m = viewMonth + delta, y = viewYear;
-    if (m < 0) { m = 11; y -= 1; }
-    if (m > 11) { m = 0; y += 1; }
-    setViewMonth(m); setViewYear(y);
-    setSelectedDate(null);
-  }
-
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const selectedEvents = selectedDate ? (events[selectedDate] || []) : [];
-
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <button onClick={() => changeMonth(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>‹</button>
-        <h3 className="serif" style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{MESES_LARGO[viewMonth]} {viewYear}</h3>
-        <button onClick={() => changeMonth(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>›</button>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
-        {DIAS_SEMANA.map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--stone)", fontWeight: 600 }}>{d}</div>
-        ))}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-        {cells.map((day, i) => {
-          if (day === null) return <div key={i} />;
-          const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const dayEvents = events[dateStr] || [];
-          const isToday = dateStr === todayStr;
-          const isSelected = dateStr === selectedDate;
-          return (
-            <button
-              key={i}
-              onClick={() => setSelectedDate(dayEvents.length ? dateStr : null)}
-              style={{
-                aspectRatio: "1", background: isSelected ? "var(--ink)" : "transparent",
-                border: isToday ? "1px solid #C98A2C" : "1px solid transparent",
-                borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center",
-                justifyContent: "center", gap: 2, padding: 2,
-              }}
-            >
-              <span style={{ fontSize: 12, color: isSelected ? "var(--cream)" : "var(--ink)" }}>{day}</span>
-              <span style={{ display: "flex", gap: 2 }}>
-                {dayEvents.slice(0, 3).map((ev, j) => (
-                  <span key={j} style={{ width: 4, height: 4, borderRadius: 4, background: TONE_COLOR[ev.tone] }} />
-                ))}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {selectedEvents.length > 0 && (
-        <div style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
-          {selectedEvents.map((ev, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 8, background: TONE_COLOR[ev.tone], flexShrink: 0 }} />
-              <span>{ev.client} · {ev.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 const DIAS_LARGO = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const TIPOS_ACTIVIDAD = ["Llamada", "Visita", "Reunión", "Tarea", "Otro"];
-
 function toISODate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -2340,10 +2225,13 @@ function getRemindersForDate(clients, dateStr) {
   return items;
 }
 
-function Planificador({ clients, prospectos, activities, onAddActivity, onRemoveActivity }) {
+function Planificador({ clients, prospectos, activities, onNuevo, onEditar }) {
+  const [vista, setVista] = useState(() => {
+    try { const v = localStorage.getItem("jl_plan_vista"); if (v === "mes" || v === "semana") return v; } catch (e) { /* sin almacenamiento */ }
+    return "mes";
+  });
+  const cambiarVista = (v) => { setVista(v); try { localStorage.setItem("jl_plan_vista", v); } catch (e) { /* sin almacenamiento */ } };
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
-  const [addingFor, setAddingFor] = useState(null);
-  const [draft, setDraft] = useState({ hora: "", tipo: TIPOS_ACTIVIDAD[0], descripcion: "", clienteId: "" });
   const [gcalOn, setGcalOn] = useState(gcalActivo());
   const [gcalErr, setGcalErr] = useState("");
   async function alternarGcal() {
@@ -2362,33 +2250,16 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
     const d = new Date(weekStart);
     d.setDate(d.getDate() + delta * 7);
     setWeekStart(d);
-    setAddingFor(null);
   }
 
-  function openAdd(dateStr) {
-    setAddingFor(dateStr);
-    setErrAdd("");
-    setDraft({ hora: "", tipo: TIPOS_ACTIVIDAD[0], descripcion: "", clienteId: "" });
-  }
-
-  const [errAdd, setErrAdd] = useState("");
-  function submitAdd(dateStr) {
-    if (!draft.descripcion.trim()) { setErrAdd("Escribe una descripción para guardar la actividad."); return; }
-    try {
-      onAddActivity({ ...draft, descripcion: draft.descripcion.trim(), id: Date.now().toString(), fecha: dateStr });
-      setErrAdd("");
-      setAddingFor(null);
-    } catch (e) {
-      setErrAdd("No se pudo guardar. Intenta de nuevo.");
-    }
-  }
+  const remindersDe = useCallback((fecha) => getRemindersForDate(clients, fecha), [clients]);
 
   const today = toISODate(new Date());
   const rangeLabel = `${weekDates[0].getDate()} ${MESES_LARGO[weekDates[0].getMonth()].slice(0, 3)} – ${weekDates[6].getDate()} ${MESES_LARGO[weekDates[6].getMonth()].slice(0, 3)}`;
 
   return (
     <div>
-      <PageHeader eyebrow="Agenda" title="Planificador" subtitle="Tu semana: pagos, renovaciones, cumpleaños y actividades." />
+      <PageHeader eyebrow="Agenda" title="Planificador" subtitle="Pagos, renovaciones, cumpleaños y actividades, con semáforo: verde vende, amarillo te acerca, rojo es administrativo." />
       <div className="gcal-bar">
         {gcalDisponible() ? (
           <>
@@ -2400,116 +2271,96 @@ function Planificador({ clients, prospectos, activities, onAddActivity, onRemove
         )}
         {gcalErr && <small style={{ color: "#c0392b" }}>{gcalErr}</small>}
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>‹</button>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{rangeLabel}</span>
-        <button onClick={() => changeWeek(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>›</button>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <div className="pl-vista" role="group" aria-label="Vista del planificador">
+          <button type="button" className={vista === "mes" ? "on" : ""} onClick={() => cambiarVista("mes")}>Mes</button>
+          <button type="button" className={vista === "semana" ? "on" : ""} onClick={() => cambiarVista("semana")}>Semana</button>
+        </div>
       </div>
 
-      {weekDates.map((date, i) => {
-        const dateStr = toISODate(date);
-        const isToday = dateStr === today;
-        const reminders = getRemindersForDate(clients, dateStr);
-        const dayActivities = activities.filter((a) => a.fecha === dateStr).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
-        const isAdding = addingFor === dateStr;
+      {vista === "mes" && (
+        <CalendarioPlanificador
+          clients={clients}
+          prospectos={prospectos}
+          activities={activities}
+          remindersDe={remindersDe}
+          onNuevo={onNuevo}
+          onEditar={onEditar}
+        />
+      )}
 
-        return (
-          <div key={dateStr} style={{ marginBottom: 18, borderBottom: "1px solid var(--line)", paddingBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="serif" style={{ fontSize: 14, fontWeight: 700, color: isToday ? "var(--gold)" : "var(--ink)" }}>
-                  {DIAS_LARGO[i]} {date.getDate()}
-                </span>
-                {isToday && <span style={{ fontSize: 10, color: "var(--gold)", fontWeight: 700 }}>HOY</span>}
-              </div>
-              <button
-                onClick={() => (isAdding ? setAddingFor(null) : openAdd(dateStr))}
-                style={{ background: "none", border: "none", color: "var(--ink)" }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
+      {vista === "semana" && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <button onClick={() => changeWeek(-1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>‹</button>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{rangeLabel}</span>
+            <button onClick={() => changeWeek(1)} style={{ background: "none", border: "1px solid var(--line)", borderRadius: 10, padding: "4px 10px" }}>›</button>
+          </div>
 
-            {reminders.length === 0 && dayActivities.length === 0 && !isAdding && (
-              <p style={{ fontSize: 12, color: "#8794A0", margin: 0 }}>Sin actividades.</p>
-            )}
+          {weekDates.map((date, i) => {
+            const dateStr = toISODate(date);
+            const isToday = dateStr === today;
+            const reminders = getRemindersForDate(clients, dateStr);
+            const dayActivities = actividadesDelDia(activities, dateStr);
 
-            {reminders.map((r, j) => (
-              <div key={`r${j}`} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 8, background: TONE_COLOR[r.tone], flexShrink: 0 }} />
-                <span>{r.client.nombre} · {r.label}</span>
-              </div>
-            ))}
-
-            {dayActivities.map((a) => {
-              const client = clients.find((c) => c.id === a.clienteId);
-              const prospecto = !client && a.prospectoId ? (prospectos || []).find((p) => p.id === a.prospectoId) : null;
-              const relacionado = client ? client.nombre : (prospecto ? `${prospecto.nombre} · prospecto` : null);
-              return (
-                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 8, background: "#4A6FA5", flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>
-                    {a.hora && `${a.hora} · `}{a.tipo}: {a.descripcion}{relacionado ? ` (${relacionado})` : ""}
-                  </span>
-                  {a.gcalId ? (
-                    <span title="Ya está en tu Google Calendar" style={{ fontSize: 12 }}>✅📅</span>
-                  ) : (
-                    <a href={gcalLinkManual(a, client ? client.nombre : (prospecto ? prospecto.nombre : ""))} target="_blank" rel="noreferrer"
-                      title="Agregar a Google Calendar" style={{ fontSize: 14, textDecoration: "none" }}>📅</a>
-                  )}
-                  <button onClick={() => onRemoveActivity(a.id)} style={{ background: "none", border: "none", color: "#8794A0" }}>
-                    <X size={13} />
+            return (
+              <div key={dateStr} style={{ marginBottom: 18, borderBottom: "1px solid var(--line)", paddingBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="serif" style={{ fontSize: 14, fontWeight: 700, color: isToday ? "var(--gold)" : "var(--ink)" }}>
+                      {DIAS_LARGO[i]} {date.getDate()}
+                    </span>
+                    {isToday && <span style={{ fontSize: 10, color: "var(--gold)", fontWeight: 700 }}>HOY</span>}
+                  </div>
+                  <button
+                    onClick={() => onNuevo(dateStr)}
+                    aria-label={`Agregar actividad el ${date.getDate()}`}
+                    style={{ background: "none", border: "none", color: "var(--ink)" }}
+                  >
+                    <Plus size={16} />
                   </button>
                 </div>
-              );
-            })}
 
-            {isAdding && (
-              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginTop: 8 }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <input
-                    type="time"
-                    value={draft.hora}
-                    onChange={(e) => setDraft((d) => ({ ...d, hora: e.target.value }))}
-                    style={{ ...inputStyle, flex: "0 0 100px" }}
-                  />
-                  <select
-                    value={draft.tipo}
-                    onChange={(e) => setDraft((d) => ({ ...d, tipo: e.target.value }))}
-                    style={{ ...inputStyle, flex: 1 }}
-                  >
-                    {TIPOS_ACTIVIDAD.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <p style={{ fontSize: 11.5, color: "var(--stone)", margin: "0 0 8px" }}>
-                  Con hora, te avisamos 15 minutos antes (campanita y notificación). Sin hora, te avisamos a las 8 AM del día.
-                </p>
-                <input
-                  value={draft.descripcion}
-                  onChange={(e) => setDraft((d) => ({ ...d, descripcion: e.target.value }))}
-                  placeholder="Descripción..."
-                  style={{ ...inputStyle, marginBottom: 8 }}
-                />
-                <select
-                  value={draft.clienteId}
-                  onChange={(e) => setDraft((d) => ({ ...d, clienteId: e.target.value }))}
-                  style={{ ...inputStyle, marginBottom: 8 }}
-                >
-                  <option value="">Sin cliente relacionado</option>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-                {errAdd && <p role="alert" style={{ color: "#B23A2E", fontSize: 12, margin: "0 0 8px" }}>{errAdd}</p>}
-                <button
-                  onClick={() => submitAdd(dateStr)}
-                  style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}
-                >
-                  Agregar
-                </button>
+                {reminders.length === 0 && dayActivities.length === 0 && (
+                  <p style={{ fontSize: 12, color: "#8794A0", margin: 0 }}>Sin actividades.</p>
+                )}
+
+                {reminders.map((r, j) => (
+                  <div key={`r${j}`} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 8, background: SEMAFORO[COLOR_RECORDATORIO[r.tone] || "rojo"].color, flexShrink: 0 }} />
+                    <span>{r.client.nombre} · {r.label}</span>
+                  </div>
+                ))}
+
+                {dayActivities.map((a) => {
+                  const client = clients.find((c) => c.id === a.clienteId);
+                  const prospecto = !client && a.prospectoId ? (prospectos || []).find((p) => p.id === a.prospectoId) : null;
+                  const relacionado = client ? client.nombre : (prospecto ? `${prospecto.nombre} · prospecto` : null);
+                  const cerrado = ESTATUS_CERRADOS.includes(a.estatus);
+                  return (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 8, background: SEMAFORO[colorDeActividad(a)].color, flexShrink: 0 }} />
+                      <button type="button" onClick={() => onEditar(a)} style={{
+                        flex: 1, textAlign: "left", background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer",
+                        textDecoration: cerrado ? "line-through" : "none", opacity: cerrado ? 0.6 : 1,
+                      }}>
+                        {a.hora && `${a.hora}${a.horaFin ? `–${a.horaFin}` : ""} · `}{a.tipo}: {a.descripcion}{relacionado ? ` (${relacionado})` : ""}
+                      </button>
+                      {a.gcalId ? (
+                        <span title="Ya está en tu Google Calendar" style={{ fontSize: 12 }}>✅📅</span>
+                      ) : (
+                        <a href={gcalLinkManual(a, client ? client.nombre : (prospecto ? prospecto.nombre : ""))} target="_blank" rel="noreferrer"
+                          title="Agregar a Google Calendar" style={{ fontSize: 14, textDecoration: "none" }}>📅</a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
@@ -2632,52 +2483,7 @@ function DashPanel({ title, hint, children, action }) {
   );
 }
 
-// Calendario del Dashboard: en celular inicia contraído (con un resumen del mes) para no ocupar tanto espacio.
-function CalendarioPlegable({ clients }) {
-  const [abierto, setAbierto] = useState(() => {
-    try { const v = localStorage.getItem("jl_dash_calendario"); if (v === "1" || v === "0") return v === "1"; } catch (e) { /* sin almacenamiento */ }
-    return typeof window === "undefined" || window.innerWidth >= 700;
-  });
-  const alternar = () => { const n = !abierto; setAbierto(n); try { localStorage.setItem("jl_dash_calendario", n ? "1" : "0"); } catch (e) { /* sin almacenamiento */ } };
-  const hoy = new Date();
-  const resumen = useMemo(() => {
-    const ev = buildCalendarEvents(clients, hoy.getFullYear(), hoy.getMonth());
-    const fechas = Object.keys(ev).sort();
-    const total = fechas.reduce((s, f) => s + ev[f].length, 0);
-    const hoyS = toISODate(hoy);
-    const sig = fechas.find((f) => f >= hoyS);
-    return { total, sig, primero: sig ? ev[sig][0] : null };
-  }, [clients]);
-  const fmt = (f) => { const [, m, d] = f.split("-").map(Number); return `${d} ${MESES_LARGO[m - 1].slice(0, 3).toLowerCase()}`; };
-  return (
-    <section className="panel lift" style={{ padding: "16px 18px 18px" }}>
-      <button type="button" onClick={alternar} aria-expanded={abierto} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "inherit" }}>
-        <span style={{ minWidth: 0 }}>
-          <h3 className="serif" style={{ fontSize: 17, fontWeight: 500 }}>Calendario de recordatorios</h3>
-          {!abierto && (
-            <small style={{ display: "block", color: "var(--stone)", fontSize: 12, marginTop: 3 }}>
-              {MESES_LARGO[hoy.getMonth()]} · {resumen.total === 0 ? "sin recordatorios este mes" : `${resumen.total} recordatorio${resumen.total === 1 ? "" : "s"}`}
-              {resumen.sig && resumen.primero ? ` · próximo ${fmt(resumen.sig)}: ${resumen.primero.client}` : ""}
-            </small>
-          )}
-        </span>
-        <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--gold-text)" }}>
-          {abierto ? "Ocultar" : "Ver"}
-          <ChevronDown size={16} style={{ transform: abierto ? "rotate(180deg)" : "none", transition: "transform .28s cubic-bezier(.2,.7,.2,1)" }} />
-        </span>
-      </button>
-      <div style={{ display: "grid", gridTemplateRows: abierto ? "1fr" : "0fr", transition: "grid-template-rows .35s cubic-bezier(.2,.7,.2,1)" }}>
-        <div style={{ overflow: "hidden", minHeight: 0 }}>
-          <div style={{ paddingTop: 12, opacity: abierto ? 1 : 0, transition: "opacity .3s ease" }}>
-            <Calendar clients={clients} />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo, userId, actividad, comisionMes }) {
+function Dashboard({ clients, prospectos, activities, metas, porcentajes, reminders, nombre, tonos, onGo, onEditarEvento, userId, actividad, comisionMes }) {
   const allPolizas = useMemo(() => {
     const list = [];
     clients.forEach((c) => (c.polizas || []).forEach((p) => list.push(p)));
@@ -2702,7 +2508,7 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
   const semaforo = (r) => (r.avance === null ? "var(--gold)" : r.avance >= 100 ? "var(--emerald)" : r.avance >= 50 ? "var(--gold)" : "#B23A2E");
 
   const itemsHoy = reminders.filter((r) => r.days === 0);
-  const agenda = (activities || []).filter((a) => a.fecha === hoy && !a.prospectoId).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+  const agenda = actividadesDelDia(activities, hoy).filter((a) => !a.prospectoId);
   const proximos = reminders.filter((r) => r.days >= 1 && r.days <= 7).slice(0, 8);
   const pipeline = ESTADOS_PROSPECTO.map((e) => [e, (prospectos || []).filter((p) => p.estado === e).length]).filter(([, n]) => n > 0);
   const totalProspectos = pipeline.reduce((s, [, n]) => s + n, 0);
@@ -2720,7 +2526,11 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
           ) : proximos.map((r, i) => {
             const TI = tonos.icon[r.tone] || Bell;
             return (
-              <button key={i} onClick={() => onGo("recordatorios")} className="row-hover" style={{
+              <button key={i} onClick={() => {
+                // Al tocar un prospecto se abre su evento con el historial de cambios.
+                const act = r.tone === "seguimiento" && r.actId ? (activities || []).find((a) => a.id === r.actId) : null;
+                if (act && onEditarEvento) onEditarEvento(act); else onGo("recordatorios");
+              }} className="row-hover" style={{
                 width: "100%", display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 12, alignItems: "center",
                 background: "none", border: "none", textAlign: "left", padding: "8px 6px", borderRadius: 10,
               }}>
@@ -2730,7 +2540,7 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
                 <span style={{ minWidth: 0 }}>
                   <b style={{ display: "block", fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.client.nombre}</b>
                   <small style={{ display: "block", color: "var(--stone)", fontSize: 12 }}>
-                    {r.label}{r.pago && r.pago.total > 1 ? ` ${r.pago.numero} de ${r.pago.total}` : ""}{r.pago && r.pago.monto ? ` · ${fmtMonto(r.pago.monto)}` : ""}
+                    {r.label}{r.pago && r.pago.total > 1 ? ` ${r.pago.numero} de ${r.pago.total}` : ""}{r.pago && r.pago.monto ? ` · ${fmtMonto(r.pago.monto)}` : ""}{r.hora ? ` · ${r.hora}` : ""}
                   </small>
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>
@@ -2746,7 +2556,6 @@ function Dashboard({ clients, prospectos, activities, metas, porcentajes, remind
           <StatChart title="Por aseguradora" data={byAseguradora} inicial="pie" />
         </DashPanel>
 
-        <CalendarioPlegable clients={clients} />
       </div>
 
       <div className="dash-col stagger">
@@ -3459,6 +3268,67 @@ function migrateClient(c) {
     setActivities((as) => as.filter((a) => a.id !== id));
   }
 
+  // ----- Evento (ventana de Planificador y Próximos 7 días) -----
+  const [evento, setEvento] = useState(null); // { modo: "nuevo", fecha } | { modo: "editar", actividad }
+
+  function handleUpdateActivity(a, anterior) {
+    const cambioEnGoogle = anterior && anterior.gcalId && (
+      a.fecha !== anterior.fecha || a.hora !== anterior.hora || a.horaFin !== anterior.horaFin
+      || a.tipo !== anterior.tipo || a.descripcion !== anterior.descripcion
+    );
+    const nuevo = { ...a, duracionMin: duracionMin(a.hora, a.horaFin) };
+    if (cambioEnGoogle) {
+      gcalBorrar(anterior.gcalId);
+      delete nuevo.gcalId;
+    }
+    setActivities((as) => as.map((x) => (x.id === a.id ? nuevo : x)));
+    if (cambioEnGoogle) {
+      const nombre = (clients.find((c) => c.id === a.clienteId) || {}).nombre || a.prospectoNombre || "";
+      gcalCrear(nuevo, nombre).then((eventId) => {
+        if (eventId) setActivities((as) => as.map((x) => (x.id === a.id ? { ...x, gcalId: eventId } : x)));
+      });
+    }
+  }
+
+  function guardarEvento({ actividad: a, anterior, comentario }) {
+    if (anterior) handleUpdateActivity(a, anterior);
+    else handleAddActivity({ ...a, duracionMin: duracionMin(a.hora, a.horaFin) });
+
+    // Si está ligada a un prospecto, el movimiento queda en su historial con fecha y hora.
+    if (a.prospectoId && comentario) {
+      let titulo;
+      if (!anterior) titulo = `Actividad agendada: ${a.tipo}`;
+      else if (anterior.fecha !== a.fecha || (anterior.hora || "") !== (a.hora || "")) titulo = "Seguimiento reprogramado";
+      else if ((anterior.estatus || "Pendiente") !== a.estatus) titulo = `Estatus: ${anterior.estatus || "Pendiente"} → ${a.estatus}`;
+      else titulo = "Actividad actualizada";
+      const detalle = [
+        a.tipo,
+        `${fmtFechaCortaISO(a.fecha)}${a.hora ? ` ${a.hora}${a.horaFin ? `–${a.horaFin}` : ""}` : ""}`,
+        `Estatus: ${a.estatus}`,
+      ].join(" · ");
+      const entrada = { id: `${Date.now()}-e`, ts: Date.now(), titulo, detalle, comentario };
+      setProspectos((ps) => ps.map((p) => {
+        if (p.id !== a.prospectoId) return p;
+        const esSeguimientoActual = anterior && p.fechaSeguimiento === anterior.fecha && (p.horaSeguimiento || "") === (anterior.hora || "");
+        return {
+          ...p,
+          historial: [...(p.historial || []), entrada],
+          ...(esSeguimientoActual ? {
+            fechaSeguimiento: a.fecha,
+            horaSeguimiento: a.hora || p.horaSeguimiento,
+            ...(ACCIONES_SEGUIMIENTO.includes(a.tipo) ? { accionSeguimiento: a.tipo } : {}),
+          } : {}),
+        };
+      }));
+    }
+    setEvento(null);
+  }
+
+  function eliminarEvento(id) {
+    handleRemoveActivity(id);
+    setEvento(null);
+  }
+
   function handleExportExcel() {
     const wb = XLSX.utils.book_new();
 
@@ -3584,7 +3454,7 @@ function migrateClient(c) {
   const actividadesHoy = useMemo(() => {
     const hoyStr = todayStr();
     return (activities || [])
-      .filter((a) => !a.prospectoId && a.fecha === hoyStr)
+      .filter((a) => !a.prospectoId && ocurreEn(a, hoyStr))
       .map((a) => {
         const cli = clients.find((c) => c.id === a.clienteId);
         return {
@@ -4324,8 +4194,8 @@ function migrateClient(c) {
             clients={clients}
             prospectos={prospectos}
             activities={activities}
-            onAddActivity={handleAddActivity}
-            onRemoveActivity={handleRemoveActivity}
+            onNuevo={(fecha) => setEvento({ modo: "nuevo", fecha })}
+            onEditar={(actividad) => setEvento({ modo: "editar", actividad })}
           />
         )}
 
@@ -4473,6 +4343,7 @@ function migrateClient(c) {
             nombre={profile?.nombre}
             tonos={{ color: toneColor, soft: toneSoft, icon: toneIcon }}
             onGo={setTab}
+            onEditarEvento={(actividad) => setEvento({ modo: "editar", actividad })}
             userId={userId}
             actividad={actividad}
             comisionMes={comisionMesActual}
@@ -5023,6 +4894,19 @@ function migrateClient(c) {
             </div>
           </form>
         </div>
+      )}
+
+      {evento && (
+        <EventoModal
+          modo={evento.modo}
+          actividad={evento.actividad}
+          fechaInicial={evento.fecha || todayStr()}
+          clients={clients}
+          prospectos={prospectos}
+          onGuardar={guardarEvento}
+          onEliminar={eliminarEvento}
+          onCerrar={() => setEvento(null)}
+        />
       )}
 
       {convertir && (
