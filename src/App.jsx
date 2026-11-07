@@ -3324,7 +3324,22 @@ function migrateClient(c) {
     setProspectos((ps) => ps.filter((p) => p.id !== id));
   }
 
+  // Convertir a cliente pide primero la prima anual (obligatoria) y crea la primera póliza.
+  const [convertir, setConvertir] = useState(null); // { p, prima, aseguradora, ramo, error }
   function handleConvertProspecto(p) {
+    setConvertir({ p, prima: "", aseguradora: emptyPolicyForm.aseguradora, ramo: emptyPolicyForm.ramo, error: "" });
+  }
+  function confirmarConversion() {
+    if (!convertir.prima || Number(convertir.prima) <= 0) {
+      setConvertir((c) => ({ ...c, error: "La prima anual es obligatoria para convertir a cliente." }));
+      return;
+    }
+    const { p, prima, aseguradora, ramo } = convertir;
+    setConvertir(null);
+    convertirProspecto(p, { ...emptyPolicyForm, aseguradora, ramo, subramo: "", primaAnual: prima, id: (Date.now() + 2).toString() });
+  }
+
+  function convertirProspecto(p, poliza) {
     setClients((cs) => [...cs, {
       ...emptyClientForm,
       nombre: p.nombre,
@@ -3340,7 +3355,7 @@ function migrateClient(c) {
         { id: `${Date.now()}-c`, ts: Date.now(), titulo: "Convertido a cliente", detalle: "", comentario: "" },
       ],
       prospectoId: p.id,
-      polizas: [],
+      polizas: [poliza],
       id: Date.now().toString(),
     }]);
     setProspectos((ps) => ps.filter((x) => x.id !== p.id));
@@ -5007,6 +5022,39 @@ function migrateClient(c) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {convertir && (
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+          <div className="dialog-in" style={{ background: "#FFFFFF", borderRadius: 16, padding: 22, maxWidth: 360, width: "100%" }}>
+            <h3 className="serif" style={{ fontSize: 16, margin: "0 0 4px" }}>Convertir a cliente</h3>
+            <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 14px" }}>{convertir.p.nombre} · se conserva todo lo capturado como prospecto.</p>
+            <Field label="Aseguradora">
+              <select value={convertir.aseguradora} onChange={(e) => setConvertir((c) => ({ ...c, aseguradora: e.target.value }))} style={inputStyle}>
+                {ASEGURADORAS.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </Field>
+            <Field label="Ramo">
+              <select value={convertir.ramo} onChange={(e) => setConvertir((c) => ({ ...c, ramo: e.target.value }))} style={inputStyle}>
+                {RAMOS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </Field>
+            <Field label="Prima anual (obligatoria)">
+              <input type="number" inputMode="decimal" min="0" autoFocus value={convertir.prima}
+                onChange={(e) => setConvertir((c) => ({ ...c, prima: e.target.value, error: "" }))} style={inputStyle} />
+            </Field>
+            {convertir.error && <p style={{ color: "#B23A2E", fontSize: 12, margin: "-6px 0 10px" }}>{convertir.error}</p>}
+            <p style={{ fontSize: 11, color: "var(--stone)", margin: "0 0 12px" }}>El resto de la póliza (número, vigencia, archivo) lo completas en la pestaña Pólizas del cliente.</p>
+            <button onClick={confirmarConversion}
+              style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+              Convertir a cliente
+            </button>
+            <button onClick={() => { const pid = convertir.p.id; setProspectos((ps) => ps.map((x) => (x.id === pid && x.estado === "Cliente" ? { ...x, estado: "Seguimiento" } : x))); setConvertir(null); }}
+              style={{ width: "100%", background: "none", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}>
+              Seguir como prospecto
+            </button>
+          </div>
         </div>
       )}
 
