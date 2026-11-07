@@ -15,7 +15,7 @@ import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import MaterialApoyo, { useMaterialCompartido } from "./MaterialCompartido.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
-import { Target, Compass, ShieldCheck } from "lucide-react";
+import { Target, Compass, ShieldCheck, Building2 } from "lucide-react";
 import Administracion from "./Administracion.jsx";
 import { usePerfil, esAdmin } from "./perfil.js";
 import DiagnosticoPatrimonial from "./DiagnosticoPatrimonial.jsx";
@@ -57,6 +57,7 @@ const NAV_ITEMS = [
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
   { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
+  { id: "mcbrokers", label: "McBrokers", icon: Building2 },
 ];
 
 const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar", "Daños", "Salud", "Plan Personal de Retiro (PPR)", "Otro"];
@@ -570,17 +571,40 @@ function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
   );
 }
 
-const ESTADOS_PROSPECTO = ["Nuevo prospecto", "Contactado", "Seguimiento", "Cita", "Cotización enviada", "Solicitud en trámite", "Cliente", "Perdido"];
+const ESTADOS_PROSPECTO = ["Nuevo prospecto", "Seguimiento", "Cotización", "Cliente", "Perdido"];
 const ESTADO_COLOR = {
   "Nuevo prospecto": "var(--stone)",
-  "Contactado": "#4A6FA5",
   "Seguimiento": "#9C7A3C",
-  "Cita": "var(--gold)",
-  "Cotización enviada": "#6B7A8F",
-  "Solicitud en trámite": "#7A5C6E",
+  "Cotización": "#6B7A8F",
   "Cliente": "var(--emerald)",
   "Perdido": "#B23A2E",
 };
+// Embudo anterior (8 etapas) → embudo simplificado (5 etapas). Se aplica al cargar los prospectos guardados.
+const MIGRACION_ESTADOS = {
+  "Contactado": "Seguimiento",
+  "Cita": "Seguimiento",
+  "Solicitud en trámite": "Seguimiento",
+  "Cotización enviada": "Cotización",
+};
+function migrarProspecto(p) {
+  const estado = MIGRACION_ESTADOS[p.estado] || p.estado;
+  return { ...p, estado, historial: Array.isArray(p.historial) ? p.historial : [] };
+}
+// Lista de "Siguiente acción" de la etapa Seguimiento. Algunas acciones mueven al prospecto de etapa solas.
+const ACCIONES_SIGUIENTES = [
+  "Reagendar cita de inicio",
+  "Reagendar cita de seguimiento",
+  "Reagendar cita de cierre",
+  "Cotizar",
+  "Hacer solicitud",
+  "Recordar que firme solicitud",
+  "Entregar póliza",
+  "Pedir referidos",
+  "Ya es cliente",
+  "Pedir documentos pendientes p/ solicitud",
+  "Capturar referidos",
+];
+const ACCION_A_ESTADO = { "Cotizar": "Cotización", "Ya es cliente": "Cliente", "Entregar póliza": "Cliente" };
 const MOTIVOS_PERDIDO = [
   "No tiene presupuesto",
   "Ya tiene seguro",
@@ -592,15 +616,40 @@ const MOTIVOS_PERDIDO = [
 
 const ACCIONES_SEGUIMIENTO = ["Correo", "Llamada", "Whatsapp", "Reunión Virtual", "Cita Presencial"];
 
+// accionSiguiente = qué sigue (lista); accionSeguimiento = medio (Llamada, WhatsApp...); referidorId = cliente que lo refirió.
 const emptyProspecto = {
   nombre: "", telefono: "", correo: "", origen: "", estado: ESTADOS_PROSPECTO[0], notas: "", motivoPerdido: "", comentarioPerdido: "",
-  requiereSeguimiento: false, accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "",
-  cotizaciones: [],
+  accionSiguiente: "", accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "",
+  referidorId: "", referidorNombre: "",
+  cotizaciones: [], historial: [],
 };
+
+function fmtFechaHora(ts) {
+  try { return new Date(ts).toLocaleString("es-MX", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return ""; }
+}
+
+// Historial de movimientos de un prospecto (más reciente arriba). Solo lectura.
+function HistorialProspecto({ historial, titulo = "Historial" }) {
+  const lista = [...(historial || [])].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  if (!lista.length) return null;
+  return (
+    <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{titulo}</div>
+      {lista.map((h) => (
+        <div key={h.id} style={{ padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+          <div style={{ fontSize: 11, color: "var(--stone)" }}>{fmtFechaHora(h.ts)}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginTop: 1 }}>{h.titulo}</div>
+          {h.detalle && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 1 }}>{h.detalle}</div>}
+          {h.comentario && <div style={{ fontSize: 13, marginTop: 3, whiteSpace: "pre-wrap" }}>{h.comentario}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Sube uno o varios PDF de cotizaciones enviadas al prospecto (solo visible en estado "Cotización enviada").
 // `folderId` agrupa los archivos en Storage; `onChange` recibe una función que actualiza la lista.
-function CotizacionesPdf({ folderId, files, onChange }) {
+function CotizacionesPdf({ folderId, files, onChange, soloLectura = false }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -616,8 +665,10 @@ function CotizacionesPdf({ folderId, files, onChange }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sin sesión activa.");
       for (const file of picked) {
-        if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
-          failed.push(`${file.name} (no es PDF)`);
+        const esPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+        const esImagen = (file.type || "").startsWith("image/") || /\.(jpe?g|png|heic|heif|webp)$/i.test(file.name);
+        if (!esPdf && !esImagen) {
+          failed.push(`${file.name} (solo PDF o foto)`);
           continue;
         }
         const path = `prospectos/${user.id}/${folderId}/${Date.now()}-${added.length}-${slugifyFileName(file.name)}`;
@@ -635,15 +686,26 @@ function CotizacionesPdf({ folderId, files, onChange }) {
 
   async function openFile(f) {
     const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(f.path, 3600);
-    if (error || !data) { setErr("No se pudo abrir el PDF."); return; }
+    if (error || !data) { setErr("No se pudo abrir el archivo."); return; }
     window.open(data.signedUrl, "_blank", "noopener");
+  }
+
+  async function descargar(f) {
+    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(f.path, 300, { download: f.name });
+    if (error || !data) { setErr("No se pudo descargar el archivo."); return; }
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = f.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   const list = files || [];
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Cotizaciones enviadas (PDF)</div>
-      {list.length === 0 && <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 8px" }}>Aún no has subido cotizaciones.</p>}
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Cotizaciones (PDF o foto)</div>
+      {list.length === 0 && <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 8px" }}>{soloLectura ? "Sin cotizaciones." : "Aún no has subido cotizaciones."}</p>}
       {list.map((f) => (
         <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
           <FileText size={16} color="var(--stone)" style={{ flexShrink: 0 }} />
@@ -656,54 +718,229 @@ function CotizacionesPdf({ folderId, files, onChange }) {
           </button>
           <button
             type="button"
-            onClick={() => onChange((prev) => (prev || []).filter((x) => x.id !== f.id))}
-            aria-label={`Quitar ${f.name}`}
-            style={{ background: "none", border: "none", color: "#B23A2E", padding: 4 }}
+            onClick={() => descargar(f)}
+            aria-label={`Descargar ${f.name}`}
+            style={{ background: "none", border: "none", color: "var(--ink)", padding: 4 }}
           >
-            <Trash2 size={15} />
+            <Download size={15} />
           </button>
+          {!soloLectura && (
+            <button
+              type="button"
+              onClick={() => onChange((prev) => (prev || []).filter((x) => x.id !== f.id))}
+              aria-label={`Quitar ${f.name}`}
+              style={{ background: "none", border: "none", color: "#B23A2E", padding: 4 }}
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       ))}
-      <label style={{
+      {!soloLectura && <label style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10,
         border: "1px dashed var(--line)", borderRadius: 10, padding: "10px 12px", fontSize: 13,
         cursor: busy ? "default" : "pointer", color: "var(--ink)", opacity: busy ? 0.6 : 1,
       }}>
         <Upload size={15} />
-        {busy ? "Subiendo..." : "Subir PDF(s)"}
-        <input type="file" accept=".pdf,application/pdf" multiple disabled={busy} onChange={handleFiles} style={{ display: "none" }} />
-      </label>
+        {busy ? "Subiendo..." : "Subir PDF o foto"}
+        <input type="file" accept=".pdf,application/pdf,image/*" multiple disabled={busy} onChange={handleFiles} style={{ display: "none" }} />
+      </label>}
       {err && <p style={{ color: "#B23A2E", fontSize: 12, margin: "8px 0 0" }}>{err}</p>}
     </div>
   );
 }
 
-function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddActivity }) {
+// Campos compartidos del prospecto (alta y ficha): origen + referidor, etapa, siguiente acción, cotizaciones y notas.
+function CamposProspecto({ d, setD, clients, folderId }) {
+  const clientesOrdenados = useMemo(
+    () => [...(clients || [])].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es")),
+    [clients],
+  );
+
+  function cambiarEstado(valor) {
+    setD((x) => ({
+      ...x,
+      estado: valor,
+      motivoPerdido: valor === "Perdido" ? (x.motivoPerdido || MOTIVOS_PERDIDO[0]) : "",
+      comentarioPerdido: "",
+      // Si ya se había elegido una acción que mueve de etapa y se regresa a Seguimiento, se limpia para elegir la siguiente.
+      ...(valor === "Seguimiento" && ACCION_A_ESTADO[x.accionSiguiente] ? { accionSiguiente: "" } : {}),
+    }));
+  }
+
+  function cambiarAccion(valor) {
+    const destino = ACCION_A_ESTADO[valor];
+    setD((x) => ({ ...x, accionSiguiente: valor, ...(destino ? { estado: destino, motivoPerdido: "", comentarioPerdido: "" } : {}) }));
+  }
+
+  return (
+    <>
+      <Field label="Origen del prospecto">
+        <select
+          value={d.origen || ""}
+          onChange={(e) => {
+            const v = e.target.value;
+            setD((x) => ({ ...x, origen: v, ...(v === "Referido" ? {} : { referidorId: "", referidorNombre: "" }) }));
+          }}
+          style={inputStyle}
+        >
+          <option value="">Sin especificar</option>
+          {ORIGENES_PROSPECTO.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </Field>
+      {d.origen === "Referido" && (
+        <Field label="Referido por (cliente actual)">
+          <select
+            value={d.referidorId || ""}
+            onChange={(e) => {
+              const c = clientesOrdenados.find((x) => x.id === e.target.value);
+              setD((x) => ({ ...x, referidorId: c ? c.id : "", referidorNombre: c ? c.nombre : "" }));
+            }}
+            style={inputStyle}
+          >
+            <option value="">Selecciona al cliente que lo refirió</option>
+            {clientesOrdenados.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+          {clientesOrdenados.length === 0 && <p style={{ fontSize: 12, color: "var(--stone)", margin: "6px 0 0" }}>Aún no tienes clientes para ligar.</p>}
+        </Field>
+      )}
+      <Field label="Etapa">
+        <select value={d.estado} onChange={(e) => cambiarEstado(e.target.value)} style={inputStyle}>
+          {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+      </Field>
+
+      {d.estado === "Seguimiento" && (
+        <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
+          <Field label="Siguiente acción">
+            <select value={d.accionSiguiente || ""} onChange={(e) => cambiarAccion(e.target.value)} style={inputStyle}>
+              <option value="" disabled>Selecciona una acción</option>
+              {ACCIONES_SIGUIENTES.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </Field>
+          <Field label="Medio">
+            <select value={d.accionSeguimiento || ""} onChange={(e) => setD((x) => ({ ...x, accionSeguimiento: e.target.value }))} style={inputStyle}>
+              <option value="" disabled>Selecciona el medio</option>
+              {ACCIONES_SEGUIMIENTO.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </Field>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <Field label="Fecha">
+                <input type="date" value={d.fechaSeguimiento || ""} onChange={(e) => setD((x) => ({ ...x, fechaSeguimiento: e.target.value }))} style={inputStyle} />
+              </Field>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Field label="Horario">
+                <input type="time" value={d.horaSeguimiento || ""} onChange={(e) => setD((x) => ({ ...x, horaSeguimiento: e.target.value }))} style={inputStyle} />
+              </Field>
+            </div>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--stone)", margin: 0 }}>
+            "Cotizar" pasa el prospecto a Cotización; "Ya es cliente" y "Entregar póliza" lo convierten en cliente.
+          </p>
+        </div>
+      )}
+
+      {d.estado === "Perdido" && d.motivoPerdido && (
+        <div style={{ background: "#FBEAE7", borderRadius: 10, padding: "8px 10px", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {d.motivoPerdido}</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>Podrás cambiar el motivo al guardar.</div>
+        </div>
+      )}
+
+      {d.estado === "Cotización" && (
+        <CotizacionesPdf
+          folderId={folderId}
+          files={d.cotizaciones}
+          onChange={(fn) => setD((x) => ({ ...x, cotizaciones: fn(x.cotizaciones || []) }))}
+        />
+      )}
+
+      <Field label="Notas">
+        <input value={d.notas || ""} onChange={(e) => setD((x) => ({ ...x, notas: e.target.value }))} style={inputStyle} />
+      </Field>
+    </>
+  );
+}
+
+// ¿Hubo un movimiento que amerite comentario? (cambio de etapa, de acción, de agenda o de cotizaciones)
+function huboMovimiento(base, d) {
+  if (!base) return d.estado !== ESTADOS_PROSPECTO[0] || !!d.accionSiguiente || (d.cotizaciones || []).length > 0;
+  return (
+    base.estado !== d.estado
+    || (base.accionSiguiente || "") !== (d.accionSiguiente || "")
+    || (base.accionSeguimiento || "") !== (d.accionSeguimiento || "")
+    || (base.fechaSeguimiento || "") !== (d.fechaSeguimiento || "")
+    || (base.horaSeguimiento || "") !== (d.horaSeguimiento || "")
+    || (base.cotizaciones || []).length !== (d.cotizaciones || []).length
+  );
+}
+
+function fmtFechaCorta(f) {
+  if (!f) return "";
+  const [y, m, dd] = f.split("-");
+  return y && m && dd ? `${dd}/${m}/${y}` : f;
+}
+
+function armarEntrada(base, d, comentario, motivo) {
+  const estadoCambia = !base ? d.estado !== ESTADOS_PROSPECTO[0] : base.estado !== d.estado;
+  const accionCambia = !!d.accionSiguiente && (base?.accionSiguiente || "") !== d.accionSiguiente;
+  const agendaCambia = !!base && d.estado === "Seguimiento" && !accionCambia && (
+    (base.fechaSeguimiento || "") !== (d.fechaSeguimiento || "") || (base.horaSeguimiento || "") !== (d.horaSeguimiento || "")
+    || (base.accionSeguimiento || "") !== (d.accionSeguimiento || "")
+  );
+  const nCot = (d.cotizaciones || []).length;
+  const cotCambia = nCot !== (base?.cotizaciones || []).length;
+
+  let titulo;
+  if (accionCambia) titulo = `Acción: ${d.accionSiguiente}`;
+  else if (estadoCambia) titulo = `Etapa: ${base ? base.estado : "Alta"} → ${d.estado}`;
+  else if (agendaCambia) titulo = "Seguimiento reprogramado";
+  else if (cotCambia) titulo = "Cotizaciones actualizadas";
+  else titulo = "Movimiento";
+
+  const detalle = [];
+  if (accionCambia && estadoCambia) detalle.push(`Etapa: ${base ? base.estado : "Alta"} → ${d.estado}`);
+  if (d.estado === "Seguimiento" && (d.accionSeguimiento || d.fechaSeguimiento)) {
+    detalle.push([d.accionSeguimiento, [fmtFechaCorta(d.fechaSeguimiento), d.horaSeguimiento].filter(Boolean).join(" ")].filter(Boolean).join(" · "));
+  }
+  if (d.estado === "Perdido") detalle.push(`Motivo: ${motivo}`);
+  if (nCot > 0 && (cotCambia || d.estado === "Cotización")) detalle.push(`${nCot} cotización${nCot === 1 ? "" : "es"} adjunta${nCot === 1 ? "" : "s"}`);
+
+  return { id: `${Date.now()}-m`, ts: Date.now(), titulo, detalle: detalle.join(" · "), comentario };
+}
+
+function validarProspecto(d, base) {
+  if (!d.nombre.trim() || !d.telefono.trim()) return "Nombre y teléfono son obligatorios.";
+  if (d.estado === "Seguimiento") {
+    const campos = [d.accionSiguiente, d.accionSeguimiento, d.fechaSeguimiento, d.horaSeguimiento];
+    const entra = !base || base.estado !== "Seguimiento";
+    const algunoLleno = campos.some(Boolean);
+    if ((entra || algunoLleno) && !campos.every(Boolean)) {
+      return "En Seguimiento, la siguiente acción, el medio, la fecha y el horario son obligatorios.";
+    }
+  }
+  return "";
+}
+
+function Prospectos({ prospectos, clients, onAdd, onUpdate, onRemove, onConvert, onAddActivity }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyProspecto);
   const [error, setError] = useState("");
+  const [editError, setEditError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [filter, setFilter] = useState(null);
-  const [perdidoTarget, setPerdidoTarget] = useState(null); // "edit" | "new" | "swipe" | null
-  const [perdidoSwipe, setPerdidoSwipe] = useState(null); // prospecto marcado como Perdido deslizando la tarjeta
-  const [motivoPerdido, setMotivoPerdido] = useState(MOTIVOS_PERDIDO[0]);
-  const [comentarioPerdido, setComentarioPerdido] = useState("");
   const [draftFolder, setDraftFolder] = useState(() => `nuevo-${Date.now()}`);
+  // Movimiento pendiente de comentario: { modo: "new" | "edit" | "swipe", id, base, draft }
+  const [pendiente, setPendiente] = useState(null);
+  const [comentario, setComentario] = useState("");
+  const [errComentario, setErrComentario] = useState("");
+  const [motivoPerdido, setMotivoPerdido] = useState(MOTIVOS_PERDIDO[0]);
 
   const funnelData = ESTADOS_PROSPECTO.map((e) => [e, prospectos.filter((p) => p.estado === e).length]);
   const visible = filter ? prospectos.filter((p) => p.estado === filter) : prospectos;
-
-  function handleEstadoSelect(value, target) {
-    if (value === "Perdido") {
-      setMotivoPerdido(MOTIVOS_PERDIDO[0]);
-      setComentarioPerdido("");
-      setPerdidoTarget(target);
-      return;
-    }
-    if (target === "edit") setEditDraft((d) => ({ ...d, estado: value, motivoPerdido: "", comentarioPerdido: "" }));
-    else setForm((f) => ({ ...f, estado: value, motivoPerdido: "", comentarioPerdido: "" }));
-  }
 
   // Siguiente etapa del embudo. Convertir a cliente sigue siendo un paso explícito dentro de la ficha.
   function siguienteEstado(estado) {
@@ -713,70 +950,108 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
     return sig && sig !== "Cliente" ? sig : null;
   }
 
+  // Avanzar deslizando: abre la ficha con la nueva etapa para completar lo que pida (acción, cotización) y guardar con comentario.
   function avanzarPorGesto(p, sig) {
-    onUpdate(p.id, { ...p, estado: sig, motivoPerdido: "", comentarioPerdido: "" });
+    const { id, ...rest } = p;
+    setEditDraft({ ...rest, estado: sig, accionSiguiente: ACCION_A_ESTADO[rest.accionSiguiente] ? "" : (rest.accionSiguiente || "") });
+    setEditError("");
+    setExpandedId(p.id);
   }
 
   function perderPorGesto(p) {
-    setMotivoPerdido(MOTIVOS_PERDIDO[0]);
-    setComentarioPerdido("");
-    setPerdidoSwipe(p);
-    setPerdidoTarget("swipe");
+    const { id, ...rest } = p;
+    abrirComentario("swipe", p.id, p, { ...rest, estado: "Perdido", motivoPerdido: MOTIVOS_PERDIDO[0], comentarioPerdido: "" });
   }
 
-  function confirmPerdido() {
-    if (perdidoTarget === "swipe") {
-      if (perdidoSwipe) onUpdate(perdidoSwipe.id, { ...perdidoSwipe, estado: "Perdido", motivoPerdido, comentarioPerdido });
-      setPerdidoSwipe(null);
-    } else if (perdidoTarget === "edit") {
-      setEditDraft((d) => ({ ...d, estado: "Perdido", motivoPerdido, comentarioPerdido }));
-    } else {
-      setForm((f) => ({ ...f, estado: "Perdido", motivoPerdido, comentarioPerdido }));
+  function abrirComentario(modo, id, base, draft) {
+    setPendiente({ modo, id, base, draft });
+    setComentario("");
+    setErrComentario("");
+    setMotivoPerdido(draft.motivoPerdido || MOTIVOS_PERDIDO[0]);
+  }
+
+  // Punto único de guardado: si hubo movimiento, pide el comentario obligatorio; si no, guarda directo.
+  function solicitarGuardado(modo, id, base, draft) {
+    if (!huboMovimiento(base, draft)) { aplicarGuardado(modo, id, base, draft, null); return; }
+    abrirComentario(modo, id, base, draft);
+  }
+
+  function confirmarComentario() {
+    if (!comentario.trim()) { setErrComentario("El comentario es obligatorio para guardar."); return; }
+    const { modo, id, base, draft } = pendiente;
+    const d = draft.estado === "Perdido" ? { ...draft, motivoPerdido } : draft;
+    aplicarGuardado(modo, id, base, d, armarEntrada(base, d, comentario.trim(), motivoPerdido));
+    setPendiente(null);
+  }
+
+  function aplicarGuardado(modo, id, base, d, entrada) {
+    const historial = [...(d.historial || [])];
+    if (!base) {
+      historial.push({ id: `${Date.now()}-a`, ts: Date.now(), titulo: "Alta del prospecto", detalle: d.origen ? `Origen: ${d.origen}${d.referidorNombre ? ` (referido por ${d.referidorNombre})` : ""}` : "", comentario: "" });
     }
-    setPerdidoTarget(null);
+    if (entrada) historial.push(entrada);
+    const final = { ...d, historial };
+
+    if (modo === "new") onAdd({ ...final, id });
+    else onUpdate(id, final);
+
+    // Siguiente acción con fecha y hora → actividad en el Planificador (campanita y push, como antes).
+    const agendaLista = final.estado === "Seguimiento" && final.accionSiguiente && final.fechaSeguimiento && final.horaSeguimiento;
+    const agendaCambio = !base
+      || base.accionSiguiente !== final.accionSiguiente
+      || base.fechaSeguimiento !== final.fechaSeguimiento
+      || base.horaSeguimiento !== final.horaSeguimiento
+      || base.accionSeguimiento !== final.accionSeguimiento;
+    if (agendaLista && agendaCambio) {
+      onAddActivity({
+        id: (Date.now() + 1).toString(),
+        fecha: final.fechaSeguimiento,
+        hora: final.horaSeguimiento,
+        tipo: final.accionSeguimiento,
+        descripcion: `Seguimiento a prospecto: ${final.nombre.trim()} — ${final.accionSiguiente}`,
+        clienteId: "",
+        prospectoId: id,
+        prospectoNombre: final.nombre.trim(),
+        prospectoTelefono: final.telefono.trim(),
+      });
+    }
+
+    if (modo === "new") { setShowForm(false); setForm(emptyProspecto); setError(""); }
+    else { setExpandedId(null); setEditDraft(null); setEditError(""); }
+
+    if (final.estado === "Cliente") {
+      onConvert({ ...final, id });
+    } else if (final.accionSiguiente === "Capturar referidos" && entrada) {
+      // Abre el alta de un nuevo prospecto ya marcado como referido.
+      setForm({ ...emptyProspecto, origen: "Referido", notas: `Referido por el prospecto ${final.nombre.trim()}` });
+      setDraftFolder(`nuevo-${Date.now()}`);
+      setError("");
+      setShowForm(true);
+    }
   }
 
   function submitAdd(e) {
     e.preventDefault();
-    if (!form.nombre.trim() || !form.telefono.trim()) {
-      setError("Nombre y teléfono son obligatorios.");
-      return;
-    }
-    if (form.requiereSeguimiento && (!form.accionSeguimiento || !form.horaSeguimiento || !form.fechaSeguimiento)) {
-      setError("Para el seguimiento, la acción, el horario y la fecha son obligatorios.");
-      return;
-    }
-    const id = Date.now().toString();
-    onAdd({ ...form, id });
-    if (form.requiereSeguimiento) {
-      onAddActivity({
-        id: (Date.now() + 1).toString(),
-        fecha: form.fechaSeguimiento,
-        hora: form.horaSeguimiento,
-        tipo: form.accionSeguimiento,
-        descripcion: `Seguimiento a prospecto: ${form.nombre.trim()}`,
-        clienteId: "",
-        prospectoId: id,
-        prospectoNombre: form.nombre.trim(),
-        prospectoTelefono: form.telefono.trim(),
-      });
-    }
-    setForm(emptyProspecto);
+    const msg = validarProspecto(form, null);
+    if (msg) { setError(msg); return; }
     setError("");
-    setShowForm(false);
+    solicitarGuardado("new", Date.now().toString(), null, form);
   }
 
   function toggleExpand(p) {
     if (expandedId === p.id) { setExpandedId(null); setEditDraft(null); return; }
     const { id, ...rest } = p;
-    setEditDraft(rest);
+    setEditDraft({ ...emptyProspecto, ...rest });
+    setEditError("");
     setExpandedId(p.id);
   }
 
   function saveEdit(id) {
-    onUpdate(id, editDraft);
-    setExpandedId(null);
-    setEditDraft(null);
+    const base = prospectos.find((x) => x.id === id);
+    const msg = validarProspecto(editDraft, base);
+    if (msg) { setEditError(msg); return; }
+    setEditError("");
+    solicitarGuardado("edit", id, base, editDraft);
   }
 
   return (
@@ -817,6 +1092,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
         const isOpen = expandedId === p.id;
         const sigEstado = isOpen ? null : siguienteEstado(p.estado);
         const sePuedePerder = !isOpen && p.estado !== "Perdido" && p.estado !== "Cliente";
+        const nCot = (p.cotizaciones || []).length;
         return (
           <div key={p.id} className="panel lift" style={{ marginBottom: 10, overflow: "hidden" }}>
             <Deslizable
@@ -832,7 +1108,12 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[p.estado] }} />
-                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.estado}{p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}{p.estado === "Cotización enviada" && (p.cotizaciones || []).length > 0 ? ` · ${p.cotizaciones.length} PDF${p.cotizaciones.length === 1 ? "" : "s"}` : ""}</span>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                    {p.estado}
+                    {p.estado === "Seguimiento" && p.accionSiguiente ? ` · ${p.accionSiguiente}${p.fechaSeguimiento ? ` · ${fmtFechaCorta(p.fechaSeguimiento)}${p.horaSeguimiento ? ` ${p.horaSeguimiento}` : ""}` : ""}` : ""}
+                    {p.estado === "Perdido" && p.motivoPerdido ? ` · ${p.motivoPerdido}` : ""}
+                    {p.estado === "Cotización" && nCot > 0 ? ` · ${nCot} archivo${nCot === 1 ? "" : "s"}` : ""}
+                  </span>
                 </div>
               </div>
               <ChevronDown size={18} color="var(--stone)" style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none" }} />
@@ -841,6 +1122,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
 
             {isOpen && editDraft && (
               <div style={{ padding: "4px 16px 20px" }}>
+                {editError && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }}>{editError}</p>}
                 <Field label="Nombre completo">
                   <input value={editDraft.nombre} onChange={(e) => setEditDraft((d) => ({ ...d, nombre: e.target.value }))} style={inputStyle} />
                 </Field>
@@ -850,40 +1132,8 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
                 <Field label="Correo electrónico">
                   <input type="email" value={editDraft.correo || ""} onChange={(e) => setEditDraft((d) => ({ ...d, correo: e.target.value }))} style={inputStyle} />
                 </Field>
-                <Field label="Origen del prospecto">
-                  <select value={editDraft.origen || ""} onChange={(e) => setEditDraft((d) => ({ ...d, origen: e.target.value }))} style={inputStyle}>
-                    <option value="">Sin especificar</option>
-                    {ORIGENES_PROSPECTO.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </Field>
-                <Field label="Estado">
-                  <select value={editDraft.estado} onChange={(e) => handleEstadoSelect(e.target.value, "edit")} style={inputStyle}>
-                    {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
-                  </select>
-                </Field>
-                {editDraft.estado === "Perdido" && editDraft.motivoPerdido && (
-                  <div style={{ background: "#FBEAE7", borderRadius: 10, padding: "8px 10px", marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {editDraft.motivoPerdido}</div>
-                    {editDraft.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{editDraft.comentarioPerdido}</div>}
-                    <button
-                      type="button"
-                      onClick={() => { setMotivoPerdido(editDraft.motivoPerdido || MOTIVOS_PERDIDO[0]); setComentarioPerdido(editDraft.comentarioPerdido || ""); setPerdidoTarget("edit"); }}
-                      style={{ background: "none", border: "none", color: "#B23A2E", fontSize: 11, textDecoration: "underline", padding: 0, marginTop: 4 }}
-                    >
-                      Editar motivo
-                    </button>
-                  </div>
-                )}
-                {editDraft.estado === "Cotización enviada" && (
-                  <CotizacionesPdf
-                    folderId={p.id}
-                    files={editDraft.cotizaciones}
-                    onChange={(fn) => setEditDraft((d) => ({ ...d, cotizaciones: fn(d.cotizaciones || []) }))}
-                  />
-                )}
-                <Field label="Notas">
-                  <input value={editDraft.notas || ""} onChange={(e) => setEditDraft((d) => ({ ...d, notas: e.target.value }))} style={inputStyle} />
-                </Field>
+                <CamposProspecto d={editDraft} setD={setEditDraft} clients={clients} folderId={p.id} />
+                <HistorialProspecto historial={editDraft.historial} />
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600 }}>
                     Guardar cambios
@@ -921,87 +1171,7 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
             <Field label="Correo electrónico">
               <input type="email" value={form.correo} onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))} style={inputStyle} />
             </Field>
-            <Field label="Origen del prospecto">
-              <select value={form.origen || ""} onChange={(e) => setForm((f) => ({ ...f, origen: e.target.value }))} style={inputStyle}>
-                <option value="">Sin especificar</option>
-                {ORIGENES_PROSPECTO.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </Field>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, marginBottom: form.requiereSeguimiento ? 10 : 14, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={form.requiereSeguimiento}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setForm((f) => ({
-                    ...f,
-                    requiereSeguimiento: checked,
-                    ...(checked ? {} : { accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "" }),
-                  }));
-                }}
-              />
-              Requiere seguimiento
-            </label>
-            {form.requiereSeguimiento && (
-              <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
-                <Field label="Acción">
-                  <select
-                    value={form.accionSeguimiento}
-                    onChange={(e) => setForm((f) => ({ ...f, accionSeguimiento: e.target.value }))}
-                    required={form.requiereSeguimiento}
-                    style={inputStyle}
-                  >
-                    <option value="" disabled>Selecciona una acción</option>
-                    {ACCIONES_SEGUIMIENTO.map((a) => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                </Field>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <Field label="Horario">
-                      <input
-                        type="time"
-                        value={form.horaSeguimiento}
-                        onChange={(e) => setForm((f) => ({ ...f, horaSeguimiento: e.target.value }))}
-                        required={form.requiereSeguimiento}
-                        style={inputStyle}
-                      />
-                    </Field>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <Field label="Fecha">
-                      <input
-                        type="date"
-                        value={form.fechaSeguimiento}
-                        onChange={(e) => setForm((f) => ({ ...f, fechaSeguimiento: e.target.value }))}
-                        required={form.requiereSeguimiento}
-                        style={inputStyle}
-                      />
-                    </Field>
-                  </div>
-                </div>
-              </div>
-            )}
-            <Field label="Estado">
-              <select value={form.estado} onChange={(e) => handleEstadoSelect(e.target.value, "new")} style={inputStyle}>
-                {ESTADOS_PROSPECTO.map((e) => <option key={e} value={e}>{e}</option>)}
-              </select>
-            </Field>
-            {form.estado === "Perdido" && form.motivoPerdido && (
-              <div style={{ background: "#FBEAE7", borderRadius: 10, padding: "8px 10px", marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#B23A2E" }}>Motivo: {form.motivoPerdido}</div>
-                {form.comentarioPerdido && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{form.comentarioPerdido}</div>}
-              </div>
-            )}
-            {form.estado === "Cotización enviada" && (
-              <CotizacionesPdf
-                folderId={draftFolder}
-                files={form.cotizaciones}
-                onChange={(fn) => setForm((f) => ({ ...f, cotizaciones: fn(f.cotizaciones || []) }))}
-              />
-            )}
-            <Field label="Notas">
-              <input value={form.notas} onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))} style={inputStyle} />
-            </Field>
+            <CamposProspecto d={form} setD={setForm} clients={clients} folderId={draftFolder} />
             <button type="submit" style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600 }}>
               Guardar prospecto
             </button>
@@ -1009,32 +1179,41 @@ function Prospectos({ prospectos, onAdd, onUpdate, onRemove, onConvert, onAddAct
         </div>
       )}
 
-      {perdidoTarget && (
-        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 20 }}>
-          <div className="dialog-in" style={{ background: "#FFFFFF", borderRadius: 16, padding: 22, maxWidth: 360, width: "100%" }}>
-            <h3 className="serif" style={{ fontSize: 16, margin: "0 0 14px" }}>¿Por qué se perdió?</h3>
-            <Field label="Motivo">
-              <select value={motivoPerdido} onChange={(e) => setMotivoPerdido(e.target.value)} style={inputStyle}>
-                {MOTIVOS_PERDIDO.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </Field>
-            <Field label="Comentarios (opcional)">
+      {pendiente && (
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(27,42,65,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40, padding: 20 }}>
+          <div className="dialog-in" style={{ background: "#FFFFFF", borderRadius: 16, padding: 22, maxWidth: 380, width: "100%" }}>
+            <h3 className="serif" style={{ fontSize: 16, margin: "0 0 4px" }}>Comentarios</h3>
+            <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 14px" }}>
+              {pendiente.draft.nombre} · {pendiente.base ? `${pendiente.base.estado} → ${pendiente.draft.estado}` : pendiente.draft.estado}
+              {pendiente.draft.accionSiguiente ? ` · ${pendiente.draft.accionSiguiente}` : ""}
+            </p>
+            {pendiente.draft.estado === "Perdido" && (
+              <Field label="Motivo">
+                <select value={motivoPerdido} onChange={(e) => setMotivoPerdido(e.target.value)} style={inputStyle}>
+                  {MOTIVOS_PERDIDO.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </Field>
+            )}
+            <Field label="¿Qué pasó? (obligatorio)">
               <textarea
-                value={comentarioPerdido}
-                onChange={(e) => setComentarioPerdido(e.target.value)}
-                rows={3}
+                autoFocus
+                value={comentario}
+                onChange={(e) => { setComentario(e.target.value); if (errComentario) setErrComentario(""); }}
+                rows={4}
+                placeholder="Escribe lo que se habló o acordó…"
                 style={{ ...inputStyle, resize: "vertical" }}
               />
             </Field>
+            {errComentario && <p style={{ color: "#B23A2E", fontSize: 12, margin: "-6px 0 10px" }}>{errComentario}</p>}
             <div style={{ display: "flex", gap: 8 }}>
               <button
-                onClick={confirmPerdido}
+                onClick={confirmarComentario}
                 style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 600 }}
               >
                 Guardar
               </button>
               <button
-                onClick={() => setPerdidoTarget(null)}
+                onClick={() => setPendiente(null)}
                 style={{ background: "none", border: "1px solid var(--line)", color: "var(--ink)", borderRadius: 10, padding: "10px 14px", fontSize: 13 }}
               >
                 Cancelar
@@ -3120,7 +3299,7 @@ function migrateClient(c) {
     (async () => {
       try {
         const res = await window.storage.get("prospectos");
-        if (res && res.value) setProspectos(JSON.parse(res.value));
+        if (res && res.value) setProspectos(JSON.parse(res.value).map(migrarProspecto));
         setProspectosLoaded(true);
       } catch (e) {
         console.error("No se pudieron cargar los prospectos:", e);
@@ -3152,6 +3331,14 @@ function migrateClient(c) {
       telefono: p.telefono,
       correo: p.correo || "",
       origen: p.origen || "",
+      referidorId: p.referidorId || "",
+      referidorNombre: p.referidorNombre || "",
+      notasProspecto: p.notas || "",
+      cotizaciones: p.cotizaciones || [],
+      historialProspecto: [
+        ...(p.historial || []),
+        { id: `${Date.now()}-c`, ts: Date.now(), titulo: "Convertido a cliente", detalle: "", comentario: "" },
+      ],
       prospectoId: p.id,
       polizas: [],
       id: Date.now().toString(),
@@ -3861,6 +4048,15 @@ function migrateClient(c) {
               <X size={18} />
             </button>
           </div>
+          <button
+            type="button"
+            className={"side-mcb" + (tab === "mcbrokers" ? " active" : "")}
+            onClick={() => { setTab("mcbrokers"); setMenuOpen(false); }}
+            aria-label="McBrokers"
+            aria-current={tab === "mcbrokers" ? "page" : undefined}
+          >
+            <img src="/mcbrokers-logo.png" alt="McBrokers" />
+          </button>
           {NAV_GROUPS.filter((g) => !g.soloAdmin || soyAdmin).map((g) => {
             const abierto = gruposAbiertos.includes(g.title);
             return (
@@ -4490,6 +4686,8 @@ function migrateClient(c) {
                           { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
                           { id: "documentos", label: "Documentos Artículo 492" },
                           { id: "facturas", label: "Facturas Agente" },
+                          ...((c.historialProspecto || []).length || (c.cotizaciones || []).length
+                            ? [{ id: "origen", label: "Origen y seguimiento" }] : []),
                         ].map((t) => (
                           <button
                             key={t.id}
@@ -4540,6 +4738,19 @@ function migrateClient(c) {
                         />
                       )}
 
+                      {expandedTab === "origen" && (
+                        <div>
+                          {(c.origen || c.referidorNombre || c.notasProspecto) && (
+                            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                              {c.origen && <div>Origen: <b>{c.origen}</b>{c.referidorNombre ? ` · referido por ${c.referidorNombre}` : ""}</div>}
+                              {c.notasProspecto && <div style={{ marginTop: 4 }}>Notas: {c.notasProspecto}</div>}
+                            </div>
+                          )}
+                          <HistorialProspecto historial={c.historialProspecto} titulo="Historial como prospecto" />
+                          <CotizacionesPdf folderId={c.prospectoId || c.id} files={c.cotizaciones} onChange={() => {}} soloLectura />
+                        </div>
+                      )}
+
                       {expandedTab === "documentos" && (
                         <Documentos
                           clientId={c.id}
@@ -4565,6 +4776,7 @@ function migrateClient(c) {
         {tab === "prospectos" && (
           <Prospectos
             prospectos={prospectos}
+            clients={clients}
             onAdd={handleAddProspecto}
             onUpdate={handleUpdateProspecto}
             onRemove={handleRemoveProspecto}
@@ -4621,6 +4833,14 @@ function migrateClient(c) {
         {tab === "diagnostico" && <DiagnosticoPatrimonial clients={clients} prospectos={prospectos} agente={profile?.nombre || ""} correo={profile?.correo || ""} />}
 
         {tab === "material" && <MaterialApoyo nombreAgente={profile?.nombre || ""} />}
+
+        {tab === "mcbrokers" && (
+          <EnConstruccion
+            eyebrow="Broker"
+            titulo="McBrokers"
+            mensaje="Estamos preparando esta sección. ¡Vuelve pronto!"
+          />
+        )}
 
         {tab === "admin" && soyAdmin && <Administracion miId={perfilSesion?.user_id} />}
 
