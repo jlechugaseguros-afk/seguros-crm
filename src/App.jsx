@@ -37,7 +37,7 @@ import AyudaFlotante from "./AyudaFlotante.jsx";
 import CarteraAccion from "./CarteraAccion.jsx";
 import SiniestrosCliente, { siniestrosAbiertos } from "./SiniestrosCliente.jsx";
 import { respaldoAutomaticoSiToca } from "./respaldo.js";
-import { PAGOS_POR_ANIO, MESES_ENTRE_PAGOS, addMonthsStr, pagosDePoliza, fmtMonto, daysUntil, fmtDateFull } from "./pagos.js";
+import { pagosDePoliza, fmtMonto, daysUntil, fmtDateFull } from "./pagos.js";
 import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
 
 const DOCS_BUCKET = "documentos";
@@ -50,7 +50,7 @@ const NAV_ITEMS = [
   { id: "planificador", label: "Planificador", icon: CalendarDays },
   { id: "recordatorios", label: "Recordatorios", icon: Bell },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "actividad", label: "Mi meta y actividad", icon: Target },
+  { id: "actividad", label: "Meta y comisiones", icon: Target },
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "cartera", label: "Cobranza y renovaciones", icon: RefreshCw },
   { id: "prospectos", label: "Prospectos", icon: UserPlus },
@@ -58,7 +58,6 @@ const NAV_ITEMS = [
   { id: "material", label: "Material de apoyo", icon: FolderOpen },
   { id: "admin", label: "Administración", icon: ShieldCheck },
   { id: "tarjeta", label: "Tarjeta digital", icon: CreditCard },
-  { id: "comisiones", label: "Comisiones", icon: Calculator },
   { id: "factura", label: "Calculadora de factura", icon: FileText },
   { id: "deducible", label: "Deducible y coaseguro", icon: Calculator },
   { id: "siniestros", label: "Siniestros", icon: ShieldAlert },
@@ -199,7 +198,7 @@ const MULTICOTIZADOR_MENU = [
 
 const NAV_GROUPS = [
   { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "cartera", "prospectos"] },
-  { title: "Herramientas", ids: ["condiciones", "material", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "diagnostico", "multicotizador", "directorios"] },
+  { title: "Herramientas", ids: ["condiciones", "material", "tarjeta", "factura", "deducible", "siniestros", "diagnostico", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
   { title: "Administración", ids: ["admin"], soloAdmin: true },
 ];
@@ -2689,7 +2688,9 @@ export default function SegurosCRM() {
   // Accesos por pestaña definidos por el administrador (sin lista = ve todo; el administrador siempre ve todo).
   const accesos = !soyAdmin && Array.isArray(perfilSesion?.pestanas_permitidas) && perfilSesion.pestanas_permitidas.length
     ? perfilSesion.pestanas_permitidas : null;
-  const puedeVer = (id) => !accesos || accesos.includes(id);
+  // "Meta y actividad" y "Comisiones" ahora son una sola pestaña: quien tenía una de las dos conserva su acceso.
+  const puedeVer = (id) => !accesos || accesos.includes(id)
+    || ((id === "actividad" || id === "comisiones") && (accesos.includes("actividad") || accesos.includes("comisiones")));
   // Espacio de trabajo: "privado" (todo el CRM) o "snte" (Espacio SNTE · McBrokers). Un agente que solo tiene acceso al Espacio SNTE entra directo a él.
   const [espacio, setEspacio] = useState("privado");
   const soloSnte = !!accesos && puedeVer("mcbrokers") && !NAV_GROUPS.flatMap((g) => g.ids).some(puedeVer);
@@ -4030,7 +4031,7 @@ function migrateClient(c) {
                 const item = NAV_ITEMS.find((n) => n.id === id);
                 if (!item) return null;
                 const externalUrl = NAV_EXTERNAL_LINKS[item.id];
-                const isActive = tab === item.id;
+                const isActive = tab === item.id || (item.id === "actividad" && tab === "comisiones");
                 const Icon = item.icon;
                 const inner = (
                   <>
@@ -4422,6 +4423,17 @@ function migrateClient(c) {
             actividad={actividad}
             comisionMes={comisionMesActual}
           />
+        )}
+
+        {(tab === "actividad" || tab === "comisiones") && (
+          <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid var(--line)" }}>
+            {[{ id: "actividad", label: "Mi meta y actividad" }, { id: "comisiones", label: "Comisiones" }].map((t) => (
+              <button key={t.id} type="button" onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined} style={{
+                background: "none", border: "none", padding: "8px 12px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                color: tab === t.id ? "var(--ink)" : "var(--stone)", borderBottom: tab === t.id ? "2px solid #C98A2C" : "2px solid transparent",
+              }}>{t.label}</button>
+            ))}
+          </div>
         )}
 
         {tab === "actividad" && (

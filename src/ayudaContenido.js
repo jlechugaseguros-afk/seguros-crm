@@ -197,10 +197,10 @@ export const AYUDA_TEMAS = [
   {
     id: "meta",
     tab: "actividad",
-    titulo: "Mi meta y actividad",
+    titulo: "Meta y comisiones: mi meta y actividad",
     palabras: "meta actividad objetivo economica avance prospeccion llamadas citas ventas tiempo",
     pasos: [
-      "En Mi meta y actividad fijas tu meta económica.",
+      "En Meta y comisiones, pestaña Mi meta y actividad, fijas tu meta económica.",
       "Registra tu actividad diaria (prospección, llamadas, citas, ventas).",
       "Ves tu avance real hacia la meta y en qué inviertes más tiempo.",
     ],
@@ -211,7 +211,7 @@ export const AYUDA_TEMAS = [
     titulo: "Comisiones y metas mensuales",
     palabras: "comisiones comision porcentaje meta mensual semaforo ramo prima neta ppr",
     pasos: [
-      "En Comisiones ves lo que generas por ramo, calculado sobre la prima anual.",
+      "En Meta y comisiones, pestaña Comisiones, ves lo que generas por ramo, calculado sobre la prima anual.",
       "El semáforo muestra dónde se concentra tu venta.",
       "Captura tu meta mensual (número de pólizas y prima neta) por ramo.",
     ],
