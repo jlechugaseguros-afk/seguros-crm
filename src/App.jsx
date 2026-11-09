@@ -35,6 +35,7 @@ import Hoja from "./Hoja.jsx";
 import Deslizable from "./Deslizable.jsx";
 import AyudaFlotante from "./AyudaFlotante.jsx";
 import CarteraAccion from "./CarteraAccion.jsx";
+import SiniestrosCliente, { siniestrosAbiertos } from "./SiniestrosCliente.jsx";
 import { respaldoAutomaticoSiToca } from "./respaldo.js";
 import { PAGOS_POR_ANIO, MESES_ENTRE_PAGOS, addMonthsStr, pagosDePoliza, fmtMonto, daysUntil, fmtDateFull } from "./pagos.js";
 import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
@@ -4645,6 +4646,7 @@ function migrateClient(c) {
                           { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
                           { id: "documentos", label: "Documentos Artículo 492" },
                           { id: "facturas", label: "Facturas Agente" },
+                          { id: "siniestros", label: `Siniestros${(c.siniestros || []).length ? ` (${siniestrosAbiertos(c)}/${(c.siniestros || []).length})` : ""}` },
                           ...((c.historialProspecto || []).length || (c.cotizaciones || []).length
                             ? [{ id: "origen", label: "Origen y seguimiento" }] : []),
                         ].map((t) => (
@@ -4677,6 +4679,13 @@ function migrateClient(c) {
                           onSubmit={(e) => handleAddPolizaSubmit(e, c.id)}
                           onRemove={(policyId) => handleRemovePoliza(c.id, policyId)}
                           onReplaceDoc={(policyId, file) => handleReplacePolizaDoc(c.id, policyId, file)}
+                        />
+                      )}
+
+                      {expandedTab === "siniestros" && (
+                        <SiniestrosCliente
+                          client={c}
+                          onChange={(siniestros) => setClients((cs) => cs.map((x) => (x.id === c.id ? { ...x, siniestros } : x)))}
                         />
                       )}
 

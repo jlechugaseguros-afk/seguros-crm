@@ -238,6 +238,18 @@ export const AYUDA_TEMAS = [
     ],
   },
   {
+    id: "siniestro-cliente",
+    tab: "clientes",
+    titulo: "Dar seguimiento a un siniestro de un cliente",
+    palabras: "siniestro siniestros seguimiento reclamo choque robo estatus historial reportado pagado rechazado cliente",
+    pasos: [
+      "Abre al cliente y entra a su pestaña Siniestros.",
+      "Toca Registrar siniestro: fecha (dd/mm/aaaa), póliza, tipo y, si lo tienes, número de reporte y monto reclamado.",
+      "Cambia el estatus (Reportado, En proceso, Documentos pendientes, Pagado, Rechazado, Cerrado) y agrega notas: todo queda en el historial.",
+      "Los teléfonos para reportar por aseguradora están en la pestaña Siniestros del menú.",
+    ],
+  },
+  {
     id: "siniestros",
     tab: "siniestros",
     titulo: "Siniestros: teléfonos e instrucciones por aseguradora",
