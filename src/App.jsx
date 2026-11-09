@@ -17,6 +17,7 @@ import ImportarCartera from "./ImportarCartera.jsx";
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import MaterialApoyo, { useMaterialCompartido } from "./MaterialCompartido.jsx";
+import SnteEspacio from "./snte/SnteEspacio.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
 import { Target, Compass, ShieldCheck, Building2 } from "lucide-react";
 import Administracion from "./Administracion.jsx";
@@ -60,7 +61,7 @@ const NAV_ITEMS = [
   { id: "directorios", label: "Directorios médicos", icon: Stethoscope },
   { id: "examen", label: "Prepárate para tu examen", icon: GraduationCap },
   { id: "cedulaA", label: "Simulador Cédula A", icon: Award },
-  { id: "mcbrokers", label: "McBrokers", icon: Building2 },
+  { id: "mcbrokers", label: "Espacio SNTE", icon: Building2 },
 ];
 
 const RAMOS = ["Autos", "Vida", "GMM", "Mascotas", "Hogar", "Daños", "Salud", "Plan Personal de Retiro (PPR)", "Otro"];
@@ -203,7 +204,7 @@ const PESTANAS_CHECKLIST = [
     titulo: g.title,
     items: g.ids.map((id) => ({ id, label: (NAV_ITEMS.find((n) => n.id === id) || {}).label || id })),
   })),
-  { titulo: "Broker", items: [{ id: "mcbrokers", label: "McBrokers" }] },
+  { titulo: "Broker", items: [{ id: "mcbrokers", label: "Espacio SNTE (McBrokers)" }] },
 ];
 
 const DIRECTORIOS_MEDICOS = [
@@ -2685,6 +2686,10 @@ export default function SegurosCRM() {
   const accesos = !soyAdmin && Array.isArray(perfilSesion?.pestanas_permitidas) && perfilSesion.pestanas_permitidas.length
     ? perfilSesion.pestanas_permitidas : null;
   const puedeVer = (id) => !accesos || accesos.includes(id);
+  // Espacio de trabajo: "privado" (todo el CRM) o "snte" (Espacio SNTE · McBrokers). Un agente que solo tiene acceso al Espacio SNTE entra directo a él.
+  const [espacio, setEspacio] = useState("privado");
+  const soloSnte = !!accesos && puedeVer("mcbrokers") && !NAV_GROUPS.flatMap((g) => g.ids).some(puedeVer);
+  const espacioActual = soloSnte || (espacio === "snte" && puedeVer("mcbrokers")) ? "snte" : "privado";
   const tab = puedeVer(tabSel) ? tabSel : (NAV_GROUPS.flatMap((g) => g.ids).find(puedeVer) || "dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirOpen, setDirOpen] = useState(false);
@@ -3145,6 +3150,16 @@ function migrateClient(c) {
     setProspectos((ps) => [...ps, p]);
   }
 
+  // Prospecto que nace en la Cartera del Espacio SNTE: queda marcado con mercado "snte" y devuelve su id.
+  function handleNuevoProspectoSnte({ nombre, telefono, notas }) {
+    const id = `snte-${Date.now()}`;
+    handleAddProspecto({
+      ...emptyProspecto, id, nombre, telefono, notas: notas || "", origen: "Cartera SNTE", mercado: "snte",
+      historial: [{ id: `${id}-a`, ts: Date.now(), titulo: "Alta del prospecto", detalle: "Origen: Cartera SNTE", comentario: "" }],
+    });
+    return id;
+  }
+
   function handleUpdateProspecto(id, data) {
     setProspectos((ps) => ps.map((p) => (p.id === id ? { ...data, id } : p)));
   }
@@ -3184,11 +3199,12 @@ function migrateClient(c) {
         { id: `${Date.now()}-c`, ts: Date.now(), titulo: "Convertido a cliente", detalle: "", comentario: "" },
       ],
       prospectoId: p.id,
+      mercado: p.mercado || "",
       polizas: [poliza],
       id: Date.now().toString(),
     }]);
     setProspectos((ps) => ps.filter((x) => x.id !== p.id));
-    setTab("clientes");
+    if (p.mercado !== "snte") setTab("clientes");
   }
 
   const [activities, setActivities] = useState([]);
@@ -3935,7 +3951,31 @@ function migrateClient(c) {
     }}>
       {baseStyles}
 
-      <div className="app-shell">
+      {espacioActual === "snte" && (
+        <SnteEspacio
+          userId={perfilSesion?.user_id}
+          soyAdmin={soyAdmin}
+          soloSnte={soloSnte}
+          onSalir={() => setEspacio("privado")}
+          clientesSnte={clients.filter((c) => c.mercado === "snte")}
+          prospectosSnte={prospectos.filter((p) => p.mercado === "snte")}
+          onNuevoProspecto={handleNuevoProspectoSnte}
+          prospectosView={(
+            <Prospectos
+              prospectos={prospectos.filter((p) => p.mercado === "snte")}
+              clients={clients}
+              onAdd={(p) => handleAddProspecto({ ...p, mercado: "snte" })}
+              onUpdate={(id, d) => handleUpdateProspecto(id, { ...d, mercado: "snte" })}
+              onRemove={handleRemoveProspecto}
+              onConvert={handleConvertProspecto}
+              onAddActivity={handleAddActivity}
+            />
+          )}
+          materialView={<MaterialApoyo nombreAgente={profile?.nombre || ""} />}
+        />
+      )}
+
+      <div className="app-shell" style={espacioActual === "snte" ? { display: "none" } : undefined}>
         <aside className={"app-side" + (menuOpen ? " on" : "")} aria-label="Menú principal">
           <div className="side-brand">
             {tarjeta.fotoUrl ? (
@@ -3955,12 +3995,13 @@ function migrateClient(c) {
           </div>
           {puedeVer("mcbrokers") && <button
             type="button"
-            className={"side-mcb" + (tab === "mcbrokers" ? " active" : "")}
-            onClick={() => { setTab("mcbrokers"); setMenuOpen(false); }}
-            aria-label="McBrokers"
-            aria-current={tab === "mcbrokers" ? "page" : undefined}
+            className="side-mcb"
+            onClick={() => { setEspacio("snte"); setMenuOpen(false); }}
+            aria-label="Abrir el Espacio SNTE de McBrokers"
           >
-            <img src="/mcbrokers-logo.png" alt="McBrokers" />
+            <img src="/mcbrokers-logo.png" alt="" aria-hidden="true" />
+            <span className="side-mcb-txt"><b>Espacio SNTE</b><small>Cartera McBrokers</small></span>
+            <ChevronDown size={16} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} />
           </button>}
           {NAV_GROUPS.filter((g) => (!g.soloAdmin || soyAdmin) && g.ids.some(puedeVer)).map((g) => {
             const abierto = gruposAbiertos.includes(g.title);
@@ -4681,7 +4722,7 @@ function migrateClient(c) {
 
         {tab === "prospectos" && (
           <Prospectos
-            prospectos={prospectos}
+            prospectos={prospectos.filter((p) => p.mercado !== "snte")}
             clients={clients}
             onAdd={handleAddProspecto}
             onUpdate={handleUpdateProspecto}
@@ -4739,14 +4780,6 @@ function migrateClient(c) {
         {tab === "diagnostico" && <DiagnosticoPatrimonial clients={clients} prospectos={prospectos} agente={profile?.nombre || ""} correo={profile?.correo || ""} />}
 
         {tab === "material" && <MaterialApoyo nombreAgente={profile?.nombre || ""} />}
-
-        {tab === "mcbrokers" && (
-          <EnConstruccion
-            eyebrow="Broker"
-            titulo="McBrokers"
-            mensaje="Estamos preparando esta sección. ¡Vuelve pronto!"
-          />
-        )}
 
         {tab === "admin" && soyAdmin && <Administracion miId={perfilSesion?.user_id} pestanas={PESTANAS_CHECKLIST} />}
 

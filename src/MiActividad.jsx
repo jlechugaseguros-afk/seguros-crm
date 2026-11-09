@@ -12,7 +12,7 @@ import "./MiActividad.css";
 // Datos base
 // ---------------------------------------------------------------------------
 
-export const ORIGENES_PROSPECTO = ["Referido", "Redes sociales", "Prospección en frío", "Cartera actual", "Evento / networking", "Empresa / B2B", "Landing page", "Otro"];
+export const ORIGENES_PROSPECTO = ["Referido", "Redes sociales", "Prospección en frío", "Cartera actual", "Evento / networking", "Empresa / B2B", "Landing page", "Cartera SNTE", "Otro"];
 
 export const CATEGORIAS = {
   prospeccion: { label: "Prospección", color: "#2F80ED" },

@@ -732,3 +732,11 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .evm-ultimo strong.c { font-size: 14px; white-space: pre-wrap; margin-top: 2px; }
 .evm-prev { font-size: 12.5px; margin: 4px 0 4px; color: var(--muted); }
 .evm-h-item .t { font-size: 13px; color: var(--ink); }
+
+/* Botón del Espacio SNTE (McBrokers) en el menú lateral */
+.side-mcb { justify-content: flex-start; gap: 10px; text-align: left; border-color: #F2C79B; box-shadow: 0 6px 16px -10px rgba(194,87,12,.7); }
+.side-mcb img { height: 24px; width: auto; max-width: 70px; flex-shrink: 0; }
+.side-mcb-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.side-mcb-txt b { font-size: 13px; color: #C2570C; font-weight: 700; }
+.side-mcb-txt small { font-size: 11px; color: #7C5C44; }
+.side-mcb svg { color: #C2570C; }
