@@ -116,6 +116,40 @@ export const AYUDA_TEMAS = [
     ],
   },
   {
+    id: "cobranza",
+    tab: "cartera",
+    titulo: "Cobranza: pagos vencidos y por cobrar",
+    palabras: "cobranza cobrar cobro pagado pendiente vencido pago recibo dinero riesgo domiciliado",
+    pasos: [
+      "En Cobranza y renovaciones, pestaña Cobranza, ves cuánto está vencido, por cobrar en 30 días y cobrado este mes.",
+      "Toca Cobrado cuando el cliente pague (puedes Deshacer).",
+      "Con WhatsApp o Llamar le recuerdas el pago con un mensaje ya escrito.",
+      "Los pagos se calculan de la fecha de pago, prima y pago fraccionado de cada póliza.",
+    ],
+  },
+  {
+    id: "renovaciones",
+    tab: "cartera",
+    titulo: "Renovaciones: 15, 30, 60 y 90 días",
+    palabras: "renovacion renovaciones renovar vence vencimiento vencidas embudo estatus contactado cotizado renovado",
+    pasos: [
+      "En la pestaña Renovaciones las pólizas se ordenan por cuántos días faltan para vencer.",
+      "Cambia el estatus: Por contactar, Contactado, Cotizado, Renovado o No renueva.",
+      "Al marcar Renovado, el CRM puede mover la póliza al siguiente año automáticamente.",
+      "Necesitas fecha de renovación o fin de vigencia en la póliza.",
+    ],
+  },
+  {
+    id: "venta-cruzada",
+    tab: "cartera",
+    titulo: "Venta cruzada: qué ofrecerle a mis clientes",
+    palabras: "venta cruzada ofrecer cruzar oportunidad vida gmm ppr hogar cliente falta complementaria",
+    pasos: [
+      "En la pestaña Venta cruzada ves clientes a los que les falta una protección (por ejemplo, tiene Auto pero no Vida).",
+      "Toca WhatsApp para enviar un mensaje sugerido, luego marca Ya ofrecí o No aplica.",
+    ],
+  },
+  {
     id: "recordatorios",
     tab: "recordatorios",
     titulo: "Recordatorios de pagos, renovaciones y cumpleaños",
@@ -312,6 +346,7 @@ export const AYUDA_TEMAS = [
 
 // Preguntas sugeridas según la pestaña donde está el agente (ids de AYUDA_TEMAS).
 export const SUGERIDOS_POR_TAB = {
+  cartera: ["cobranza", "renovaciones", "venta-cruzada"],
   clientes: ["poliza-nueva", "cliente-buscar", "documentos", "importar"],
   prospectos: ["prospecto-nuevo", "prospecto-etapas", "cotizaciones", "convertir"],
   recordatorios: ["recordatorios", "campanita"],

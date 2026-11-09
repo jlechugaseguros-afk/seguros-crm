@@ -1,6 +1,6 @@
 import { gcalDisponible, gcalActivo, gcalConectar, gcalDesactivar, gcalCrear, gcalBorrar, gcalLinkManual } from "./googleCalendar.js";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { MessageCircle, Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert, FolderOpen } from "lucide-react";
+import { MessageCircle, Plus, Phone, Trash2, X, Check, Bell, ChevronDown, Menu, Download, Upload, LogOut, FileText, Camera, Heart, Users, LayoutDashboard, UserPlus, Calculator, LayoutGrid, CalendarDays, GraduationCap, Award, CreditCard, CalendarClock, Pencil, Search, Stethoscope, ShieldAlert, FolderOpen, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
 import { JL_LOGO } from "./brandAssets.js";
@@ -34,7 +34,9 @@ import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 import Hoja from "./Hoja.jsx";
 import Deslizable from "./Deslizable.jsx";
 import AyudaFlotante from "./AyudaFlotante.jsx";
+import CarteraAccion from "./CarteraAccion.jsx";
 import { respaldoAutomaticoSiToca } from "./respaldo.js";
+import { PAGOS_POR_ANIO, MESES_ENTRE_PAGOS, addMonthsStr, pagosDePoliza, fmtMonto, daysUntil, fmtDateFull } from "./pagos.js";
 import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
 
 const DOCS_BUCKET = "documentos";
@@ -49,6 +51,7 @@ const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "actividad", label: "Mi meta y actividad", icon: Target },
   { id: "clientes", label: "Clientes", icon: Users },
+  { id: "cartera", label: "Cobranza y renovaciones", icon: RefreshCw },
   { id: "prospectos", label: "Prospectos", icon: UserPlus },
   { id: "condiciones", label: "Condiciones generales", icon: FileText },
   { id: "material", label: "Material de apoyo", icon: FolderOpen },
@@ -194,7 +197,7 @@ const MULTICOTIZADOR_MENU = [
 ];
 
 const NAV_GROUPS = [
-  { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "prospectos"] },
+  { title: "Trabajo", ids: ["planificador", "recordatorios", "dashboard", "actividad", "clientes", "cartera", "prospectos"] },
   { title: "Herramientas", ids: ["condiciones", "material", "tarjeta", "comisiones", "factura", "deducible", "siniestros", "diagnostico", "multicotizador", "directorios"] },
   { title: "Formación", ids: ["examen", "cedulaA"] },
   { title: "Administración", ids: ["admin"], soloAdmin: true },
@@ -227,70 +230,11 @@ function todayStr() {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-// --- Pagos fraccionados ---
-// La "fecha del primer pago" es el ancla; de ahí se generan los pagos de la vigencia
-// según la periodicidad (Mensual 12, Trimestral 4, Semestral 2, Anual 1).
-const PAGOS_POR_ANIO = { Mensual: 12, Trimestral: 4, Semestral: 2, Anual: 1 };
-const MESES_ENTRE_PAGOS = { Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
-
-function addMonthsStr(dateStr, months) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const total = (m - 1) + months;
-  const ny = y + Math.floor(total / 12);
-  const nm = ((total % 12) + 12) % 12;
-  const last = new Date(ny, nm + 1, 0).getDate(); // evita 31 de feb, etc.
-  return `${ny}-${String(nm + 1).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
-}
-
-// Devuelve [{ date, numero, total, monto }] con todos los pagos de la póliza.
-function pagosDePoliza(p) {
-  if (!p || !p.fechaPago) return [];
-  const total = PAGOS_POR_ANIO[p.pagoFraccionado] || 1;
-  const paso = MESES_ENTRE_PAGOS[p.pagoFraccionado] || 12;
-  const prima = Number(p.primaAnual) || 0;
-  const monto = prima > 0 ? Math.round((prima / total) * 100) / 100 : 0;
-  const limite = p.finVigencia || p.fechaRenovacion || "";
-  const pagos = [];
-  for (let k = 0; k < total; k++) {
-    const date = addMonthsStr(p.fechaPago, k * paso);
-    if (k > 0 && limite && date >= limite) break;
-    pagos.push({ date, numero: k + 1, total, monto });
-  }
-  return pagos;
-}
-
-function fmtMonto(n) {
-  return n ? `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : "";
-}
-
-function daysUntil(dateStr, recurring) {
-  if (!dateStr) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const [y, m, d] = dateStr.split("-").map(Number);
-  if (recurring) {
-    // Cumpleaños: se repite cada año, el año guardado no importa.
-    let target = new Date(today.getFullYear(), m - 1, d);
-    if (target < today) target = new Date(today.getFullYear() + 1, m - 1, d);
-    return Math.round((target - today) / 86400000);
-  }
-  // Pago / renovación: fecha exacta, el año sí importa.
-  const target = new Date(y, m - 1, d);
-  return Math.round((target - today) / 86400000);
-}
-
 function fmtDate(dateStr) {
   if (!dateStr) return "";
   const [y, m, d] = dateStr.split("-").map(Number);
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   return `${d} ${meses[m - 1]}`;
-}
-
-function fmtDateFull(dateStr) {
-  if (!dateStr) return "";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-  return `${d} ${meses[m - 1]} ${y}`;
 }
 
 function slugifyFileName(str) {
@@ -4791,6 +4735,8 @@ function migrateClient(c) {
             })()}
           </div>
         )}
+
+        {tab === "cartera" && <CarteraAccion clients={clients} setClients={setClients} profile={profile} />}
 
         {tab === "prospectos" && (
           <Prospectos
