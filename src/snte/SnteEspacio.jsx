@@ -118,6 +118,9 @@ export default function SnteEspacio({
   const [tab, setTab] = useState('hoy')
   const [seccion, setSeccion] = useState('23')
   const [verMas, setVerMas] = useState(false)
+  const [esGestor, setEsGestor] = useState(false)
+  // Administrador del CRM o gestor de cartera (asesor de McBrokers designado): suben y reparten la cartera
+  const puedeGestionar = soyAdmin || esGestor
 
   const entrar = useCallback((n) => {
     try { sessionStorage.setItem(claveSesion, n || 'Asesor') } catch { /* sin sessionStorage */ }
@@ -137,6 +140,13 @@ export default function SnteEspacio({
     })
     return () => { vigente = false }
   }, [nombre, claveSesion])
+
+  useEffect(() => {
+    if (!nombre) return
+    let vigente = true
+    supabase.rpc('snte_mi_perfil').then(({ data }) => { if (vigente) setEsGestor(!!data?.[0]?.es_gestor) })
+    return () => { vigente = false }
+  }, [nombre])
 
   const irA = (t) => { setTab(t); setVerMas(false); window.scrollTo?.(0, 0) }
   const masActivo = ['simulador', 'productos', 'material', 'admin'].includes(tab)
@@ -168,14 +178,14 @@ export default function SnteEspacio({
               <SnteHoy nombre={nombre} onIr={irA} prospectosSnte={prospectosSnte} seccion={seccion} />
             )}
             {tab === 'cartera' && (
-              <SnteCartera onSeccion={setSeccion} nombreAsesor={nombre} onNuevoProspecto={onNuevoProspecto} soyAdmin={soyAdmin} />
+              <SnteCartera onSeccion={setSeccion} nombreAsesor={nombre} onNuevoProspecto={onNuevoProspecto} soyAdmin={puedeGestionar} />
             )}
             {tab === 'prospectos' && prospectosView}
             {tab === 'clientes' && <ListaClientes clientes={clientesSnte} />}
             {tab === 'simulador' && <SnteSimulador />}
             {tab === 'productos' && <SnteProductos />}
             {tab === 'material' && materialView}
-            {tab === 'admin' && soyAdmin && <SnteAdmin />}
+            {tab === 'admin' && puedeGestionar && <SnteAdmin soyAdmin={soyAdmin} />}
           </div>
         )}
       </main>
@@ -188,7 +198,7 @@ export default function SnteEspacio({
                 <button className="snte-btn sec" onClick={() => irA('simulador')}><Calculator size={16} /> Simulador</button>
                 <button className="snte-btn sec" onClick={() => irA('productos')}><LayoutGrid size={16} /> Mis productos</button>
                 <button className="snte-btn sec" onClick={() => irA('material')}><FolderOpen size={16} /> Material</button>
-                {soyAdmin && <button className="snte-btn sec" onClick={() => irA('admin')}><Upload size={16} /> Cartera (admin)</button>}
+                {puedeGestionar && <button className="snte-btn sec" onClick={() => irA('admin')}><Upload size={16} /> Gestionar cartera</button>}
               </div>
             </div>
           )}

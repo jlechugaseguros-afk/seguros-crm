@@ -166,7 +166,7 @@ export default function SnteCartera({ onSeccion, nombreAsesor, onNuevoProspecto,
         <div className="snte-card" style={{ textAlign: 'center', padding: 24 }}>
           <b>Todavía no tienes cartera asignada</b>
           <p className="snte-sub" style={{ marginTop: 6 }}>
-            {soyAdmin ? 'Impórtala y asígnala desde Más → Cartera (admin).' : 'McBrokers te la asignará pronto.'}
+            {soyAdmin ? 'Impórtala y asígnala desde Más → Gestionar cartera.' : 'McBrokers te la asignará pronto.'}
           </p>
         </div>
       )}

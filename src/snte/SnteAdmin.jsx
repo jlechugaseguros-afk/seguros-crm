@@ -70,7 +70,7 @@ async function leerResumen() {
   return { filas }
 }
 
-export default function SnteAdmin() {
+export default function SnteAdmin({ soyAdmin }) {
   const [asesores, setAsesores] = useState([])
   const [filas, setFilas] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -87,7 +87,7 @@ export default function SnteAdmin() {
   const cargar = useCallback(async () => {
     setCargando(true); setError('')
     const [a, r] = await Promise.all([supabase.rpc('snte_lista_asesores'), leerResumen()])
-    if (a.error || r.error) setError('No se pudo leer la cartera. Verifica que tu cuenta sea administradora.')
+    if (a.error || r.error) setError('No se pudo leer la cartera. Verifica que tengas permiso para gestionar la cartera.')
     else { setAsesores(a.data || []); setFilas(r.filas) }
     setCargando(false)
   }, [])
@@ -130,6 +130,13 @@ export default function SnteAdmin() {
     } finally {
       setTrabajando(false)
     }
+  }
+
+  async function cambiarGestor(a) {
+    setError(''); setMsg('')
+    const { error: e } = await supabase.rpc('snte_set_gestor', { p_asesor: a.id, p_valor: !a.es_gestor })
+    if (e) { setError('No se pudo cambiar el permiso.'); return }
+    setAsesores((as) => as.map((x) => (x.id === a.id ? { ...x, es_gestor: !x.es_gestor } : x)))
   }
 
   async function asignar() {
@@ -207,7 +214,15 @@ export default function SnteAdmin() {
               <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nombre}</div>
               <div className="snte-sub" style={{ fontSize: 12 }}>{a.vinculado ? 'Ya entró al espacio' : 'Aún no ha entrado'}</div>
             </div>
-            <span className="snte-pill">{porAsesor.get(a.id) || 0}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {a.es_gestor && <span className="snte-pill ok">Gestor</span>}
+              {soyAdmin && (
+                <button type="button" className="snte-btn sec chico" onClick={() => cambiarGestor(a)}>
+                  {a.es_gestor ? 'Quitar gestor' : 'Hacer gestor'}
+                </button>
+              )}
+              <span className="snte-pill">{porAsesor.get(a.id) || 0}</span>
+            </div>
           </div>
         ))}
       </div>
