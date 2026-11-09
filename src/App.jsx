@@ -635,6 +635,7 @@ const emptyProspecto = {
   accionSiguiente: "", accionSeguimiento: "", horaSeguimiento: "", fechaSeguimiento: "",
   referidorId: "", referidorNombre: "",
   cotizaciones: [], historial: [],
+  rfc: "", documentos: [],
 };
 
 function fmtFechaHora(ts) {
@@ -662,7 +663,7 @@ function HistorialProspecto({ historial, titulo = "Historial" }) {
 
 // Sube uno o varios PDF de cotizaciones enviadas al prospecto (solo visible en estado "Cotización enviada").
 // `folderId` agrupa los archivos en Storage; `onChange` recibe una función que actualiza la lista.
-function CotizacionesPdf({ folderId, files, onChange, soloLectura = false }) {
+function CotizacionesPdf({ folderId, files, onChange, soloLectura = false, titulo = "Cotizaciones (PDF o foto)", vacio, subcarpeta = "", camara = false, renombrar = false }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -684,10 +685,13 @@ function CotizacionesPdf({ folderId, files, onChange, soloLectura = false }) {
           failed.push(`${file.name} (solo PDF o foto)`);
           continue;
         }
-        const path = `prospectos/${user.id}/${folderId}/${Date.now()}-${added.length}-${slugifyFileName(file.name)}`;
+        const path = `prospectos/${user.id}/${folderId}/${subcarpeta}${Date.now()}-${added.length}-${slugifyFileName(file.name)}`;
+        const nombre = /^(image|img_?\d*|photo)\.(jpe?g|png|heic|heif)$/i.test(file.name)
+          ? `Foto ${new Date().toLocaleString("es-MX", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(/[\/:,]/g, "-")}.${(file.name.split(".").pop() || "jpg").toLowerCase()}`
+          : file.name;
         const { error } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { upsert: true });
         if (error) { failed.push(`${file.name} (${error.message})`); continue; }
-        added.push({ id: `${Date.now()}-${added.length}`, name: file.name, path, uploadedAt: Date.now() });
+        added.push({ id: `${Date.now()}-${added.length}`, name: nombre, path, uploadedAt: Date.now() });
       }
     } catch (ex) {
       setErr(ex.message || "No se pudieron subir los archivos.");
@@ -717,8 +721,8 @@ function CotizacionesPdf({ folderId, files, onChange, soloLectura = false }) {
   const list = files || [];
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 14, padding: 12, marginBottom: 14 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Cotizaciones (PDF o foto)</div>
-      {list.length === 0 && <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 8px" }}>{soloLectura ? "Sin cotizaciones." : "Aún no has subido cotizaciones."}</p>}
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{titulo}</div>
+      {list.length === 0 && <p style={{ fontSize: 12, color: "var(--stone)", margin: "0 0 8px" }}>{soloLectura ? "Sin archivos." : (vacio || "Aún no has subido cotizaciones.")}</p>}
       {list.map((f) => (
         <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
           <FileText size={16} color="var(--stone)" style={{ flexShrink: 0 }} />
@@ -737,6 +741,19 @@ function CotizacionesPdf({ folderId, files, onChange, soloLectura = false }) {
           >
             <Download size={15} />
           </button>
+          {!soloLectura && renombrar && (
+            <button
+              type="button"
+              onClick={() => {
+                const nuevo = window.prompt("Nuevo nombre del archivo", f.name);
+                if (nuevo && nuevo.trim()) onChange((prev) => (prev || []).map((x) => (x.id === f.id ? { ...x, name: nuevo.trim() } : x)));
+              }}
+              aria-label={`Renombrar ${f.name}`}
+              style={{ background: "none", border: "none", color: "var(--ink)", padding: 4 }}
+            >
+              <Pencil size={15} />
+            </button>
+          )}
           {!soloLectura && (
             <button
               type="button"
@@ -749,22 +766,37 @@ function CotizacionesPdf({ folderId, files, onChange, soloLectura = false }) {
           )}
         </div>
       ))}
-      {!soloLectura && <label style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10,
-        border: "1px dashed var(--line)", borderRadius: 10, padding: "10px 12px", fontSize: 13,
-        cursor: busy ? "default" : "pointer", color: "var(--ink)", opacity: busy ? 0.6 : 1,
-      }}>
-        <Upload size={15} />
-        {busy ? "Subiendo..." : "Subir PDF o foto"}
-        <input type="file" accept=".pdf,application/pdf,image/*" multiple disabled={busy} onChange={handleFiles} style={{ display: "none" }} />
-      </label>}
+      {!soloLectura && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <label style={{
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            border: "1px dashed var(--line)", borderRadius: 10, padding: "10px 12px", fontSize: 13,
+            cursor: busy ? "default" : "pointer", color: "var(--ink)", opacity: busy ? 0.6 : 1,
+          }}>
+            <Upload size={15} />
+            {busy ? "Subiendo..." : "PDF o galería"}
+            <input type="file" accept=".pdf,application/pdf,image/*" multiple disabled={busy} onChange={handleFiles} style={{ display: "none" }} />
+          </label>
+          {camara && (
+            <label style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              border: "1px dashed var(--line)", borderRadius: 10, padding: "10px 12px", fontSize: 13,
+              cursor: busy ? "default" : "pointer", color: "var(--ink)", opacity: busy ? 0.6 : 1,
+            }}>
+              <Camera size={15} />
+              Tomar foto
+              <input type="file" accept="image/*" capture="environment" disabled={busy} onChange={handleFiles} style={{ display: "none" }} />
+            </label>
+          )}
+        </div>
+      )}
       {err && <p style={{ color: "#B23A2E", fontSize: 12, margin: "8px 0 0" }}>{err}</p>}
     </div>
   );
 }
 
 // Campos compartidos del prospecto (alta y ficha): origen + referidor, etapa, siguiente acción, cotizaciones y notas.
-function CamposProspecto({ d, setD, clients, folderId }) {
+function CamposProspecto({ d, setD, clients, folderId, modoSnte = false }) {
   const clientesOrdenados = useMemo(
     () => [...(clients || [])].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es")),
     [clients],
@@ -870,6 +902,19 @@ function CamposProspecto({ d, setD, clients, folderId }) {
         />
       )}
 
+      {modoSnte && (
+        <CotizacionesPdf
+          folderId={folderId}
+          files={d.documentos}
+          onChange={(fn) => setD((x) => ({ ...x, documentos: fn(x.documentos || []) }))}
+          titulo="Documentos del prospecto (PDF o foto)"
+          vacio="Aún no has subido documentos. Puedes subir PDF, fotos de la galería o tomar una foto."
+          subcarpeta="docs-"
+          camara
+          renombrar
+        />
+      )}
+
       <Field label="Notas">
         <input value={d.notas || ""} onChange={(e) => setD((x) => ({ ...x, notas: e.target.value }))} style={inputStyle} />
       </Field>
@@ -926,6 +971,8 @@ function armarEntrada(base, d, comentario, motivo) {
 
 function validarProspecto(d, base) {
   if (!d.nombre.trim() || !d.telefono.trim()) return "Nombre y teléfono son obligatorios.";
+  const rfc = (d.rfc || "").trim().toUpperCase();
+  if (rfc && !/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfc)) return "El RFC debe tener 12 o 13 caracteres (por ejemplo, ABCD850101XXX).";
   if (d.estado === "Seguimiento") {
     const campos = [d.accionSiguiente, d.accionSeguimiento, d.fechaSeguimiento, d.horaSeguimiento];
     const entra = !base || base.estado !== "Seguimiento";
@@ -937,7 +984,7 @@ function validarProspecto(d, base) {
   return "";
 }
 
-function Prospectos({ prospectos, clients, onAdd, onUpdate, onRemove, onConvert, onAddActivity }) {
+function Prospectos({ prospectos, clients, onAdd, onUpdate, onRemove, onConvert, onAddActivity, modoSnte = false }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyProspecto);
   const [error, setError] = useState("");
@@ -1118,7 +1165,7 @@ function Prospectos({ prospectos, clients, onAdd, onUpdate, onRemove, onConvert,
             >
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{p.nombre}</div>
-                <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}</div>
+                <div style={{ fontSize: 12, color: "var(--stone)", marginTop: 2 }}>{p.telefono}{modoSnte && p.rfc ? ` · RFC ${p.rfc}` : ""}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 7, background: ESTADO_COLOR[p.estado] }} />
                   <span style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -1139,13 +1186,18 @@ function Prospectos({ prospectos, clients, onAdd, onUpdate, onRemove, onConvert,
                 <Field label="Nombre completo">
                   <input value={editDraft.nombre} onChange={(e) => setEditDraft((d) => ({ ...d, nombre: e.target.value }))} style={inputStyle} />
                 </Field>
+                {modoSnte && (
+                  <Field label="RFC">
+                    <input value={editDraft.rfc || ""} maxLength={13} autoCapitalize="characters" onChange={(e) => setEditDraft((d) => ({ ...d, rfc: e.target.value.toUpperCase() }))} style={inputStyle} />
+                  </Field>
+                )}
                 <Field label="WhatsApp">
                   <input value={editDraft.telefono} onChange={(e) => setEditDraft((d) => ({ ...d, telefono: e.target.value }))} style={inputStyle} />
                 </Field>
                 <Field label="Correo electrónico">
                   <input type="email" value={editDraft.correo || ""} onChange={(e) => setEditDraft((d) => ({ ...d, correo: e.target.value }))} style={inputStyle} />
                 </Field>
-                <CamposProspecto d={editDraft} setD={setEditDraft} clients={clients} folderId={p.id} />
+                <CamposProspecto d={editDraft} setD={setEditDraft} clients={clients} folderId={p.id} modoSnte={modoSnte} />
                 <HistorialProspecto historial={editDraft.historial} />
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <button onClick={() => saveEdit(p.id)} style={{ flex: 1, background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600 }}>
@@ -1178,13 +1230,18 @@ function Prospectos({ prospectos, clients, onAdd, onUpdate, onRemove, onConvert,
             <Field label="Nombre completo">
               <input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} style={inputStyle} />
             </Field>
+            {modoSnte && (
+              <Field label="RFC">
+                <input value={form.rfc || ""} maxLength={13} autoCapitalize="characters" onChange={(e) => setForm((f) => ({ ...f, rfc: e.target.value.toUpperCase() }))} style={inputStyle} />
+              </Field>
+            )}
             <Field label="WhatsApp">
               <input value={form.telefono} onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))} style={inputStyle} />
             </Field>
             <Field label="Correo electrónico">
               <input type="email" value={form.correo} onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))} style={inputStyle} />
             </Field>
-            <CamposProspecto d={form} setD={setForm} clients={clients} folderId={draftFolder} />
+            <CamposProspecto d={form} setD={setForm} clients={clients} folderId={draftFolder} modoSnte={modoSnte} />
             <button type="submit" style={{ width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600 }}>
               Guardar prospecto
             </button>
@@ -3200,6 +3257,8 @@ function migrateClient(c) {
       ],
       prospectoId: p.id,
       mercado: p.mercado || "",
+      rfc: p.rfc || "",
+      documentosProspecto: p.documentos || [],
       polizas: [poliza],
       id: Date.now().toString(),
     }]);
@@ -3962,6 +4021,7 @@ function migrateClient(c) {
           onNuevoProspecto={handleNuevoProspectoSnte}
           prospectosView={(
             <Prospectos
+              modoSnte
               prospectos={prospectos.filter((p) => p.mercado === "snte")}
               clients={clients}
               onAdd={(p) => handleAddProspecto({ ...p, mercado: "snte" })}
@@ -4687,6 +4747,7 @@ function migrateClient(c) {
 
                       {expandedTab === "origen" && (
                         <div>
+                          {c.rfc && <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>RFC: <b>{c.rfc}</b></div>}
                           {(c.origen || c.referidorNombre || c.notasProspecto) && (
                             <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
                               {c.origen && <div>Origen: <b>{c.origen}</b>{c.referidorNombre ? ` · referido por ${c.referidorNombre}` : ""}</div>}
@@ -4695,6 +4756,9 @@ function migrateClient(c) {
                           )}
                           <HistorialProspecto historial={c.historialProspecto} titulo="Historial como prospecto" />
                           <CotizacionesPdf folderId={c.prospectoId || c.id} files={c.cotizaciones} onChange={() => {}} soloLectura />
+                          {(c.documentosProspecto || []).length > 0 && (
+                            <CotizacionesPdf folderId={c.prospectoId || c.id} files={c.documentosProspecto} onChange={() => {}} soloLectura titulo="Documentos del prospecto" />
+                          )}
                         </div>
                       )}
 

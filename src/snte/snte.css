@@ -79,8 +79,8 @@
 
 .snte-gate { margin: 40px auto 0; max-width: 400px; }
 .snte-error { color: #A12B1D; font-size: 13px; margin: 8px 0 0; }
-.snte-fade { animation: snteFade .35s ease both; }
-@keyframes snteFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.snte-fade { animation: snteFade .3s ease backwards; }
+@keyframes snteFade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .snte-fade { animation: none; } .snte-bar > div { transition: none; } }
 @media (max-width: 420px) { .snte-logos-aliados img { height: 22px; } .snte-grid3 { gap: 8px; } }
 .snte-logos-aliados img.snte-logo-jl { height: 40px; }
