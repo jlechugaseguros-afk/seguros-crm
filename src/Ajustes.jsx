@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { X, User, Palette, Bell, ShieldCheck, CalendarDays, LogOut, RotateCcw } from "lucide-react";
+import { X, User, Palette, Bell, ShieldCheck, CalendarDays, LogOut, RotateCcw, Database } from "lucide-react";
+import Respaldo from "./Respaldo.jsx";
 import { supabase } from "./supabaseClient.js";
 import { gcalDisponible, gcalActivo, gcalConectar, gcalDesactivar } from "./googleCalendar.js";
 import { TEMAS, AJUSTES_BASE, leerAjustes, guardarAjustes, aplicarAjustes } from "./ajustesAparencia.js";
@@ -156,6 +157,10 @@ export default function Ajustes({ profile, onSaveProfile, onClose, notifEstado, 
                 {gcalErr && <p className="aj-msg aj-err">{gcalErr}</p>}
               </>
             )}
+          </Seccion>
+
+          <Seccion icono={<Database size={16} />} titulo="Respaldo de mis datos">
+            <Respaldo />
           </Seccion>
 
           <Seccion icono={<ShieldCheck size={16} />} titulo="Cuenta y seguridad">

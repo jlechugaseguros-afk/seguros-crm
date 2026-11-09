@@ -34,6 +34,7 @@ import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 import Hoja from "./Hoja.jsx";
 import Deslizable from "./Deslizable.jsx";
 import AyudaFlotante from "./AyudaFlotante.jsx";
+import { respaldoAutomaticoSiToca } from "./respaldo.js";
 import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
 
 const DOCS_BUCKET = "documentos";
@@ -2839,6 +2840,12 @@ export default function SegurosCRM() {
   const [showAjustes, setShowAjustes] = useState(false);
   const [restableciendoDemo, setRestableciendoDemo] = useState(false);
   const esDemo = (profile?.correo || "").toLowerCase() === DEMO_EMAIL;
+  // Respaldo automático: una copia al día, unos segundos después de cargar los datos (no en la cuenta demo).
+  useEffect(() => {
+    if (!loaded || !profileLoaded || esDemo) return undefined;
+    const t = setTimeout(() => { respaldoAutomaticoSiToca(); }, 8000);
+    return () => clearTimeout(t);
+  }, [loaded, profileLoaded, esDemo]);
   async function handleRestablecerDemo() {
     if (!window.confirm("Se borrará lo que hayas movido en la demo y volverán los datos de ejemplo. ¿Continuar?")) return;
     setRestableciendoDemo(true);
