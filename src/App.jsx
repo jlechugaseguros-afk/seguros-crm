@@ -37,6 +37,7 @@ import AyudaFlotante from "./AyudaFlotante.jsx";
 import CarteraAccion from "./CarteraAccion.jsx";
 import SiniestrosCliente, { siniestrosAbiertos } from "./SiniestrosCliente.jsx";
 import { respaldoAutomaticoSiToca } from "./respaldo.js";
+import { registrarUsoPestana } from "./usoPestanas.js";
 import { pagosDePoliza, fmtMonto, daysUntil, fmtDateFull } from "./pagos.js";
 import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
 
@@ -2792,6 +2793,11 @@ export default function SegurosCRM() {
     const t = setTimeout(() => { respaldoAutomaticoSiToca(); }, 8000);
     return () => clearTimeout(t);
   }, [loaded, profileLoaded, esDemo]);
+  // Conteo simple de uso: suma una apertura cada vez que se entra a una pestaña (no en la cuenta demo).
+  useEffect(() => {
+    if (!loaded || esDemo) return;
+    registrarUsoPestana(tab);
+  }, [tab, loaded, esDemo]);
   async function handleRestablecerDemo() {
     if (!window.confirm("Se borrará lo que hayas movido en la demo y volverán los datos de ejemplo. ¿Continuar?")) return;
     setRestableciendoDemo(true);

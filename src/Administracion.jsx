@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { UserPlus, RefreshCw, Copy, Check, KeyRound, Ban, RotateCcw, Send, SlidersHorizontal } from 'lucide-react'
 import { supabase } from './supabaseClient.js'
 import PageHeader from './PageHeader.jsx'
+import { resumenUsoPestanas } from './usoPestanas.js'
 
 // Panel del administrador: alta de agentes con contraseña temporal de 6 dígitos,
 // restablecer contraseña y suspender / reactivar el acceso.
@@ -396,6 +397,8 @@ export default function Administracion({ miId, pestanas = [] }) {
           </div>
         )}
       </div>
+
+      <UsoPestanas pestanas={pestanas} />
     </div>
   )
 }
@@ -405,5 +408,73 @@ function Etiqueta({ children, color, fondo }) {
     <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 8px', borderRadius: 20, color, background: fondo, whiteSpace: 'nowrap' }}>
       {children}
     </span>
+  )
+}
+
+// ---------- Uso de pestañas (últimos 30 días) ----------
+function UsoPestanas({ pestanas }) {
+  const [dias, setDias] = useState(30)
+  const [res, setRes] = useState({ dias: null, filas: null })
+  const [error, setError] = useState('')
+  const filas = res.dias === dias ? res.filas : null
+
+  useEffect(() => {
+    let vigente = true
+    resumenUsoPestanas(dias)
+      .then((d) => { if (vigente) { setRes({ dias, filas: d }); setError('') } })
+      .catch(() => { if (vigente) setError('No se pudo cargar el uso. Intenta de nuevo.') })
+    return () => { vigente = false }
+  }, [dias])
+
+  const nombres = useMemo(() => {
+    const m = { cartera: 'Cobranza y renovaciones', comisiones: 'Comisiones', actividad: 'Mi meta y actividad' }
+    pestanas.forEach((g) => g.items.forEach((i) => { m[i.id] = i.label }))
+    return m
+  }, [pestanas])
+
+  const maximo = Math.max(1, ...(filas || []).map((f) => Number(f.aperturas)))
+  // Pestañas que existen pero nadie abrió en el periodo: candidatas a revisar o quitar.
+  const sinUso = useMemo(() => {
+    const usadas = new Set((filas || []).map((f) => f.pestana))
+    return Object.keys(nombres).filter((id) => !usadas.has(id) && id !== 'admin')
+  }, [filas, nombres])
+
+  return (
+    <div className="panel" style={{ padding: 16, marginTop: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Uso de pestañas</h3>
+        <select value={dias} onChange={(e) => setDias(Number(e.target.value))} aria-label="Periodo" style={{
+          padding: '6px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 13, background: '#fff', fontFamily: 'inherit',
+        }}>
+          <option value={7}>Últimos 7 días</option>
+          <option value={30}>Últimos 30 días</option>
+          <option value={90}>Últimos 90 días</option>
+        </select>
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--stone)', marginBottom: 12 }}>
+        Cuántas veces se abrió cada pestaña (todos los agentes, sin contar la cuenta demo). Sirve para decidir qué mejorar y qué quitar.
+      </p>
+      {error && <p style={{ color: '#B23A2E', fontSize: 13 }}>{error}</p>}
+      {!filas && !error && <p style={{ fontSize: 13, color: 'var(--stone)' }}>Cargando…</p>}
+      {filas && filas.length === 0 && (
+        <p style={{ fontSize: 13, color: 'var(--stone)' }}>Todavía no hay datos. Se empiezan a contar desde esta versión; vuelve en unos días.</p>
+      )}
+      {filas && filas.map((f) => (
+        <div key={f.pestana} style={{ marginBottom: 9 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13 }}>
+            <b style={{ color: 'var(--ink)' }}>{nombres[f.pestana] || f.pestana}</b>
+            <span style={{ color: 'var(--stone)' }}>{f.aperturas} aperturas · {f.agentes} agente(s) · último {fechaCorta(f.ultimo_uso + 'T12:00:00')}</span>
+          </div>
+          <div style={{ height: 7, borderRadius: 99, background: 'var(--cream-2)', marginTop: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(Number(f.aperturas) / maximo) * 100}%`, background: 'linear-gradient(90deg, var(--gold), #E6BC55)', borderRadius: 99 }} />
+          </div>
+        </div>
+      ))}
+      {filas && filas.length > 0 && sinUso.length > 0 && (
+        <p style={{ fontSize: 12.5, color: 'var(--stone)', marginTop: 12, lineHeight: 1.5 }}>
+          <b>Sin aperturas en este periodo:</b> {sinUso.map((id) => nombres[id]).join(', ')}.
+        </p>
+      )}
+    </div>
   )
 }
