@@ -33,6 +33,7 @@ import {
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
 import Hoja from "./Hoja.jsx";
 import Deslizable from "./Deslizable.jsx";
+import AyudaFlotante from "./AyudaFlotante.jsx";
 import { DEMO_EMAIL, restablecerDemo } from "./demo.js";
 
 const DOCS_BUCKET = "documentos";
@@ -4895,6 +4896,14 @@ function migrateClient(c) {
           </button>
         ))}
       </nav>
+
+      <AyudaFlotante
+        tab={tab}
+        setTab={setTab}
+        puedeVer={puedeVer}
+        nombre={profile?.nombre || ""}
+        etiquetaTab={(id) => (NAV_ITEMS.find((n) => n.id === id) || {}).label || id}
+      />
 
       {showForm && (
         <div className="fade-in" style={{
