@@ -4,6 +4,7 @@ import { JL_LOGO } from './brandAssets.js'
 import { DEMO_EMAIL, DEMO_PASSWORD, restablecerDemo } from './demo.js'
 import { PerfilContext } from './perfil.js'
 import CambiarClave from './CambiarClave.jsx'
+import { AceptarTerminos, AvisoModal, VERSION_AVISO, CLAVE_ACEPTACION } from './AvisoPrivacidad.jsx'
 
 export default function AuthGate({ children }) {
   const [session, setSession] = useState(undefined)
@@ -36,6 +37,41 @@ export default function AuthGate({ children }) {
     })
     return () => { vigente = false }
   }, [userId, rolMeta])
+
+  // Aceptación del aviso de privacidad: undefined = revisando · false = falta aceptar · true = ya aceptó
+  const [terminos, setTerminos] = useState(undefined)
+  const [guardandoTerminos, setGuardandoTerminos] = useState(false)
+  const [errorTerminos, setErrorTerminos] = useState('')
+  const [verAviso, setVerAviso] = useState(false)
+  const correoSesion = (session?.user?.email || '').toLowerCase()
+  const perfilListo = !!perfil && perfil.activo !== false
+  useEffect(() => {
+    if (!userId || !perfilListo || rolMeta === 'cliente') { setTerminos(undefined); return }
+    if (correoSesion === DEMO_EMAIL || perfil?.rol === 'demo') { setTerminos(true); return }
+    let vigente = true
+    window.storage.get(CLAVE_ACEPTACION)
+      .then((r) => {
+        if (!vigente) return
+        let v = null
+        try { v = r && r.value ? JSON.parse(r.value) : null } catch { v = null }
+        setTerminos(!!v && v.version === VERSION_AVISO)
+      })
+      // Si no se puede leer (red), no se bloquea el trabajo del agente
+      .catch(() => { if (vigente) setTerminos(true) })
+    return () => { vigente = false }
+  }, [userId, perfilListo, rolMeta, correoSesion]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function aceptarTerminos() {
+    setGuardandoTerminos(true)
+    setErrorTerminos('')
+    try {
+      await window.storage.set(CLAVE_ACEPTACION, JSON.stringify({ version: VERSION_AVISO, fecha: new Date().toISOString() }))
+      setTerminos(true)
+    } catch {
+      setErrorTerminos('No se pudo guardar tu aceptación. Revisa tu conexión e intenta de nuevo.')
+    }
+    setGuardandoTerminos(false)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -261,8 +297,12 @@ export default function AuthGate({ children }) {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 10, color: '#B0AB9A', padding: '10px 20px' }}>
-          © 2026 J L Consultoría Patrimonial
+          © 2026 J L Consultoría Patrimonial ·{' '}
+          <button type="button" onClick={() => setVerAviso(true)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 10, color: '#8A8573', textDecoration: 'underline', fontFamily: 'inherit', cursor: 'pointer' }}>
+            Aviso de privacidad
+          </button>
         </p>
+        {verAviso && <AvisoModal onClose={() => setVerAviso(false)} />}
       </div>
     )
   }
@@ -295,6 +335,23 @@ export default function AuthGate({ children }) {
           Cerrar sesión
         </button>
       </div>
+    )
+  }
+
+  // Mientras se revisa la aceptación del aviso no se muestra el CRM (evita un parpadeo)
+  if (!perfil.debe_cambiar_clave && terminos === undefined) {
+    return <div className="min-h-dvh" style={{ background: 'var(--cream)' }} />
+  }
+
+  // Aviso de privacidad: se pide aceptar la versión vigente (la cuenta demo no lo necesita)
+  if (!perfil.debe_cambiar_clave && terminos === false) {
+    return (
+      <AceptarTerminos
+        guardando={guardandoTerminos}
+        error={errorTerminos}
+        onAceptar={aceptarTerminos}
+        onSalir={() => supabase.auth.signOut()}
+      />
     )
   }
 

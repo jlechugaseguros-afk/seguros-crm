@@ -4,6 +4,7 @@ import { bioDisponible, bioActivaPara, bioRechazada, bioRechazar, bioActivar, bi
 import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import { supabasePortal as supabase } from "./supabasePortal.js";
 import { JL_LOGO } from "./brandAssets.js";
+import { AvisoModal } from "./AvisoPrivacidad.jsx";
 import PageHeader from "./PageHeader.jsx";
 import { calcularDyC } from "./CalculadoraDeducible.jsx";
 
@@ -838,6 +839,7 @@ export default function Portal() {
   const [data, setData] = useState(null);
   const [estado, setEstado] = useState("cargando"); // cargando | ok | no_cliente | error
   const [tab, setTab] = useState("seguros");
+  const [verAviso, setVerAviso] = useState(false);
   const [pidSiniestro, setPidSiniestro] = useState("");
   const [fotos, setFotos] = useState({});
   const [instalar, setInstalar] = useState(false);
@@ -983,7 +985,8 @@ export default function Portal() {
         {tab === "pagos" && <Pagos data={data} />}
         {tab === "asesoria" && <Asesoria data={data} />}
         {tab === "productos" && <Productos data={data} />}
-        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", margin: "8px 0 20px" }}>{ES_JL ? "© 2026 J L Consultoría Patrimonial" : "Portal de clientes"}</p>
+        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", margin: "8px 0 20px" }}>{ES_JL ? "© 2026 J L Consultoría Patrimonial" : "Portal de clientes"} · <button type="button" onClick={() => setVerAviso(true)} style={{ background: "none", border: "none", padding: 0, fontSize: 11, color: "var(--muted)", textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>Aviso de privacidad</button></p>
+        {verAviso && <AvisoModal tipo="clientes" onClose={() => setVerAviso(false)} />}
       </div>
 
       <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "#fff", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", paddingBottom: "env(safe-area-inset-bottom)", zIndex: 50 }}>
