@@ -270,6 +270,12 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .jl-hero-sub { margin: 6px 0 0; font-size: 13.5px; line-height: 1.45; color: #B9C7D6; max-width: 62ch; }
 .jl-hero-aside { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .hero-logos { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; opacity: .95; }
+/* Logos de aseguradoras en el encabezado: fondo blanco sólido (sin Liquid Glass) para que se distingan bien */
+.app-content .hero-logos { opacity: 1; }
+.app-content .hero-logos div[style*="border: 1px solid var(--line)"] {
+  background-color: #FFFFFF !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  border-color: rgba(255,255,255,.9) !important; box-shadow: 0 2px 8px -3px rgba(0,0,0,.35) !important;
+}
 
 @container jlhero (max-width: 700px) {
   .jl-hero-aside { flex: 1 1 100%; margin-left: 0; justify-content: flex-start; }
