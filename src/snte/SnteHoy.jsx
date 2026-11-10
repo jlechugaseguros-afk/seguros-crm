@@ -5,7 +5,7 @@ import { supabase } from '../supabaseClient.js'
 const PRODUCTOS = [
   { id: 'vida', nombre: 'Vida', detalle: 'GNP Vida Más', Icono: Heart },
   { id: 'salud', nombre: 'Salud', detalle: 'QSalud Qualitas', Icono: Stethoscope },
-  { id: 'autos', nombre: 'Autos', detalle: 'GNP · ANA · Qualitas · Chubb próximamente', Icono: Car },
+  { id: 'autos', nombre: 'Autos', detalle: 'Cotiza con Dora', Icono: Car },
 ]
 
 const money = (v) => '$' + Math.round(v).toLocaleString('es-MX')

@@ -17,12 +17,7 @@ const PRODUCTOS = [
   },
   {
     id: 'autos', nombre: 'Autos', Icono: Car,
-    aseguradoras: [
-      { n: 'GNP', url: 'https://portalintermediarios.gnp.com.mx/sesion' },
-      { n: 'ANA Seguros', url: 'https://www.anaseguros.com.mx/anaweb/' },
-      { n: 'Qualitas', url: 'https://agentes360.qualitas.com.mx/web/guest/home' },
-      { n: 'Chubb', proximamente: true },
-    ],
+    aseguradoras: [{ n: 'Cotiza con Dora', url: 'https://mcbrokers.dora.com.mx/brokers/inicio' }],
     documentos: ['Tarjeta de circulación o factura', 'Identificación oficial vigente', 'Comprobante de domicilio', 'Licencia de conducir'],
     preguntas: ['¿Cuándo vence tu póliza actual?', '¿Qué cobertura tienes hoy?', '¿Quién maneja el auto habitualmente?'],
   },
