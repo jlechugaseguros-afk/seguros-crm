@@ -258,18 +258,9 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
   background: #0b1829; color: #F4EFE3;
   box-shadow: 0 20px 44px -28px rgba(7,29,49,.75), inset 0 0 0 1px rgba(201,151,30,.18);
 }
-.jl-hero-img {
-  aspect-ratio: 4.6 / 1; background: url("/fondos/banner-jl.jpg") right center / cover no-repeat;
-  transform-origin: 72% 50%; animation: jlZoom 24s ease-in-out infinite alternate;
-}
-.jl-hero-sheen {
-  position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; transform: translateX(-130%);
-  background: linear-gradient(104deg, transparent 38%, rgba(230,188,85,.20) 49%, rgba(255,246,222,.14) 52%, transparent 62%);
-  animation: jlSheen 2.4s cubic-bezier(.22,.8,.2,1) .4s 1 forwards;
-}
 .jl-hero-bar {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  padding: 14px 20px 16px; border-top: 1px solid rgba(201,151,30,.38);
+  padding: 22px 22px 20px; border-top: 0;
   background: linear-gradient(180deg, #0c1a2d, #0a2038);
 }
 .jl-hero-text { min-width: 0; animation: jlSettle .7s cubic-bezier(.22,.8,.2,1) .15s both; }
@@ -281,25 +272,11 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .hero-logos { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; opacity: .95; }
 
 @container jlhero (max-width: 700px) {
-  .jl-hero-img { aspect-ratio: 2.83 / 1; background-image: url("/fondos/banner-jl-m.jpg"); background-position: center; }
   .jl-hero-aside { flex: 1 1 100%; margin-left: 0; justify-content: flex-start; }
 }
-/* Encabezado ancho (según el ancho real del contenedor, no de la pantalla): el título se apoya sobre la pared lisa a la izquierda */
-@container jlhero (min-width: 900px) {
-  .jl-hero-bar {
-    position: absolute; left: 0; top: 0; bottom: 0; width: 44%; padding: 0 0 0 30px; border-top: 0;
-    flex-direction: column; align-items: flex-start; justify-content: center; flex-wrap: nowrap; gap: 14px;
-    background: linear-gradient(90deg, rgba(8,19,34,.55) 0%, rgba(8,19,34,0) 100%);
-  }
-  .jl-hero-sub { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 36ch; }
-  .jl-hero-aside { margin-left: 0; justify-content: flex-start; }
-}
-@keyframes jlZoom { from { transform: scale(1); } to { transform: scale(1.04); } }
-@keyframes jlSheen { to { transform: translateX(130%); } }
 @keyframes jlSettle { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) {
-  .jl-hero-img, .jl-hero-sheen, .jl-hero-text { animation: none; }
-  .jl-hero-sheen { display: none; }
+  .jl-hero-text { animation: none; }
 }
 
 .side-link.side-sublink { margin-left: 18px; padding-left: 10px; text-decoration: none; }
@@ -371,12 +348,9 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 .jl-hero { box-shadow: 0 20px 44px -26px color-mix(in srgb, var(--accent) 60%, #071D31), inset 0 0 0 1px rgba(201,151,30,.18); }
 .jl-hero::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; pointer-events: none;
-  background: linear-gradient(90deg, var(--c-orange), var(--c-pink), var(--c-violet), var(--c-sky), var(--c-green), var(--c-orange));
-  background-size: 300% 100%; animation: vidaArcoiris 9s linear infinite;
+  background: linear-gradient(90deg, transparent, rgba(201,151,30,.55) 50%, transparent);
 }
 .jl-hero-eyebrow { color: color-mix(in srgb, var(--accent) 55%, #F7D58A); }
-.jl-hero-sheen { animation: vidaBrillo 9s cubic-bezier(.22,.8,.2,1) 1s infinite; }
-@keyframes vidaBrillo { 0% { transform: translateX(-130%); } 22%, 100% { transform: translateX(130%); } }
 @keyframes vidaArcoiris { to { background-position: 300% 0; } }
 
 /* Botones dorados y oscuros con degradado vivo */
@@ -449,7 +423,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-bg, .jl-hero::after, .jl-hero-sheen, .app-bg button[style*="background: var(--gold)"], .app-bg .meter i, .app-bg .panel::before, .auth-photo::after,
+  .app-bg, .jl-hero::after, .app-bg button[style*="background: var(--gold)"], .app-bg .meter i, .app-bg .panel::before, .auth-photo::after,
   .app-content > div > *:nth-child(n+2) { animation: none !important; }
 }
 
