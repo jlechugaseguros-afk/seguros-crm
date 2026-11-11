@@ -97,8 +97,8 @@ export default function SnteEscuelas({ soyAdmin, onSeccion }) {
             const ubicacion = [f.direccion, f.localidad, f.municipio].filter(Boolean).join(', ')
             const open = abierta === f.id
             const datos = [
-              ['CCT', f.cct], ['Nombre de la escuela', f.nombre], ['Nivel educativo', f.nivel], ['Control', f.control],
-              ['Turno', f.turno], ['Municipio', f.municipio], ['Localidad', f.localidad], ['Dirección', f.direccion],
+              ['Nombre de la escuela', f.nombre], ['CCT', f.cct], ['Turno', f.turno], ['Municipio', f.municipio],
+              ['Localidad', f.localidad], ['Dirección', f.direccion], ['Nivel', f.nivel], ['Subcontrol', f.control],
             ]
             return (
               <div className="snte-fila" key={f.id}>

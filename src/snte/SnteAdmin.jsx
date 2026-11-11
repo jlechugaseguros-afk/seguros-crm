@@ -39,6 +39,10 @@ Object.entries(ALIAS_ESC).forEach(([campo, l]) => l.forEach((a) => { BUSCA_ESC[a
 const claveEscuela = (r) => (r.cct ? `c:${String(r.cct).toUpperCase()}|${norm(r.turno)}` : `n:${norm(r.nombre)}|${norm(r.municipio)}|${norm(r.turno)}`)
 
 const PATRON_CCT = /^\d{2}[A-Z]{3}\d{4}[A-Z]$/i
+const CAMPOS_ESC = [
+  ['nombre', 'Nombre de la escuela'], ['cct', 'CCT'], ['turno', 'Turno'], ['municipio', 'Municipio'],
+  ['localidad', 'Localidad'], ['direccion', 'Dirección'], ['nivel', 'Nivel'], ['control', 'Subcontrol'],
+]
 
 // Detecta a qué campo corresponde un encabezado (exacto primero; después por palabras clave).
 function campoEscuela(encabezado) {
@@ -56,32 +60,61 @@ function campoEscuela(encabezado) {
   return null
 }
 
-function leerEscuelas(buffer) {
-  const wb = XLSX.read(buffer, { type: 'array' })
-  const ws = wb.Sheets[wb.SheetNames[0]]
-  const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
-  const iHead = filas.findIndex((f) => f.filter((c) => campoEscuela(c)).length >= 2)
-  if (iHead < 0) return { error: 'No encontré los encabezados de escuelas (CCT, Nombre de la escuela, Nivel educativo…). Revisa que la primera fila de la hoja los tenga.' }
-  const encabezados = filas[iHead].map((c) => txt(c))
-  const cols = {}
-  const sinReconocer = []
-  encabezados.forEach((c, i) => {
-    if (!c) return
-    const campo = campoEscuela(c)
-    if (campo && !(campo in cols)) cols[campo] = i
-    else sinReconocer.push(c)
-  })
-  const celda = (f, campo) => (campo in cols ? txt(f[cols[campo]]) : '')
-  const cuerpo = filas.slice(iHead + 1).filter((f) => f.some((c) => txt(c)))
-  // Si la columna "nombre" en realidad trae claves CCT, no es el nombre de la escuela
-  if ('nombre' in cols && !('cct' in cols)) {
-    const muestra = cuerpo.slice(0, 30).map((f) => txt(f[cols.nombre])).filter(Boolean)
-    if (muestra.length && muestra.every((v) => PATRON_CCT.test(v))) { cols.cct = cols.nombre; delete cols.nombre }
+// Cuando el encabezado no ayuda, se reconoce la columna por lo que contiene
+const PALABRAS_CONTENIDO = {
+  turno: ['matutin', 'vespertin', 'nocturn', 'discontinu', 'continu', 'jornada', 'tiempo completo', 'mixto'],
+  nivel: ['preescolar', 'primaria', 'secundaria', 'bachillerato', 'licenciatura', 'inicial', 'especial', 'normal', 'telesecundaria', 'medio superior', 'superior', 'capacitacion', 'posgrado'],
+  control: ['publico', 'privado', 'federal', 'estatal', 'particular', 'autonomo'],
+}
+function campoPorContenido(valores) {
+  const v = valores.map(txt).filter(Boolean)
+  if (v.length < 3) return null
+  const proporcion = (fn) => v.filter(fn).length / v.length
+  if (proporcion((x) => PATRON_CCT.test(x)) >= 0.8) return 'cct'
+  for (const [campo, palabras] of Object.entries(PALABRAS_CONTENIDO)) {
+    if (proporcion((x) => { const n = norm(x); return palabras.some((w) => n.includes(w)) }) >= 0.8) return campo
   }
-  const lista = (a) => a.filter(Boolean).join(', ')
-  const detalle = `Columnas del archivo: ${lista(encabezados)}.`
-  if (!('nombre' in cols)) return { error: `El archivo no trae una columna con el nombre de la escuela. ${detalle}` }
-  const faltan = ['cct', 'turno', 'municipio', 'localidad'].filter((c) => !(c in cols))
+  return null
+}
+
+// Lee cualquier Excel/CSV: busca en todas las hojas, ignora las columnas que no sirven y devuelve la asignación propuesta.
+function analizarEscuelas(buffer) {
+  const wb = XLSX.read(buffer, { type: 'array' })
+  let mejor = null
+  for (const nombreHoja of wb.SheetNames) {
+    const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], { header: 1, defval: '', raw: false })
+    if (!filas.length) continue
+    const iHead = filas.slice(0, 30).findIndex((f) => f.filter((c) => campoEscuela(c)).length >= 2)
+    const conEncabezado = iHead >= 0
+    // Sin encabezados: todas las filas son datos y las columnas se identifican por su contenido
+    const encabezados = conEncabezado ? filas[iHead].map((c) => txt(c)) : filas[0].map(() => '')
+    const cuerpo = filas.slice(conEncabezado ? iHead + 1 : 0).filter((f) => f.some((c) => txt(c)))
+    const cols = {}
+    if (conEncabezado) encabezados.forEach((c, i) => { const campo = campoEscuela(c); if (campo && !(campo in cols)) cols[campo] = i })
+    // Columnas que el encabezado no resolvió: se reconocen por su contenido
+    const usadas = new Set(Object.values(cols))
+    encabezados.forEach((_, i) => {
+      if (usadas.has(i)) return
+      const campo = campoPorContenido(cuerpo.slice(0, 60).map((f) => f[i]))
+      if (campo && !(campo in cols)) { cols[campo] = i; usadas.add(i) }
+    })
+    // Si "nombre" trae claves CCT, en realidad es el CCT
+    if ('nombre' in cols) {
+      const muestra = cuerpo.slice(0, 30).map((f) => txt(f[cols.nombre])).filter(Boolean)
+      if (muestra.length && muestra.every((x) => PATRON_CCT.test(x))) {
+        if (!('cct' in cols)) cols.cct = cols.nombre
+        delete cols.nombre
+      }
+    }
+    const puntos = Object.keys(cols).length * 1000 + cuerpo.length
+    if (cuerpo.length && (!mejor || puntos > mejor.puntos)) mejor = { hoja: nombreHoja, encabezados, cuerpo, cols, puntos }
+  }
+  if (!mejor || !Object.keys(mejor.cols).length) return { error: 'No pude identificar datos de escuelas en el archivo. Revisa que tenga las columnas de escuela (CCT, Nombre, Turno…).' }
+  return mejor
+}
+
+function registrosEscuelas(cuerpo, cols) {
+  const celda = (f, campo) => (campo in cols && cols[campo] !== '' ? txt(f[cols[campo]]) : '')
   const registros = []
   for (const f of cuerpo) {
     const nombre = celda(f, 'nombre')
@@ -92,8 +125,7 @@ function leerEscuelas(buffer) {
       localidad: celda(f, 'localidad') || null, direccion: celda(f, 'direccion') || null,
     })
   }
-  const aviso = faltan.length ? `No encontré las columnas: ${lista(faltan.map((c) => ({ cct: 'CCT', turno: 'Turno', municipio: 'Municipio', localidad: 'Localidad' }[c])))}. ${detalle}` : ''
-  return { registros, columnas: Object.keys(cols), aviso }
+  return registros
 }
 
 async function leerResumenEscuelas() {
@@ -171,6 +203,7 @@ export default function SnteAdmin({ soyAdmin }) {
   const [turnoFiltro, setTurnoFiltro] = useState('')
   const [cantidad, setCantidad] = useState('')
   const [reemplazar, setReemplazar] = useState(false)
+  const [pendiente, setPendiente] = useState(null) // escuelas leídas, esperando confirmación
 
   const cargar = useCallback(async () => {
     setCargando(true); setError('')
@@ -196,6 +229,17 @@ export default function SnteAdmin({ soyAdmin }) {
   const candidatos = useMemo(() => sinAsignar.filter((f) =>
     (secFiltro === 'todas' || f.seccion === secFiltro) && (!turnoFiltro || f.turno === turnoFiltro)), [sinAsignar, secFiltro, turnoFiltro])
 
+  async function subir(tabla, nuevos) {
+    let subidos = 0
+    for (let i = 0; i < nuevos.length; i += 500) {
+      const lote = nuevos.slice(i, i + 500)
+      const { error: ie } = await supabase.from(tabla).insert(lote)
+      if (ie) { setError(`Se interrumpió la importación (se subieron ${subidos}). Revisa el archivo e intenta de nuevo.`); break }
+      subidos += lote.length
+    }
+    return subidos
+  }
+
   // La cartera siempre se sube a un asesor en particular (nunca una cartera general).
   async function importar(e) {
     const archivo = e.target.files?.[0]
@@ -203,61 +247,76 @@ export default function SnteAdmin({ soyAdmin }) {
     if (!archivo) return
     if (!asesorSel) { setError('Primero elige el asesor al que pertenece esta cartera.'); return }
     const asesor = asesores.find((a) => a.id === asesorSel)
-    setTrabajando(true); setError(''); setMsg('')
+    setTrabajando(true); setError(''); setMsg(''); setPendiente(null)
     try {
       const buffer = await archivo.arrayBuffer()
-      let registros, nuevos, tabla, avisoLectura = ''
       if (tipo === 'escuelas') {
-        const lectura = leerEscuelas(buffer)
+        // Las escuelas pasan primero por una confirmación de cómo se leyeron las columnas
+        const lectura = analizarEscuelas(buffer)
         if (lectura.error) { setError(lectura.error); return }
-        registros = lectura.registros
-        if (lectura.aviso) avisoLectura = lectura.aviso
-        if (!registros.length) { setError('El archivo no trae escuelas con nombre.'); return }
-        // "Reemplazar": se borran las escuelas actuales de este asesor y se cargan las del archivo
-        if (reemplazar) {
-          const { error: de } = await supabase.from('snte_escuelas').delete().eq('asesor_id', asesorSel)
-          if (de) { setError('No se pudieron reemplazar las escuelas actuales. No se cargó nada.'); return }
-        }
-        const existentes = new Set(reemplazar ? [] : escuelas.map(claveEscuela))
-        nuevos = []
-        for (const r of registros) {
-          const k = claveEscuela(r)
-          if (existentes.has(k)) continue
-          existentes.add(k)
-          nuevos.push({ ...r, asesor_id: asesorSel })
-        }
-        tabla = 'snte_escuelas'
-      } else {
-        const lectura = leerHoja(buffer, seccionDef)
-        if (lectura.error) { setError(lectura.error); return }
-        registros = lectura.registros
-        const clavesExistentes = new Set(filas.map((f) => (f.curp ? `c:${f.curp}` : `t:${f.telefono}|${norm(f.nombre)}`)))
-        nuevos = []
-        for (const r of registros) {
-          const k = r.curp ? `c:${r.curp}` : `t:${r.telefono}|${norm(r.nombre)}`
-          if (clavesExistentes.has(k)) continue
-          clavesExistentes.add(k)
-          nuevos.push({ ...r, asesor_id: asesorSel })
-        }
-        tabla = 'snte_cartera'
+        setPendiente({ archivo: archivo.name, ...lectura })
+        return
       }
-      let subidos = 0
-      for (let i = 0; i < nuevos.length; i += 500) {
-        const lote = nuevos.slice(i, i + 500)
-        const { error: ie } = await supabase.from(tabla).insert(lote)
-        if (ie) { setError(`Se interrumpió la importación (se subieron ${subidos}). Revisa el archivo e intenta de nuevo.`); break }
-        subidos += lote.length
+      const lectura = leerHoja(buffer, seccionDef)
+      if (lectura.error) { setError(lectura.error); return }
+      const registros = lectura.registros
+      const clavesExistentes = new Set(filas.map((f) => (f.curp ? `c:${f.curp}` : `t:${f.telefono}|${norm(f.nombre)}`)))
+      const nuevos = []
+      for (const r of registros) {
+        const k = r.curp ? `c:${r.curp}` : `t:${r.telefono}|${norm(r.nombre)}`
+        if (clavesExistentes.has(k)) continue
+        clavesExistentes.add(k)
+        nuevos.push({ ...r, asesor_id: asesorSel })
       }
-      const que = tipo === 'escuelas' ? 'escuelas' : 'clientes'
-      if (subidos) setMsg(`Se cargaron ${subidos} ${que} nuevos a ${asesor?.nombre || 'el asesor'}. ${registros.length - nuevos.length} ya existían o estaban repetidos.`)
-      else if (!nuevos.length) setMsg(`No hay ${que} nuevos: los ${registros.length} registros del archivo ya estaban cargados.`)
-      if (avisoLectura) setError(avisoLectura)
+      const subidos = await subir('snte_cartera', nuevos)
+      if (subidos) setMsg(`Se cargaron ${subidos} clientes nuevos a ${asesor?.nombre || 'el asesor'}. ${registros.length - nuevos.length} ya existían o estaban repetidos.`)
+      else if (!nuevos.length) setMsg(`No hay clientes nuevos: los ${registros.length} registros del archivo ya estaban cargados.`)
       await cargar()
     } catch {
       setError('No se pudo leer el archivo. Usa un Excel (.xlsx) o CSV.')
     } finally {
       setTrabajando(false)
     }
+  }
+
+  async function confirmarEscuelas() {
+    if (!pendiente) return
+    if (!('nombre' in pendiente.cols) || pendiente.cols.nombre === '') { setError('Elige qué columna trae el nombre de la escuela.'); return }
+    const asesor = asesores.find((a) => a.id === asesorSel)
+    const registros = registrosEscuelas(pendiente.cuerpo, pendiente.cols)
+    if (!registros.length) { setError('El archivo no trae escuelas con nombre.'); return }
+    setTrabajando(true); setError(''); setMsg('')
+    try {
+      // "Reemplazar": se borran las escuelas actuales de este asesor y se cargan las del archivo
+      if (reemplazar) {
+        const { error: de } = await supabase.from('snte_escuelas').delete().eq('asesor_id', asesorSel)
+        if (de) { setError('No se pudieron reemplazar las escuelas actuales. No se cargó nada.'); return }
+      }
+      const existentes = new Set(reemplazar ? [] : escuelas.map(claveEscuela))
+      const nuevos = []
+      for (const r of registros) {
+        const k = claveEscuela(r)
+        if (existentes.has(k)) continue
+        existentes.add(k)
+        nuevos.push({ ...r, asesor_id: asesorSel })
+      }
+      const subidos = await subir('snte_escuelas', nuevos)
+      if (subidos) setMsg(`Se cargaron ${subidos} escuelas nuevas a ${asesor?.nombre || 'el asesor'}. ${registros.length - nuevos.length} ya existían o estaban repetidas.`)
+      else if (!nuevos.length) setMsg(`No hay escuelas nuevas: las ${registros.length} del archivo ya estaban cargadas.`)
+      setPendiente(null)
+      await cargar()
+    } finally {
+      setTrabajando(false)
+    }
+  }
+
+  function asignarColumna(campo, valor) {
+    setPendiente((p) => {
+      const cols = { ...p.cols }
+      if (valor === '') delete cols[campo]
+      else cols[campo] = Number(valor)
+      return { ...p, cols }
+    })
   }
 
   // Solo el administrador: borra la cartera (escuelas o contactos) de un asesor para poder cargarla de nuevo
@@ -316,7 +375,7 @@ export default function SnteAdmin({ soyAdmin }) {
         </p>
         <div style={{ display: 'grid', gap: 8 }}>
           <label className="snte-label" htmlFor="snte-asesor" style={{ marginBottom: 0 }}>1. Asesor</label>
-          <select id="snte-asesor" className="snte-select" value={asesorSel} onChange={(e) => setAsesorSel(e.target.value)}>
+          <select id="snte-asesor" className="snte-select" value={asesorSel} onChange={(e) => { setAsesorSel(e.target.value); setPendiente(null) }}>
             <option value="">Elegir asesor</option>
             {asesores.filter((a) => a.activo).map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
           </select>
@@ -324,7 +383,7 @@ export default function SnteAdmin({ soyAdmin }) {
           <span className="snte-label" style={{ marginBottom: 0 }}>2. Tipo de cartera</span>
           <div style={{ display: 'flex', gap: 6 }} role="group" aria-label="Tipo de cartera">
             {[['clientes', 'Clientes'], ['escuelas', 'Escuelas']].map(([id, label]) => (
-              <button key={id} type="button" className={'snte-chip' + (tipo === id ? ' on' : '')} aria-pressed={tipo === id} onClick={() => setTipo(id)}>{label}</button>
+              <button key={id} type="button" className={'snte-chip' + (tipo === id ? ' on' : '')} aria-pressed={tipo === id} onClick={() => { setTipo(id); setPendiente(null) }}>{label}</button>
             ))}
           </div>
 
@@ -340,7 +399,7 @@ export default function SnteAdmin({ soyAdmin }) {
             </>
           ) : (
             <>
-              <p className="snte-sub">Columnas que reconoce: CCT, Nombre de la escuela, Nivel educativo, Control, Turno, Municipio, Localidad y Dirección. No duplica escuelas ya cargadas (mismo CCT y turno).</p>
+              <p className="snte-sub">Sube cualquier Excel o CSV: toma solo CCT, Nombre, Turno, Municipio, Localidad, Dirección, Nivel y Subcontrol, e ignora el resto. Antes de subir te muestra cómo leyó las columnas para que lo confirmes. No duplica escuelas ya cargadas (mismo CCT y turno).</p>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                 <input type="checkbox" checked={reemplazar} onChange={(e) => setReemplazar(e.target.checked)} style={{ width: 16, height: 16 }} />
                 Reemplazar las escuelas que ya tiene este asesor{asesorSel ? ` (${escuelasPorAsesor.get(asesorSel) || 0})` : ''}
@@ -354,6 +413,37 @@ export default function SnteAdmin({ soyAdmin }) {
             <input type="file" accept=".xlsx,.xls,.csv" onChange={importar} disabled={trabajando || !asesorSel} style={{ display: 'none' }} />
           </label>
           {!asesorSel && <p className="snte-sub">Elige primero al asesor para habilitar el botón.</p>}
+
+          {pendiente && (
+            <div className="snte-card" style={{ background: 'var(--snte-wash)', marginTop: 4 }}>
+              <b style={{ fontSize: 14 }}>Revisa cómo leí “{pendiente.archivo}”</b>
+              <p className="snte-sub" style={{ margin: '4px 0 10px' }}>
+                {pendiente.cuerpo.length} filas · hoja “{pendiente.hoja}”. Las columnas que no elijas aquí se ignoran. Corrige lo que no esté bien.
+              </p>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {CAMPOS_ESC.map(([campo, etiqueta]) => (
+                  <div key={campo} style={{ display: 'grid', gridTemplateColumns: '120px 1fr', alignItems: 'center', gap: 8 }}>
+                    <span className="snte-label" style={{ marginBottom: 0 }}>{etiqueta}{campo === 'nombre' ? ' *' : ''}</span>
+                    <select className="snte-select" aria-label={etiqueta} value={campo in pendiente.cols ? pendiente.cols[campo] : ''} onChange={(e) => asignarColumna(campo, e.target.value)}>
+                      <option value="">— No viene en el archivo —</option>
+                      {pendiente.encabezados.map((h, i) => <option key={i} value={i}>{h || `Columna ${i + 1}`}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <p className="snte-sub" style={{ margin: '10px 0 4px', fontWeight: 600 }}>Así quedarían las primeras filas:</p>
+              {registrosEscuelas(pendiente.cuerpo.slice(0, 3), pendiente.cols).map((r, i) => (
+                <div key={i} className="snte-fila" style={{ padding: '6px 0', fontSize: 12.5 }}>
+                  <b>{r.nombre}</b>
+                  <div className="snte-sub">{[r.cct, r.turno, r.nivel, r.control, r.municipio, r.localidad].filter(Boolean).join(' · ') || 'Sin más datos'}</div>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button type="button" className="snte-btn" style={{ flex: 1 }} disabled={trabajando} onClick={confirmarEscuelas}>{trabajando ? 'Subiendo…' : 'Confirmar y subir'}</button>
+                <button type="button" className="snte-btn sec" disabled={trabajando} onClick={() => setPendiente(null)}>Cancelar</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
