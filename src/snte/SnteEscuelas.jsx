@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { MapPin, Search } from 'lucide-react'
+import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { supabase } from '../supabaseClient.js'
 
 const PAGINA = 60
@@ -24,6 +24,7 @@ export default function SnteEscuelas({ soyAdmin }) {
   const [turno, setTurno] = useState('')
   const [q, setQ] = useState('')
   const [visibles, setVisibles] = useState(PAGINA)
+  const [abierta, setAbierta] = useState(null)
 
   const cargar = useCallback(async () => {
     setError('')
@@ -78,23 +79,35 @@ export default function SnteEscuelas({ soyAdmin }) {
           {lista.length === 0 && <p className="snte-sub" style={{ textAlign: 'center' }}>Ninguna escuela coincide con los filtros.</p>}
           {lista.slice(0, visibles).map((f) => {
             const ubicacion = [f.direccion, f.localidad, f.municipio].filter(Boolean).join(', ')
+            const open = abierta === f.id
+            const datos = [
+              ['CCT', f.cct], ['Nombre de la escuela', f.nombre], ['Nivel educativo', f.nivel], ['Control', f.control],
+              ['Turno', f.turno], ['Municipio', f.municipio], ['Localidad', f.localidad], ['Dirección', f.direccion],
+            ]
             return (
               <div className="snte-fila" key={f.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                <button type="button" onClick={() => setAbierta(open ? null : f.id)} aria-expanded={open}
+                  style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, background: 'none', border: 0, padding: 0, textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
                   <b style={{ fontSize: 14 }}>{f.nombre}</b>
-                  {f.cct && <span className="snte-pill gris">{f.cct}</span>}
-                </div>
-                <div className="snte-sub" style={{ marginTop: 2 }}>
-                  {[f.nivel, f.control, f.turno].filter(Boolean).join(' · ')}
-                </div>
-                {ubicacion && (
-                  <div className="snte-sub" style={{ marginTop: 2 }}>{[f.municipio, f.localidad].filter(Boolean).join(' · ')}{f.direccion ? ` — ${f.direccion}` : ''}</div>
-                )}
-                {ubicacion && (
-                  <a className="snte-btn sec chico" style={{ marginTop: 8 }} target="_blank" rel="noopener noreferrer"
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${f.nombre} ${ubicacion} Puebla`)}`}>
-                    <MapPin size={14} /> Ver en el mapa
-                  </a>
+                  <ChevronDown size={16} style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+                </button>
+                {open && (
+                  <div style={{ marginTop: 10 }}>
+                    <dl style={{ margin: 0, display: 'grid', gap: 8 }}>
+                      {datos.map(([etiqueta, valor]) => (
+                        <div key={etiqueta}>
+                          <dt className="snte-label" style={{ marginBottom: 1 }}>{etiqueta}</dt>
+                          <dd style={{ margin: 0, fontSize: 14, color: valor ? 'inherit' : 'var(--stone)' }}>{valor || '—'}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    {ubicacion && (
+                      <a className="snte-btn sec chico" style={{ marginTop: 10 }} target="_blank" rel="noopener noreferrer"
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${f.nombre} ${ubicacion} Puebla`)}`}>
+                        <MapPin size={14} /> Ver en el mapa
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             )

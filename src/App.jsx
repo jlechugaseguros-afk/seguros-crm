@@ -531,6 +531,260 @@ function PolicyFields({ data, onChange, file, onFileChange, existingDoc }) {
   );
 }
 
+// ─── Espacio SNTE · Clientes (alta manual) ───────────────────────────────────────────────
+const SNTE_ASEGURADORAS = ["GNP Seguros", "Qualitas", "ANA Seguros"];
+const SNTE_RAMOS = ["Vida", "Salud", "Autos"];
+const SNTE_METODOS_PAGO = ["DxN", "Bancario"];
+const SNTE_PRODUCTOS_VIDA = ["Esencial", "Salud", "Accidentes", "Integral"];
+const SNTE_BLOQUES_QUALITAS = ["Bloque 1", "Bloque 2", "Bloque 3", "Bloque 4", "Bloque 6", "Bloque 7", "Bloque 8", "Bloque 9"];
+const SNTE_COBERTURAS_AUTO = ["Amplia", "Limitada", "Básica RC"];
+// Subramo de comisión que corresponde a cada ramo (las comisiones del CRM se calculan con él)
+const SNTE_SUBRAMO = { Vida: "Vida Individual", Salud: "Gastos Médicos Ind", Autos: "Automóviles Individuales" };
+
+// Qué lista de producto se habilita según aseguradora y ramo (null = ninguna)
+function opcionesProductoSnte(aseguradora, ramo) {
+  if (ramo === "Vida") return { etiqueta: "Producto", opciones: SNTE_PRODUCTOS_VIDA };
+  if (ramo === "Autos") return { etiqueta: "Tipo de cobertura", opciones: SNTE_COBERTURAS_AUTO };
+  if (ramo === "Salud" && aseguradora === "Qualitas") return { etiqueta: "Bloque", opciones: SNTE_BLOQUES_QUALITAS };
+  return null;
+}
+
+const polizaSnteVacia = () => ({
+  aseguradora: SNTE_ASEGURADORAS[0], ramo: SNTE_RAMOS[0], producto: "", primaAnual: "",
+  metodoPago: SNTE_METODOS_PAGO[0], clasificacion: "Nueva", documento: null,
+});
+
+function PolizaSnteFields({ data, onChange, file, onFileChange }) {
+  const prod = opcionesProductoSnte(data.aseguradora, data.ramo);
+  const cambiar = (campo, valor) => {
+    const siguiente = { ...data, [campo]: valor };
+    // Si cambia la aseguradora o el ramo, la lista de producto se reinicia
+    if (campo === "aseguradora" || campo === "ramo") siguiente.producto = "";
+    Object.keys(siguiente).forEach((k) => { if (siguiente[k] !== data[k]) onChange(k, siguiente[k]); });
+  };
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Field label="Aseguradora" style={{ flex: 1 }}>
+          <select value={data.aseguradora} onChange={(e) => cambiar("aseguradora", e.target.value)} style={inputStyle}>
+            {SNTE_ASEGURADORAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </Field>
+        <Field label="Ramo" style={{ flex: 1 }}>
+          <select value={data.ramo} onChange={(e) => cambiar("ramo", e.target.value)} style={inputStyle}>
+            {SNTE_RAMOS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </Field>
+      </div>
+      {prod && (
+        <Field label={prod.etiqueta}>
+          <select value={data.producto || ""} onChange={(e) => onChange("producto", e.target.value)} style={inputStyle}>
+            <option value="">Elegir…</option>
+            {prod.opciones.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label="Prima anualizada">
+        <input type="number" min="0" step="0.01" inputMode="decimal" value={data.primaAnual}
+          onChange={(e) => onChange("primaAnual", e.target.value)} style={inputStyle} placeholder="Ej. 12000" />
+      </Field>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Field label="Método de pago" style={{ flex: 1 }}>
+          <select value={data.metodoPago} onChange={(e) => onChange("metodoPago", e.target.value)} style={inputStyle}>
+            {SNTE_METODOS_PAGO.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+        <Field label="Clasificación" style={{ flex: 1 }}>
+          <select value={data.clasificacion} onChange={(e) => onChange("clasificacion", e.target.value)} style={inputStyle}>
+            {CLASIFICACIONES_POLIZA.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Póliza (imagen, foto o PDF)">
+        <label style={{
+          display: "block", background: "#FFFFFF", border: "1px solid var(--line)", color: "var(--ink)",
+          borderRadius: 10, padding: "11px 13px", fontSize: 13, cursor: "pointer",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {file ? file.name : data.documento ? `✓ ${data.documento.name} (toca para reemplazar)` : "Subir póliza (imagen, foto o PDF)…"}
+          <input type="file" accept="image/*,.pdf" style={{ display: "none" }}
+            onChange={(e) => { onFileChange(e.target.files[0] || null); e.target.value = ""; }} />
+        </label>
+      </Field>
+    </div>
+  );
+}
+
+function ClientesSnte({ clientes, onGuardar, onEliminar, onSubirPoliza }) {
+  const [modal, setModal] = useState(null); // { tipo: "nuevo" | "cliente" | "poliza", clienteId, polizaId }
+  const [personal, setPersonal] = useState(emptyClientForm);
+  const [poliza, setPoliza] = useState(polizaSnteVacia());
+  const [archivo, setArchivo] = useState(null);
+  const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
+
+  const cerrar = () => { setModal(null); setError(""); setArchivo(null); };
+  const abrirNuevo = () => { setPersonal({ ...emptyClientForm }); setPoliza(polizaSnteVacia()); setArchivo(null); setError(""); setModal({ tipo: "nuevo" }); };
+  const abrirCliente = (c) => {
+    setPersonal({ ...emptyClientForm, nombre: c.nombre || "", telefono: c.telefono || "", correo: c.correo || "", requiereFactura: !!c.requiereFactura, fechaCumple: c.fechaCumple || "" });
+    setError(""); setModal({ tipo: "cliente", clienteId: c.id });
+  };
+  const abrirPoliza = (c, p) => {
+    setPoliza(p ? { ...polizaSnteVacia(), ...p } : polizaSnteVacia());
+    setArchivo(null); setError(""); setModal({ tipo: "poliza", clienteId: c.id, polizaId: p ? p.id : null });
+  };
+
+  async function guardar(e) {
+    e.preventDefault()
+    const conPersonal = modal.tipo === "nuevo" || modal.tipo === "cliente";
+    const conPoliza = modal.tipo === "nuevo" || modal.tipo === "poliza";
+    if (conPersonal && (!personal.nombre.trim() || !personal.telefono.trim())) { setError("Nombre y teléfono son obligatorios."); return; }
+    if (conPoliza && (!poliza.primaAnual || Number(poliza.primaAnual) <= 0)) { setError("La prima anualizada es obligatoria."); return; }
+    if (conPoliza) {
+      const prod = opcionesProductoSnte(poliza.aseguradora, poliza.ramo);
+      if (prod && !poliza.producto) { setError(`Elige ${prod.etiqueta.toLowerCase()}.`); return; }
+    }
+    setGuardando(true); setError("");
+    try {
+      const clienteId = modal.clienteId || Date.now().toString();
+      let nuevaPoliza = null;
+      if (conPoliza) {
+        const polizaId = modal.polizaId || (Date.now() + 1).toString();
+        let documento = poliza.documento || null;
+        if (archivo) documento = await onSubirPoliza(clienteId, polizaId, archivo);
+        nuevaPoliza = {
+          ...poliza, id: polizaId, subramo: SNTE_SUBRAMO[poliza.ramo] || "", producto: poliza.producto || "",
+          moneda: "MXN", documento, fechaAlta: poliza.fechaAlta || todayStr(),
+        };
+      }
+      onGuardar({ tipo: modal.tipo, clienteId, personal: conPersonal ? personal : null, poliza: nuevaPoliza });
+      cerrar();
+    } catch (err) {
+      setError(`No se pudo subir el archivo de la póliza: ${err.message || err}`);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function verDocumento(doc) {
+    const { data, error: err } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(doc.path, 300);
+    if (err || !data?.signedUrl) { alert("No se pudo abrir el archivo."); return; }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
+
+  const q = busqueda.trim().toLowerCase();
+  const lista = clientes.filter((c) => !q || `${c.nombre} ${c.telefono}`.toLowerCase().includes(q) || (c.polizas || []).some((p) => String(p.numeroPoliza || "").toLowerCase().includes(q)));
+  const totalPolizas = clientes.reduce((n, c) => n + (c.polizas || []).length, 0);
+  const pill = { background: "var(--gold-soft, #FDE8D2)", color: "var(--gold-text, #B8540A)", borderRadius: 999, padding: "2px 9px", fontSize: 11, fontWeight: 700 };
+  const btnChico = { background: "none", border: "1px solid var(--line)", borderRadius: 8, color: "var(--ink)", padding: "6px 10px", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+        <div>
+          <span className="snte-etiqueta">Cartera</span>
+          <h1 className="snte-h1">Clientes</h1>
+          <p className="snte-sub">{clientes.length} cliente{clientes.length === 1 ? "" : "s"} · {totalPolizas} póliza{totalPolizas === 1 ? "" : "s"}</p>
+        </div>
+        <button type="button" className="snte-btn" onClick={abrirNuevo}><Plus size={16} /> Nuevo cliente</button>
+      </div>
+
+      <input className="snte-input" type="search" placeholder="Buscar por nombre, teléfono o número de póliza" aria-label="Buscar cliente"
+        value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ marginBottom: 12 }} />
+
+      {clientes.length === 0 ? (
+        <div className="snte-card" style={{ textAlign: "center", padding: 24 }}>
+          <b>Aún no tienes clientes SNTE</b>
+          <p className="snte-sub" style={{ marginTop: 6 }}>Agrégalos con “Nuevo cliente” o convierte un prospecto del Espacio SNTE.</p>
+        </div>
+      ) : lista.length === 0 ? (
+        <div className="snte-card" style={{ textAlign: "center", padding: 24 }}><p className="snte-sub">Ningún cliente coincide con “{busqueda}”.</p></div>
+      ) : (
+        <div className="snte-card">
+          {lista.map((c) => {
+            const polizas = c.polizas || [];
+            const open = abierto === c.id;
+            return (
+              <div className="snte-fila" key={c.id}>
+                <button type="button" onClick={() => setAbierto(open ? null : c.id)} aria-expanded={open}
+                  style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, background: "none", border: 0, padding: 0, textAlign: "left", font: "inherit", color: "inherit", cursor: "pointer" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <b style={{ fontSize: 14 }}>{c.nombre}</b>
+                    <div className="snte-sub">{c.telefono}{c.correo ? ` · ${c.correo}` : ""}</div>
+                  </div>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <span style={pill}>{polizas.length} póliza{polizas.length === 1 ? "" : "s"}</span>
+                    <ChevronDown size={16} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+                  </span>
+                </button>
+                {open && (
+                  <div style={{ marginTop: 10 }}>
+                    {polizas.length === 0 && <p className="snte-sub">Sin pólizas registradas.</p>}
+                    {polizas.map((p) => (
+                      <div key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px", marginBottom: 8, background: "var(--snte-wash, #FFF7EE)" }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>
+                          {p.aseguradora} · {p.ramo}{p.producto ? ` · ${p.producto}` : ""}
+                        </div>
+                        <div className="snte-sub" style={{ marginTop: 2 }}>
+                          {p.clasificacion}{p.metodoPago ? ` · ${p.metodoPago}` : ""}{p.primaAnual ? ` · Prima anualizada $${Number(p.primaAnual).toLocaleString("es-MX")}` : ""}
+                        </div>
+                        <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {p.documento && <button type="button" style={btnChico} onClick={() => verDocumento(p.documento)}><FileText size={13} /> Ver póliza</button>}
+                          <button type="button" style={btnChico} onClick={() => abrirPoliza(c, p)}><Pencil size={13} /> {p.documento ? "Editar / reemplazar" : "Editar / subir póliza"}</button>
+                          <button type="button" style={{ ...btnChico, color: "#B23A2E" }} onClick={() => { if (confirm("¿Eliminar esta póliza?")) onEliminar({ clienteId: c.id, polizaId: p.id }); }}><Trash2 size={13} /></button>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button type="button" style={btnChico} onClick={() => abrirPoliza(c, null)}><Plus size={13} /> Agregar póliza</button>
+                      <button type="button" style={btnChico} onClick={() => abrirCliente(c)}><Pencil size={13} /> Editar datos</button>
+                      <button type="button" style={{ ...btnChico, color: "#B23A2E" }} onClick={() => { if (confirm(`¿Eliminar a ${c.nombre} y todas sus pólizas?`)) onEliminar({ clienteId: c.id }); }}><Trash2 size={13} /> Eliminar cliente</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {modal && (
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "rgba(60,30,5,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 40 }}>
+          <form className="sheet-up" onSubmit={guardar} style={{
+            background: "var(--cream)", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0",
+            padding: "20px 20px calc(28px + env(safe-area-inset-bottom, 0px))", maxHeight: "92dvh", overflowY: "auto", overscrollBehavior: "contain",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 className="serif" style={{ fontSize: 18, margin: 0 }}>
+                {modal.tipo === "nuevo" ? "Nuevo cliente" : modal.tipo === "cliente" ? "Editar cliente" : modal.polizaId ? "Editar póliza" : "Agregar póliza"}
+              </h2>
+              <button type="button" onClick={cerrar} aria-label="Cerrar" style={{ background: "none", border: "none" }}><X size={20} /></button>
+            </div>
+            {error && <p style={{ color: "#B23A2E", fontSize: 13, marginTop: 0 }} role="alert">{error}</p>}
+            {(modal.tipo === "nuevo" || modal.tipo === "cliente") && (
+              <ClientPersonalFields data={personal} onChange={(campo, v) => setPersonal((f) => ({ ...f, [campo]: v }))} />
+            )}
+            {(modal.tipo === "nuevo" || modal.tipo === "poliza") && (
+              <>
+                {modal.tipo === "nuevo" && <h3 className="serif" style={{ fontSize: 15, margin: "18px 0 10px", color: "var(--ink)" }}>Datos de la póliza</h3>}
+                <PolizaSnteFields data={poliza} onChange={(campo, v) => setPoliza((p) => ({ ...p, [campo]: v }))} file={archivo} onFileChange={setArchivo} />
+              </>
+            )}
+            <button type="submit" disabled={guardando} style={{
+              width: "100%", background: "var(--ink)", color: "var(--cream)", border: "none", borderRadius: 8, padding: 12,
+              fontSize: 14, fontWeight: 600, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: guardando ? 0.6 : 1,
+            }}>
+              <Check size={16} /> {guardando ? "Guardando…" : "Guardar"}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const ESTADOS_PROSPECTO = ["Nuevo prospecto", "Seguimiento", "Cotización", "Cliente", "Perdido"];
 const ESTADO_COLOR = {
   "Nuevo prospecto": "var(--stone)",
@@ -3550,6 +3804,28 @@ function migrateClient(c) {
     return { name: file.name, path, uploadedAt: Date.now() };
   }
 
+  // Espacio SNTE · Clientes: alta y edición manual (mercado "snte")
+  function handleGuardarClienteSnte({ tipo, clienteId, personal, poliza }) {
+    setClients((cs) => {
+      if (tipo === "nuevo") {
+        return [...cs, { ...emptyClientForm, ...personal, id: clienteId, mercado: "snte", origen: "Manual SNTE", polizas: [poliza] }];
+      }
+      return cs.map((c) => {
+        if (c.id !== clienteId) return c;
+        if (tipo === "cliente") return { ...c, ...personal, id: clienteId };
+        const lista = c.polizas || [];
+        const existe = lista.some((p) => p.id === poliza.id);
+        return { ...c, polizas: existe ? lista.map((p) => (p.id === poliza.id ? poliza : p)) : [...lista, poliza] };
+      });
+    });
+  }
+
+  function handleEliminarClienteSnte({ clienteId, polizaId }) {
+    setClients((cs) => (polizaId
+      ? cs.map((c) => (c.id === clienteId ? { ...c, polizas: (c.polizas || []).filter((p) => p.id !== polizaId) } : c))
+      : cs.filter((c) => c.id !== clienteId)));
+  }
+
   async function handleAddSubmit(e) {
     e.preventDefault();
     if (!form.nombre.trim() || !form.telefono.trim()) {
@@ -3976,7 +4252,14 @@ function migrateClient(c) {
           soyAdmin={soyAdmin}
           soloSnte={soloSnte}
           onSalir={() => setEspacio("privado")}
-          clientesSnte={clients.filter((c) => c.mercado === "snte")}
+          clientesView={(
+            <ClientesSnte
+              clientes={clients.filter((c) => c.mercado === "snte")}
+              onSubirPoliza={uploadPolicyFile}
+              onGuardar={handleGuardarClienteSnte}
+              onEliminar={handleEliminarClienteSnte}
+            />
+          )}
           prospectosSnte={prospectos.filter((p) => p.mercado === "snte")}
           onNuevoProspecto={handleNuevoProspectoSnte}
           prospectosView={(

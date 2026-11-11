@@ -79,37 +79,8 @@ function Gate({ onOk, onSalir, puedeSalir }) {
   )
 }
 
-function ListaClientes({ clientes }) {
-  if (!clientes.length) {
-    return (
-      <div className="snte-card" style={{ textAlign: 'center', padding: 24 }}>
-        <b>Aún no tienes clientes SNTE</b>
-        <p className="snte-sub" style={{ marginTop: 6 }}>Cuando conviertas un prospecto del Espacio SNTE a cliente, aparecerá aquí.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="snte-card">
-      {clientes.map((c) => (
-        <div className="snte-fila" key={c.id}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <b style={{ fontSize: 14 }}>{c.nombre}</b>
-            <span className="snte-pill ok">{(c.polizas || []).length} póliza{(c.polizas || []).length === 1 ? '' : 's'}</span>
-          </div>
-          <div className="snte-sub">{c.telefono}{c.correo ? ` · ${c.correo}` : ''}</div>
-          <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {(c.polizas || []).map((p) => (
-              <span className="snte-pill gris" key={p.id}>{[p.ramo, p.aseguradora].filter(Boolean).join(' · ')}</span>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default function SnteEspacio({
-  userId, soyAdmin, soloSnte, onSalir, clientesSnte, prospectosSnte, prospectosView, materialView, onNuevoProspecto,
+  userId, soyAdmin, soloSnte, onSalir, clientesView, prospectosSnte, prospectosView, materialView, onNuevoProspecto,
 }) {
   const claveSesion = `snte_ok_${userId || 'x'}`
   const [nombre, setNombre] = useState(() => {
@@ -181,7 +152,7 @@ export default function SnteEspacio({
               <SnteCartera onSeccion={setSeccion} nombreAsesor={nombre} onNuevoProspecto={onNuevoProspecto} soyAdmin={puedeGestionar} />
             )}
             {tab === 'prospectos' && prospectosView}
-            {tab === 'clientes' && <ListaClientes clientes={clientesSnte} />}
+            {tab === 'clientes' && clientesView}
             {tab === 'simulador' && <SnteSimulador />}
             {tab === 'productos' && <SnteProductos />}
             {tab === 'material' && materialView}
