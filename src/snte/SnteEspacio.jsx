@@ -193,7 +193,7 @@ export default function SnteEspacio({
       {nombre && (
         <>
           {verMas && (
-            <div className="snte-card snte-fade" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))', zIndex: 5, maxWidth: 520, margin: '0 auto' }}>
+            <div className="snte-card snte-fade snte-mas-menu" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))', zIndex: 5, maxWidth: 520, margin: '0 auto' }}>
               <div className="snte-grid2">
                 <button className="snte-btn sec" onClick={() => irA('simulador')}><Calculator size={16} /> Simulador</button>
                 <button className="snte-btn sec" onClick={() => irA('productos')}><LayoutGrid size={16} /> Mis productos</button>

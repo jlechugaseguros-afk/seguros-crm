@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { Phone, MessageCircle, Search, UserPlus } from 'lucide-react'
 import { supabase } from '../supabaseClient.js'
+import SnteEscuelas from './SnteEscuelas.jsx'
 
 export const RESULTADOS = ['Sin contactar', 'Volver a llamar', 'No contestó', 'Número no existe', 'No le interesa', 'Interesado', 'Cita', 'Cotización']
 const PASAN_A_PROSPECTO = ['Interesado', 'Cita', 'Cotización']
@@ -97,7 +98,7 @@ function Fila({ f, abierta, onAbrir, onGuardado, nombreAsesor, onNuevoProspecto 
   )
 }
 
-export default function SnteCartera({ onSeccion, nombreAsesor, onNuevoProspecto, soyAdmin }) {
+function CarteraClientes({ onSeccion, nombreAsesor, onNuevoProspecto, soyAdmin }) {
   const [filas, setFilas] = useState(null)
   const [error, setError] = useState('')
   const [filtroSeccion, setFiltroSeccion] = useState('todas')
@@ -184,6 +185,27 @@ export default function SnteCartera({ onSeccion, nombreAsesor, onNuevoProspecto,
             </button>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+// Mi cartera: el asesor alterna entre sus clientes y sus escuelas asignadas.
+export default function SnteCartera(props) {
+  const [vista, setVista] = useState('clientes')
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }} role="group" aria-label="Tipo de cartera">
+        {[['clientes', 'Clientes'], ['escuelas', 'Escuelas']].map(([id, label]) => (
+          <button key={id} type="button" className={'snte-chip' + (vista === id ? ' on' : '')} aria-pressed={vista === id} onClick={() => setVista(id)}>{label}</button>
+        ))}
+      </div>
+      {vista === 'clientes' ? <CarteraClientes {...props} /> : (
+        <>
+          <span className="snte-etiqueta">Cartera asignada</span>
+          <h1 className="snte-h1">Mis escuelas</h1>
+          <SnteEscuelas soyAdmin={props.soyAdmin} />
+        </>
       )}
     </div>
   )

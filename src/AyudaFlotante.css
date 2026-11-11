@@ -71,6 +71,14 @@
   .ayuda-panel { bottom: 24px; right: 24px; left: auto; width: 400px; }
 }
 
+/* Espacio SNTE: tiene su propia barra inferior (con el botón "Más"), que en iPad/escritorio también aparece.
+   El botón de ayuda se sube por encima de la barra para no taparla, y se oculta mientras el menú "Más" está abierto. */
+body:has(.snte-root) .ayuda-fab { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+body:has(.snte-root) .ayuda-panel { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); height: min(560px, calc(100dvh - 180px)); }
+@media (max-width: 899px) {
+  body:has(.snte-mas-menu) .ayuda-fab { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ayuda-fab, .ayuda-panel, .ayuda-msg { animation: none; }
 }
