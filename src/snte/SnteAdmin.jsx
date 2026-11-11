@@ -27,7 +27,7 @@ const ALIAS_ESC = {
   cct: ['cct', 'clave cct', 'clave del centro de trabajo', 'clave centro de trabajo', 'clave'],
   nombre: ['nombre de la escuela', 'nombre escuela', 'nombre del centro de trabajo', 'escuela', 'nombre', 'plantel'],
   nivel: ['nivel educativo', 'nivel'],
-  control: ['control', 'sostenimiento'],
+  control: ['control', 'subcontrol', 'sub control', 'sostenimiento'],
   turno: ['turno'],
   municipio: ['municipio'],
   localidad: ['localidad'],
@@ -260,6 +260,20 @@ export default function SnteAdmin({ soyAdmin }) {
     }
   }
 
+  // Solo el administrador: borra la cartera (escuelas o contactos) de un asesor para poder cargarla de nuevo
+  async function borrarCartera(a, tabla) {
+    const esEsc = tabla === 'snte_escuelas'
+    const n = (esEsc ? escuelasPorAsesor : porAsesor).get(a.id) || 0
+    const que = esEsc ? 'escuelas' : 'clientes de la cartera'
+    if (!window.confirm(`¿Eliminar las ${n} ${que} de ${a.nombre}? Esta acción no se puede deshacer.`)) return
+    setError(''); setMsg(''); setTrabajando(true)
+    const { error: e } = await supabase.from(tabla).delete().eq('asesor_id', a.id)
+    setTrabajando(false)
+    if (e) { setError('No se pudo eliminar la cartera.'); return }
+    setMsg(`Se eliminaron ${n} ${que} de ${a.nombre}. Ya puedes cargar el Excel de nuevo.`)
+    await cargar()
+  }
+
   async function cambiarGestor(a) {
     setError(''); setMsg('')
     const { error: e } = await supabase.rpc('snte_set_gestor', { p_asesor: a.id, p_valor: !a.es_gestor })
@@ -367,7 +381,7 @@ export default function SnteAdmin({ soyAdmin }) {
       <div className="snte-card" style={{ marginTop: 12 }}>
         <b style={{ fontSize: 14 }}>Cartera por asesor</b>
         {asesores.map((a) => (
-          <div className="snte-fila" key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div className="snte-fila" key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nombre}</div>
               <div className="snte-sub" style={{ fontSize: 12 }}>{a.vinculado ? 'Ya entró al espacio' : 'Aún no ha entrado'}</div>
@@ -382,6 +396,16 @@ export default function SnteAdmin({ soyAdmin }) {
               <span className="snte-pill">{porAsesor.get(a.id) || 0} clientes</span>
               <span className="snte-pill">{escuelasPorAsesor.get(a.id) || 0} escuelas</span>
             </div>
+            {soyAdmin && ((escuelasPorAsesor.get(a.id) || 0) > 0 || (porAsesor.get(a.id) || 0) > 0) && (
+              <div style={{ display: 'flex', gap: 6, flexBasis: '100%', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                {(escuelasPorAsesor.get(a.id) || 0) > 0 && (
+                  <button type="button" className="snte-btn sec chico" style={{ color: '#A12B1D' }} disabled={trabajando} onClick={() => borrarCartera(a, 'snte_escuelas')}>Eliminar escuelas</button>
+                )}
+                {(porAsesor.get(a.id) || 0) > 0 && (
+                  <button type="button" className="snte-btn sec chico" style={{ color: '#A12B1D' }} disabled={trabajando} onClick={() => borrarCartera(a, 'snte_cartera')}>Eliminar clientes</button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
