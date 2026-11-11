@@ -1631,14 +1631,54 @@ function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUploa
   );
 }
 
-// Pantalla temporal mientras la Tarjeta digital se termina de construir.
-// Para reactivar la función, cambia TARJETA_EN_CONSTRUCCION a false.
-const TARJETA_EN_CONSTRUCCION = false;
-
-function EnConstruccion({ titulo, eyebrow, mensaje }) {
+// Pantalla "En construcción" (se usa en McBrokers y en Tarjeta digital > General).
+// Tarjeta digital se divide en dos subpestañas: "Agente MCB" (la tarjeta actual) y "General" (en construcción).
+function TarjetaPestanas(props) {
+  const [vista, setVista] = useState("mcb"); // mcb | general
+  const tabs = (
+    <div role="tablist" style={{ display: "flex", gap: 6, margin: "0 auto 18px", maxWidth: 640 }}>
+      {[["mcb", "Agente MCB"], ["general", "General"]].map(([id, label]) => (
+        <button
+          key={id} role="tab" aria-selected={vista === id} onClick={() => setVista(id)}
+          style={{
+            padding: "8px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600,
+            border: vista === id ? "1px solid var(--ink)" : "1px solid var(--line)",
+            background: vista === id ? "var(--ink)" : "#FFFFFF",
+            color: vista === id ? "var(--cream)" : "var(--ink)",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <div>
-      <PageHeader eyebrow={eyebrow} title={titulo} />
+      <PageHeader
+        eyebrow="Identidad"
+        title="Tarjeta digital"
+        subtitle={vista === "mcb"
+          ? "Llena tus datos y la tarjeta se arma sola. También puedes tocar la foto o el QR dentro de la tarjeta para cambiarlos."
+          : undefined}
+      />
+      {tabs}
+      {vista === "mcb" ? (
+        <TarjetaDigital {...props} sinEncabezado />
+      ) : (
+        <EnConstruccion
+          sinEncabezado
+          titulo="Tarjeta digital"
+          mensaje="Estamos preparando la tarjeta digital general para que muy pronto puedas crear y compartir tu tarjeta de presentación. ¡Vuelve pronto!"
+        />
+      )}
+    </div>
+  );
+}
+
+function EnConstruccion({ titulo, eyebrow, mensaje, sinEncabezado = false }) {
+  return (
+    <div>
+      {!sinEncabezado && <PageHeader eyebrow={eyebrow} title={titulo} />}
       <div className="obra-card">
         <svg className="obra-art" viewBox="0 0 320 220" role="img" aria-label="Ilustración de una obra en construcción">
           <defs>
@@ -5072,14 +5112,8 @@ function migrateClient(c) {
           />
         )}
 
-        {tab === "tarjeta" && (TARJETA_EN_CONSTRUCCION ? (
-          <EnConstruccion
-            eyebrow="Identidad"
-            titulo="Tarjeta digital"
-            mensaje="Estamos preparando esta sección para que muy pronto puedas crear y compartir tu tarjeta de presentación digital. ¡Vuelve pronto!"
-          />
-        ) : (
-          <TarjetaDigital
+        {tab === "tarjeta" && (
+          <TarjetaPestanas
             tarjeta={tarjeta}
             profile={profile}
             userId={userId}
@@ -5090,7 +5124,7 @@ function migrateClient(c) {
             subiendoQr={subiendoQr}
             error={tarjetaError}
           />
-        ))}
+        )}
 
         {tab === "comisiones" && (
           <Comisiones

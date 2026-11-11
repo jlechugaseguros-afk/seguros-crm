@@ -251,7 +251,7 @@ function SelectorImagen({ titulo, ayuda, url, circular, subiendo, onFile, camara
   );
 }
 
-export default function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, onQr, subiendoFoto, subiendoQr, error }) {
+export default function TarjetaDigital({ tarjeta, profile, userId, onChange, onFoto, onQr, subiendoFoto, subiendoQr, error, sinEncabezado = false }) {
   const nombre = tarjeta.nombre ?? profile?.nombre ?? "";
   const correo = correoCompleto(tarjeta.correoUsuario);
   const [copiado, setCopiado] = useState(false);
@@ -278,11 +278,13 @@ export default function TarjetaDigital({ tarjeta, profile, userId, onChange, onF
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Identidad"
-        title="Tarjeta digital"
-        subtitle="Llena tus datos y la tarjeta se arma sola. También puedes tocar la foto o el QR dentro de la tarjeta para cambiarlos."
-      />
+      {!sinEncabezado && (
+        <PageHeader
+          eyebrow="Identidad"
+          title="Tarjeta digital"
+          subtitle="Llena tus datos y la tarjeta se arma sola. También puedes tocar la foto o el QR dentro de la tarjeta para cambiarlos."
+        />
+      )}
 
       <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
         <SelectorImagen
