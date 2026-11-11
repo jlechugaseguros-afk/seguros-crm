@@ -18,6 +18,7 @@ import { InsurerMark, insurerKey } from "./insurerLogos.jsx";
 import SiniestrosCRM from "./SiniestrosCRM.jsx";
 import MaterialApoyo, { useMaterialCompartido } from "./MaterialCompartido.jsx";
 import SnteEspacio from "./snte/SnteEspacio.jsx";
+import ClaveAsesorGate from "./ClaveAsesorGate.jsx";
 import MiActividad, { MetaMiniCard, useActividad, ORIGENES_PROSPECTO } from "./MiActividad.jsx";
 import { Target, Compass, ShieldCheck, Building2 } from "lucide-react";
 import Administracion from "./Administracion.jsx";
@@ -1663,7 +1664,9 @@ function TarjetaPestanas(props) {
       />
       {tabs}
       {vista === "mcb" ? (
-        <TarjetaDigital {...props} sinEncabezado />
+        <ClaveAsesorGate userId={props.userId}>
+          <TarjetaDigital {...props} sinEncabezado />
+        </ClaveAsesorGate>
       ) : (
         <EnConstruccion
           sinEncabezado

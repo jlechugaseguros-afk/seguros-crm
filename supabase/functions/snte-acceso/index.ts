@@ -34,6 +34,26 @@ Deno.serve(async (req: Request) => {
       return resp({ vinculado: !!(a && a.activo), nombre: a?.nombre || null });
     }
 
+    // verificar: pide solo la clave y la compara con el asesor ya ligado a esta cuenta
+    // (se usa para proteger la Tarjeta digital "Agente MCB"). Comparte el límite de intentos.
+    if (accion === "verificar") {
+      const clave = String(body?.clave || "").trim();
+      if (!/^[0-9A-Za-z]{3,20}$/.test(clave)) return resp({ error: "datos_invalidos" }, 400);
+
+      const { data: a } = await admin.from("snte_asesores").select("nombre, clave, activo").eq("user_id", yo.id).maybeSingle();
+      if (!a || !a.activo) return resp({ error: "sin_vinculo" }, 403);
+
+      const desde = new Date(Date.now() - VENTANA_MIN * 60 * 1000).toISOString();
+      const { count } = await admin.from("snte_intentos").select("id", { count: "exact", head: true })
+        .eq("user_id", yo.id).eq("ok", false).gte("created_at", desde);
+      if ((count || 0) >= MAX_FALLOS) return resp({ error: "bloqueado", minutos: VENTANA_MIN }, 429);
+
+      const ok = a.clave === clave;
+      await admin.from("snte_intentos").insert({ user_id: yo.id, ok });
+      if (!ok) return resp({ error: "credenciales", restantes: Math.max(0, MAX_FALLOS - (count || 0) - 1) }, 401);
+      return resp({ ok: true, nombre: a.nombre });
+    }
+
     if (accion === "entrar") {
       const correo = String(body?.correo || "").trim().toLowerCase();
       const clave = String(body?.clave || "").trim();
