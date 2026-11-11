@@ -149,7 +149,7 @@ export default function SnteEspacio({
               <SnteHoy nombre={nombre} onIr={irA} prospectosSnte={prospectosSnte} seccion={seccion} />
             )}
             {tab === 'cartera' && (
-              <SnteCartera onSeccion={setSeccion} nombreAsesor={nombre} onNuevoProspecto={onNuevoProspecto} soyAdmin={puedeGestionar} />
+              <SnteCartera onSeccion={setSeccion} soyAdmin={puedeGestionar} />
             )}
             {tab === 'prospectos' && prospectosView}
             {tab === 'clientes' && clientesView}

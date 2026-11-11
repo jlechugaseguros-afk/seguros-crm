@@ -17,7 +17,16 @@ async function leerEscuelas() {
 }
 
 // Escuelas asignadas al asesor: consulta y búsqueda (CCT, nombre, municipio, localidad, dirección).
-export default function SnteEscuelas({ soyAdmin }) {
+// Sección según la clave: 21E = Estatal (Sección 51) · 21D = Federal (Sección 23)
+const seccionDe = (cct) => {
+  const c = String(cct || '').toUpperCase()
+  if (c.startsWith('21E')) return '51'
+  if (c.startsWith('21D')) return '23'
+  return ''
+}
+
+export default function SnteEscuelas({ soyAdmin, onSeccion }) {
+  const [seccion, setSeccion] = useState('todas')
   const [filas, setFilas] = useState(null)
   const [error, setError] = useState('')
   const [nivel, setNivel] = useState('')
@@ -33,23 +42,30 @@ export default function SnteEscuelas({ soyAdmin }) {
     setFilas(r.filas)
   }, [])
   useEffect(() => { cargar() }, [cargar])
-  useEffect(() => { setVisibles(PAGINA) }, [nivel, turno, q])
+  useEffect(() => { setVisibles(PAGINA) }, [nivel, turno, q, seccion])
+  const elegirSeccion = (id) => { setSeccion(id); if (id !== 'todas') onSeccion?.(id) }
 
   const niveles = useMemo(() => [...new Set((filas || []).map((f) => f.nivel).filter(Boolean))].sort(), [filas])
   const turnos = useMemo(() => [...new Set((filas || []).map((f) => f.turno).filter(Boolean))].sort(), [filas])
   const lista = useMemo(() => {
     const nq = norm(q)
     return (filas || []).filter((f) => {
+      if (seccion !== 'todas' && seccionDe(f.cct) !== seccion) return false
       if (nivel && f.nivel !== nivel) return false
       if (turno && f.turno !== turno) return false
       if (nq && !norm(`${f.cct} ${f.nombre} ${f.municipio} ${f.localidad} ${f.direccion}`).includes(nq)) return false
       return true
     })
-  }, [filas, nivel, turno, q])
+  }, [filas, seccion, nivel, turno, q])
 
   return (
     <div>
-      <p className="snte-sub">{filas ? `${filas.length} escuelas asignadas` : 'Cargando…'}</p>
+      <p className="snte-sub">{filas ? `${filas.length} escuelas asignadas${seccion !== 'todas' ? ` · ${lista.length} en la sección ${seccion}` : ''}` : 'Cargando…'}</p>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }} role="group" aria-label="Sección">
+        {[['todas', 'Todas'], ['23', 'Sección 23 · Federal'], ['51', 'Sección 51 · Estatal']].map(([id, label]) => (
+          <button key={id} type="button" className={'snte-chip' + (seccion === id ? ' on' : '')} aria-pressed={seccion === id} onClick={() => elegirSeccion(id)}>{label}</button>
+        ))}
+      </div>
       <div className="snte-grid2" style={{ marginTop: 8 }}>
         <select className="snte-select" aria-label="Nivel educativo" value={nivel} onChange={(e) => setNivel(e.target.value)}>
           <option value="">Todos los niveles</option>
