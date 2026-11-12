@@ -6,6 +6,7 @@ import { aplicarAjustes } from './ajustesAparencia.js'
 import App from './App.jsx'
 import AuthGate from './AuthGate.jsx'
 import TarjetaPublica from './TarjetaPublica.jsx'
+import { TarjetaPublicaGeneral } from './TarjetaGeneral.jsx'
 import Portal from './Portal.jsx'
 import Landing from './Landing.jsx'
 import DiagnosticoLanding from './DiagnosticoLanding.jsx'
@@ -14,6 +15,7 @@ aplicarAjustes()
 
 const path = window.location.pathname
 const publicMatch = path.match(/^\/t\/([^/]+)\/?$/)
+const publicGeneral = path.match(/^\/g\/([^/]+)\/?$/)
 const esLanding = /^\/inicio\/?$/.test(path)
 const esPortal = /^\/portal\/?$/.test(path)
 const esDiagnostico = /^\/diagnostico\/?$/.test(path)
@@ -40,6 +42,8 @@ createRoot(document.getElementById('root')).render(
       <DiagnosticoLanding />
     ) : esPortal ? (
       <Portal />
+    ) : publicGeneral ? (
+      <TarjetaPublicaGeneral agentId={publicGeneral[1]} />
     ) : publicMatch ? (
       <TarjetaPublica agentId={publicMatch[1]} />
     ) : (

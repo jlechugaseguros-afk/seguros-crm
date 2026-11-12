@@ -32,6 +32,7 @@ import {
   SUBRAMO_POR_DEFECTO, subramosDeRamo, resolverComision, migrarMetas, metasIniciales,
 } from "./comisiones.js";
 import TarjetaDigital, { reducirImagen, correoCompleto } from "./TarjetaMC.jsx";
+import TarjetaGeneral from "./TarjetaGeneral.jsx";
 import Hoja from "./Hoja.jsx";
 import Deslizable from "./Deslizable.jsx";
 import AyudaFlotante from "./AyudaFlotante.jsx";
@@ -1660,7 +1661,7 @@ function TarjetaPestanas(props) {
         title="Tarjeta digital"
         subtitle={vista === "mcb"
           ? "Llena tus datos y la tarjeta se arma sola. También puedes tocar la foto o el QR dentro de la tarjeta para cambiarlos."
-          : undefined}
+          : "Plantilla con el logo de Inbursa: todos los datos son editables. Llénalos y la tarjeta se arma sola."}
       />
       {tabs}
       {vista === "mcb" ? (
@@ -1668,11 +1669,7 @@ function TarjetaPestanas(props) {
           <TarjetaDigital {...props} sinEncabezado />
         </ClaveAsesorGate>
       ) : (
-        <EnConstruccion
-          sinEncabezado
-          titulo="Tarjeta digital"
-          mensaje="Estamos preparando la tarjeta digital general para que muy pronto puedas crear y compartir tu tarjeta de presentación. ¡Vuelve pronto!"
-        />
+        <TarjetaGeneral userId={props.userId} profile={props.profile} />
       )}
     </div>
   );
