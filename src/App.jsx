@@ -1661,7 +1661,7 @@ function TarjetaPestanas(props) {
         title="Tarjeta digital"
         subtitle={vista === "mcb"
           ? "Llena tus datos y la tarjeta se arma sola. También puedes tocar la foto o el QR dentro de la tarjeta para cambiarlos."
-          : "Plantilla con el logo de Inbursa: todos los datos son editables. Llénalos y la tarjeta se arma sola."}
+          : "Todos los datos son editables y puedes subir tu propio logo. Llénalos y la tarjeta se arma sola."}
       />
       {tabs}
       {vista === "mcb" ? (

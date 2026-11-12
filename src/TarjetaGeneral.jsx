@@ -5,14 +5,14 @@ import { reducirImagen, formatearWhatsapp, linkWhatsapp, normalizarWeb } from ".
 
 // Tarjeta digital "General": misma plantilla y funcionamiento que la de MC Brokers,
 // con el logo de Inbursa y TODOS los datos editables (correo completo, dirección, cargo y lema).
-export const PLANTILLA_GENERAL = "/tarjeta/plantilla-inbursa.jpg";
+export const PLANTILLA_GENERAL = "/tarjeta/plantilla-general.jpg";
 const BUCKET = "tarjetas-fotos";
 const STORAGE_KEY = "tarjetaGeneral";
 
 export const DATOS_INICIALES = {
   fotoUrl: "", nombre: "", cargo: "Agente de seguros",
   lema: "Tu tranquilidad hoy,\ntu patrimonio mañana.",
-  whatsapp: "", correo: "", web: "", direccion: "", mapa: "", qrUrl: "", catalogo: "",
+  logoUrl: "", whatsapp: "", correo: "", web: "", direccion: "", mapa: "", qrUrl: "", catalogo: "",
 };
 
 function webVisible(url) {
@@ -26,7 +26,7 @@ function linkMapa(d) {
 }
 
 // ---------- Vista de la tarjeta (editor y liga pública). Coordenadas en % sobre la plantilla de 1125 x 2000 ----------
-export function TarjetaVistaGeneral({ d, editable, onFotoClick, onQrClick }) {
+export function TarjetaVistaGeneral({ d, editable, onFotoClick, onQrClick, onLogoClick }) {
   const nombre = d.nombre || "";
   const palabras = nombre.trim().split(/\s+/).filter(Boolean);
   const linea1 = palabras[0] || "";
@@ -83,6 +83,25 @@ export function TarjetaVistaGeneral({ d, editable, onFotoClick, onQrClick }) {
         src={PLANTILLA_GENERAL} alt="Tarjeta digital"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
       />
+
+      {/* Logo propio del agente (opcional) */}
+      {(d.logoUrl || editable) && (
+        <div
+          onClick={editable ? onLogoClick : undefined}
+          role={editable ? "button" : undefined}
+          aria-label={editable ? "Cambiar logo" : undefined}
+          style={{
+            position: "absolute", left: "6.2%", top: "5%", width: "50%", height: "15%",
+            display: "flex", alignItems: "center", justifyContent: "flex-start",
+            cursor: editable ? "pointer" : "default",
+            ...(d.logoUrl ? {} : { border: "0.4cqw dashed rgba(255,255,255,0.55)", borderRadius: "2cqw", justifyContent: "center", color: "#fff", fontSize: "3.4cqw", opacity: 0.8 }),
+          }}
+        >
+          {d.logoUrl ? (
+            <img src={d.logoUrl} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", objectPosition: "left center" }} />
+          ) : "Tu logo aquí"}
+        </div>
+      )}
 
       {/* Foto */}
       <div
@@ -247,6 +266,7 @@ export default function TarjetaGeneral({ userId, profile }) {
   const [error, setError] = useState("");
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [subiendoQr, setSubiendoQr] = useState(false);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const temporizador = useRef(null);
   const ligaPublica = userId ? `${window.location.origin}/g/${userId}` : "";
@@ -305,6 +325,7 @@ export default function TarjetaGeneral({ userId, profile }) {
     }
   }
   const subirFoto = (f) => subir(f, "general-foto", 1000, "image/jpeg", "fotoUrl", setSubiendoFoto, "la foto");
+  const subirLogo = (f) => subir(f, "general-logo", 900, "image/png", "logoUrl", setSubiendoLogo, "el logo");
   const subirQr = (f) => subir(f, "general-qr", 900, "image/png", "qrUrl", setSubiendoQr, "el QR");
 
   function tocarImagen(handler) {
@@ -336,6 +357,16 @@ export default function TarjetaGeneral({ userId, profile }) {
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
+        <SelectorImagen
+          titulo="Logo (opcional)" url={d.logoUrl} subiendo={subiendoLogo} onFile={subirLogo} camara="environment"
+          ayuda="Sube el logo de tu empresa o aseguradora (mejor PNG con fondo transparente). Aparece arriba de la tarjeta."
+        />
+        {d.logoUrl && (
+          <button onClick={() => cambiar("logoUrl", "")} style={{ fontSize: 12, color: "#B23A2E", textDecoration: "underline", marginTop: -8, marginBottom: 16 }}>
+            Quitar logo
+          </button>
+        )}
+
         <SelectorImagen
           titulo="Foto" circular url={d.fotoUrl} subiendo={subiendoFoto} onFile={subirFoto} camara="user"
           ayuda="Elígela de la galería o tómala con la cámara."
@@ -387,7 +418,7 @@ export default function TarjetaGeneral({ userId, profile }) {
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
         <div style={{ width: 300, maxWidth: "100%", boxShadow: "0 10px 30px rgba(0,0,0,0.18)", borderRadius: 18 }}>
-          <TarjetaVistaGeneral d={vista} editable onFotoClick={() => tocarImagen(subirFoto)} onQrClick={() => tocarImagen(subirQr)} />
+          <TarjetaVistaGeneral d={vista} editable onFotoClick={() => tocarImagen(subirFoto)} onQrClick={() => tocarImagen(subirQr)} onLogoClick={() => tocarImagen(subirLogo)} />
         </div>
       </div>
       <p style={{ textAlign: "center", fontSize: 11, color: "#8794A0", marginBottom: 18 }}>
