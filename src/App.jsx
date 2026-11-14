@@ -216,9 +216,15 @@ const PESTANAS_CHECKLIST = [
 ];
 
 const DIRECTORIOS_MEDICOS = [
-  { label: "GNP", aseguradora: "GNP Seguros", url: "https://www.gnp.com.mx/directorio-proveedores-medicos" },
-  { label: "AXA", aseguradora: "AXA", url: "https://axa.mx/servicios/buscador-de-servicios" },
-  { label: "Plan Seguro", aseguradora: "Plan Seguro", url: "https://directorio.planseguro.com.mx:447/Directorio/Hospitales" },
+  {
+    label: "GNP", aseguradora: "GNP Seguros",
+    enlaces: [
+      { label: "Directorio médico", url: "https://www.gnp.com.mx/directorio-proveedores-medicos" },
+      { label: "Tabulador médico", url: "https://intermediarios.gnp.com.mx/tabuladoresgmm/" },
+    ],
+  },
+  { label: "AXA", aseguradora: "AXA", enlaces: [{ label: "Directorio médico", url: "https://axa.mx/servicios/buscador-de-servicios" }] },
+  { label: "Plan Seguro", aseguradora: "Plan Seguro", enlaces: [{ label: "Directorio médico", url: "https://directorio.planseguro.com.mx:447/Directorio/Hospitales" }] },
 ];
 
 const NAV_EXTERNAL_LINKS = {
@@ -2993,6 +2999,7 @@ export default function SegurosCRM() {
   const tab = puedeVer(tabSel) ? tabSel : (NAV_GROUPS.flatMap((g) => g.ids).find(puedeVer) || "dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirOpen, setDirOpen] = useState(false);
+  const [dirCia, setDirCia] = useState(null);
   // Grupos del menú lateral: abiertos/cerrados (se recuerda en este dispositivo).
   // Todos los grupos arrancan contraídos y se abren solo cuando el agente los toca.
   const [gruposAbiertos, setGruposAbiertos] = useState([]);
@@ -4381,13 +4388,35 @@ function migrateClient(c) {
                         {inner}
                         <ChevronDown size={16} style={{ marginLeft: "auto", transition: "transform .2s", transform: dirOpen ? "rotate(180deg)" : "none" }} />
                       </button>
-                      {dirOpen && DIRECTORIOS_MEDICOS.map((d) => (
-                        <a key={d.label} href={d.url} target="_blank" rel="noreferrer"
-                          onClick={() => setMenuOpen(false)} className="side-link side-sublink">
-                          <InsurerMark name={d.aseguradora} w={44} h={26} radius={6} />
-                          <span>{d.label}</span>
-                        </a>
-                      ))}
+                      {dirOpen && DIRECTORIOS_MEDICOS.map((d) => {
+                        if (d.enlaces.length === 1) {
+                          return (
+                            <a key={d.label} href={d.enlaces[0].url} target="_blank" rel="noreferrer"
+                              onClick={() => setMenuOpen(false)} className="side-link side-sublink">
+                              <InsurerMark name={d.aseguradora} w={44} h={26} radius={6} />
+                              <span>{d.label}</span>
+                            </a>
+                          );
+                        }
+                        const ciaAbierta = dirCia === d.label;
+                        return (
+                          <React.Fragment key={d.label}>
+                            <button type="button" onClick={() => setDirCia(ciaAbierta ? null : d.label)}
+                              className="side-link side-sublink" aria-expanded={ciaAbierta}>
+                              <InsurerMark name={d.aseguradora} w={44} h={26} radius={6} />
+                              <span>{d.label}</span>
+                              <ChevronDown size={14} style={{ marginLeft: "auto", transition: "transform .2s", transform: ciaAbierta ? "rotate(180deg)" : "none" }} />
+                            </button>
+                            {ciaAbierta && d.enlaces.map((e) => (
+                              <a key={e.label} href={e.url} target="_blank" rel="noreferrer"
+                                onClick={() => setMenuOpen(false)} className="side-link side-sublink"
+                                style={{ paddingLeft: 58, fontSize: 13 }}>
+                                <span>{e.label}</span>
+                              </a>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
                     </React.Fragment>
                   );
                 }
