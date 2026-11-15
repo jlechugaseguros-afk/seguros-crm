@@ -1,10 +1,9 @@
 // Fondo de pantalla del CRM: devuelve una imagen PNG con los recordatorios de la semana y el avance de comisiones.
 // Los montos van ocultos (•••); el detalle completo está en /api/detalle (se abre con un widget de Atajos).
 // Uso:  /api/fondo?t=<token>&w=1206&h=2622
-import { ImageResponse } from "@vercel/og";
+import { dibujarPNG } from "./_lib/imagen.js";
+import { aNode } from "./_lib/nodo.js";
 import { leerDatos, armarResumen, etiquetaDia } from "./_lib/resumen.js";
-
-export const config = { runtime: "edge" };
 
 const h = (type, style, ...children) => ({
   type,
@@ -17,7 +16,7 @@ function error(msg, status) {
   return new Response(msg, { status, headers: { "content-type": "text/plain; charset=utf-8" } });
 }
 
-export default async function handler(req) {
+async function manejar(req) {
   const url = new URL(req.url);
   const token = url.searchParams.get("t") || "";
   const w = Math.min(Math.max(parseInt(url.searchParams.get("w") || "1206", 10) || 1206, 600), 3000);
@@ -80,9 +79,8 @@ export default async function handler(req) {
     tarjetaComision,
   );
 
-  return new ImageResponse(contenido, {
-    width: w,
-    height: alto,
-    headers: { "cache-control": "no-store" },
-  });
+  const png = await dibujarPNG(contenido, w, alto);
+  return new Response(png, { headers: { "content-type": "image/png", "cache-control": "no-store" } });
 }
+
+export default aNode(manejar);

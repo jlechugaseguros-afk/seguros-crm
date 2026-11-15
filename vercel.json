@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/fondo.js": { "includeFiles": "api/_lib/Geist-Regular.ttf" }
+  },
   "rewrites": [
     {
       "source": "/portal",

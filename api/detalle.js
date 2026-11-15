@@ -2,7 +2,7 @@
 // lo que obliga a desbloquear el equipo antes de verlo.  Uso:  /api/detalle?t=<token>
 import { leerDatos, armarResumen, etiquetaDia, fmtMXN, fmtFechaCorta } from "./_lib/resumen.js";
 
-export const config = { runtime: "edge" };
+import { aNode } from "./_lib/nodo.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const ICONOS = { pago: "💳", renovacion: "🔄", cumple: "🎂", seguimiento: "📞", actividad: "📌" };
@@ -27,7 +27,7 @@ h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold
   return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
 }
 
-export default async function handler(req) {
+async function manejar(req) {
   const token = new URL(req.url).searchParams.get("t") || "";
   const datos = await leerDatos(token);
   if (!datos) return pagina(`<h1>Enlace no válido</h1><p class="sub">Genera uno nuevo desde Ajustes del CRM.</p>`, 401);
@@ -48,3 +48,5 @@ ${pct === null ? `<div class="sm" style="margin-top:10px">Aún no capturas una m
 <section class="card"><h2>Recordatorios de la semana</h2>${filas || `<div class="sm">Semana despejada.</div>`}</section>`;
   return pagina(cuerpo);
 }
+
+export default aNode(manejar);
