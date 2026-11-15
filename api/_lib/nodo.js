@@ -7,6 +7,7 @@ export function aNode(manejar) {
       r.headers.forEach((v, k) => res.setHeader(k, v));
       res.end(Buffer.from(await r.arrayBuffer()));
     } catch (e) {
+      console.error("Error en la función:", e);
       res.statusCode = 500;
       res.setHeader("content-type", "text/plain; charset=utf-8");
       res.end("No se pudo generar el contenido.");

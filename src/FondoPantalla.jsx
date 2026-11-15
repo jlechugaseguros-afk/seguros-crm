@@ -47,7 +47,7 @@ export default function FondoPantalla() {
 
   return (
     <div>
-      <p className="aj-lbl">Muestra tus recordatorios de la semana y el avance de tus comisiones como fondo de la pantalla bloqueada. Los montos salen ocultos; se ven al abrir el detalle.</p>
+      <p className="aj-lbl">Tu pantalla bloqueada muestra lo siguiente que tienes que hacer, el resumen de hoy, la semana y el ritmo de tu meta, sin montos. Al abrir el detalle ves los montos y puedes llamar o escribir por WhatsApp con un toque.</p>
       {cargando ? <p className="aj-msg">Generando tu enlace…</p> : token && (
         <>
           <label className="aj-fila">
@@ -65,7 +65,8 @@ export default function FondoPantalla() {
           <div style={caja}>{urlDetalle}</div>
           <button type="button" className="aj-btn" onClick={() => copiar(urlDetalle, "detalle")}>{copiado === "detalle" ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar enlace del detalle</>}</button>
 
-          <p className="aj-lbl" style={{ marginTop: 14 }}>Son personales: no los compartas. Si alguien los ve, genera uno nuevo.</p>
+          <p className="aj-lbl" style={{ marginTop: 14 }}><b>3. Mantenerlo al día</b>: en Atajos crea la automatización "Hora del día" tres veces (6:00, 13:00 y 18:00) con las mismas acciones: Obtener contenido de URL con el enlace del fondo y Establecer fondo de pantalla. Para el detalle, crea un atajo con "Abrir URLs" y ponlo como widget de la pantalla bloqueada.</p>
+          <p className="aj-lbl">Los enlaces son personales: no los compartas. Si alguien los ve, genera uno nuevo.</p>
           <a className="aj-btn aj-sec-btn" href={urlFondo} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "inline-flex" }}>Ver mi fondo ahora</a>
           <button type="button" className="aj-btn aj-sec-btn" onClick={regenerar} style={{ marginTop: 8 }}><RefreshCw size={14} /> Generar enlace nuevo</button>
         </>
