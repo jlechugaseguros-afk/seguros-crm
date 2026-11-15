@@ -66,6 +66,7 @@ ${r.vencidosLista.length ? `<section class="card alerta"><h2>Por cobrar · ${r.v
 <div class="sm">${c.polizas} póliza${c.polizas === 1 ? "" : "s"} nueva${c.polizas === 1 ? "" : "s"} · prima ${fmtMXN(c.prima)}</div>
 ${pct === null ? "" : `<div class="barra"><i style="width:${Math.round(pct * 100)}%"></i></div><div class="sm">${Math.round(pct * 100)}% de tu meta${c.metaPrima > 0 ? ` (prima ${fmtMXN(c.metaPrima)})` : ` (${c.metaPolizas} pólizas)`}</div>`}
 <div class="sm" style="margin-top:8px">${esc(c.ritmo)}</div>
+${c.porRamo.length ? `<div style="margin-top:12px">${c.porRamo.map((x) => `<div class="sm" style="display:flex;justify-content:space-between;margin-top:6px"><span>${esc(x.ramo)}</span><b>${x.meta > 0 ? `${x.vend} / ${x.meta}` : x.vend} póliza${x.vend === 1 ? "" : "s"}</b></div>${x.meta > 0 ? `<div class="barra"><i style="width:${Math.round(Math.min(1, x.vend / x.meta) * 100)}%"></i></div>` : ""}`).join("")}</div>` : ""}
 </section>
 <section class="card"><h2>Resto de la semana</h2>${resto.length ? resto.map((i) => filaItem(i, r.hoy, true)).join("") : `<div class="vacio">Sin más pendientes esta semana.</div>`}</section>`;
   return pagina(cuerpo);

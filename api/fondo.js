@@ -92,6 +92,23 @@ async function manejar(req) {
       h("div", { width: Math.max(px(18), Math.round(anchoBarra * pct)), height: px(18), borderRadius: px(9), background: "linear-gradient(90deg,#C9A24B,#F1D48A)" }),
     ),
     h("div", { color: "#C9D3E3", fontSize: px(32), marginTop: px(18) }, c.ritmo),
+    // Pólizas por ramo (hasta 4): vendidas contra la meta de cada ramo.
+    ...(c.porRamo.length
+      ? [h("div", { flexDirection: "column", marginTop: px(22), paddingTop: px(18), borderTopWidth: borde, borderTopStyle: "solid", borderTopColor: "rgba(255,255,255,0.16)" },
+        ...c.porRamo.slice(0, 4).map((x) => {
+          const p = x.meta > 0 ? Math.max(0, Math.min(1, x.vend / x.meta)) : 0;
+          const color = x.meta <= 0 ? "#7C8CA8" : p >= 1 ? "#6FD3A0" : p >= 0.5 ? "#F1D48A" : "#FF9A8B";
+          const anchoPista = px(380);
+          return h("div", { alignItems: "center", justifyContent: "space-between", marginTop: px(12) },
+            h("div", { color: "#DCE4F0", fontSize: px(32), width: px(230), whiteSpace: "nowrap" }, x.ramo),
+            h("div", { width: anchoPista, height: px(14), borderRadius: px(7), background: "rgba(255,255,255,0.14)" },
+              h("div", { width: x.meta > 0 ? Math.max(px(14), Math.round(anchoPista * p)) : 0, height: px(14), borderRadius: px(7), background: color }),
+            ),
+            h("div", { color: "#FFFFFF", fontSize: px(32), width: px(170), justifyContent: "flex-end", whiteSpace: "nowrap" }, x.meta > 0 ? `${x.vend} / ${x.meta}` : `${x.vend}`),
+          );
+        }),
+      )]
+      : []),
   );
 
   const contenido = h("div", { flexDirection: "column", alignItems: "center", width: w, height: alto, paddingTop: arriba, background: "linear-gradient(170deg,#0B1F3A 0%,#12305A 60%,#0B1F3A 100%)" },

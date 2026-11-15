@@ -54,9 +54,7 @@ function Vacio({ children }) {
 }
 
 // ---------------- Cobranza ----------------
-function Cobranza({ clients, nombreAgente }) {
-  const cob = useAlmacen("cobranza", {});
-  const cfg = useAlmacen("cobranzaConfig", { desde: "" });
+function Cobranza({ clients, nombreAgente, cob, cfg }) {
   const [filtro, setFiltro] = useState("vencidos");
   const [editandoDesde, setEditandoDesde] = useState(false);
   const [desdeTxt, setDesdeTxt] = useState("");
@@ -317,7 +315,14 @@ function VentaCruzada({ clients, nombreAgente }) {
 export default function CarteraAccion({ clients, setClients, profile, vistaInicial = "cobranza" }) {
   const [vista, setVista] = useState(vistaInicial);
   const nombreAgente = profile?.nombre || "";
-  const cobros = useMemo(() => construirCobros(clients, {}, addMonthsStr(hoyISO(), -1)).filter((i) => i.estado === "vencido").length, [clients]);
+  // El contador usa los mismos datos que la pantalla (pagos ya cobrados y fecha de inicio de cobranza),
+  // así desaparece en cuanto no queda nada vencido.
+  const cob = useAlmacen("cobranza", {});
+  const cfg = useAlmacen("cobranzaConfig", { desde: "" });
+  const cobros = useMemo(() => {
+    if (!cob.cargado || !cfg.cargado) return 0;
+    return construirCobros(clients, cob.valor, cfg.valor.desde || addMonthsStr(hoyISO(), -1)).filter((i) => i.estado === "vencido").length;
+  }, [clients, cob.valor, cob.cargado, cfg.valor.desde, cfg.cargado]);
   const tabs = [
     { id: "cobranza", label: "Cobranza", badge: cobros },
     { id: "renovaciones", label: "Renovaciones" },
@@ -334,7 +339,7 @@ export default function CarteraAccion({ clients, setClients, profile, vistaInici
           }}>{t.label}{t.badge ? <span style={{ marginLeft: 6, background: "#B23A2E", color: "#fff", borderRadius: 99, fontSize: 11, padding: "1px 7px" }}>{t.badge}</span> : null}</button>
         ))}
       </div>
-      {vista === "cobranza" && <Cobranza clients={clients} nombreAgente={nombreAgente} />}
+      {vista === "cobranza" && <Cobranza clients={clients} nombreAgente={nombreAgente} cob={cob} cfg={cfg} />}
       {vista === "renovaciones" && <Renovaciones clients={clients} setClients={setClients} nombreAgente={nombreAgente} />}
       {vista === "cruzada" && <VentaCruzada clients={clients} nombreAgente={nombreAgente} />}
     </div>

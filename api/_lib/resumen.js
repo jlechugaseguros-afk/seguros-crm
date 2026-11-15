@@ -210,6 +210,14 @@ export function armarResumen(datos, hoy = hoyMX(), ahora = ahoraMinMX()) {
     comision += ((Number(p.primaAnual) || 0) * r.pct) / 100;
     prima += Number(p.primaAnual) || 0;
   });
+  // Pólizas nuevas del mes por ramo contra su meta (mismas metas que Comisiones y Meta y comisiones).
+  const vendidasRamo = Object.fromEntries(GRUPOS.map((g) => [g, 0]));
+  delMes.forEach((p) => {
+    const f = resolverComision(p, porcentajes).familia;
+    vendidasRamo[f in vendidasRamo ? f : "Otros"] += 1;
+  });
+  const porRamo = GRUPOS.map((g) => ({ ramo: g, vend: vendidasRamo[g], meta: Number((metas[g] || {}).metaPolizas) || 0 }))
+    .filter((x) => x.meta > 0 || x.vend > 0);
   const metaPolizas = GRUPOS.reduce((s, g) => s + (Number((metas[g] || {}).metaPolizas) || 0), 0);
   const metaPrima = GRUPOS.reduce((s, g) => s + (Number((metas[g] || {}).metaPrimaNeta) || 0), 0);
   const avance = metaPrima > 0 ? prima / metaPrima : metaPolizas > 0 ? delMes.length / metaPolizas : null;
@@ -229,6 +237,6 @@ export function armarResumen(datos, hoy = hoyMX(), ahora = ahoraMinMX()) {
   return {
     hoy, fin, items, vencidosLista, vencidos: vencidosLista.length,
     conteosHoy, siguiente, tira, nombre: nombreAgente,
-    comision: { monto: comision, prima, polizas: delMes.length, metaPolizas, metaPrima, avance, mes: MESES_LARGO[mm - 1], diasRestantes, ritmo },
+    comision: { monto: comision, prima, polizas: delMes.length, metaPolizas, metaPrima, porRamo, avance, mes: MESES_LARGO[mm - 1], diasRestantes, ritmo },
   };
 }
