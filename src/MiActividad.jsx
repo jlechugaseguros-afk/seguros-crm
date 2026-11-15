@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Clock, ChevronDown, Plus,
 } from "lucide-react";
 import PageHeader from "./PageHeader.jsx";
-import { comisionDePoliza } from "./comisiones.js";
+import { comisionDePoliza, resolverComision, GRUPOS, GRUPO_OTROS } from "./comisiones.js";
 import "./MiActividad.css";
 
 // ---------------------------------------------------------------------------
@@ -415,7 +415,110 @@ export function MetaMiniCard({ actividad, comisionMes, onGo }) {
 // Pantalla principal
 // ---------------------------------------------------------------------------
 
-export default function MiActividad({ actividad, clients, prospectos, porcentajes, comisionMes }) {
+// Meta de pólizas del mes: avance por ramo seleccionado. Usa las mismas metas por ramo
+// que la pestaña Comisiones (metasComisiones.metaPolizas), así no se captura dos veces.
+function MetaPolizas({ clients, porcentajes, metas, onMetasChange, diaMes, diasEnMes, diasRestantes }) {
+  const [sel, setSel] = useState("Todos");
+  const mes = hoyISO().slice(0, 7);
+
+  const vendidas = useMemo(() => {
+    const m = Object.fromEntries(GRUPOS.map((g) => [g, 0]));
+    (clients || []).forEach((c) => (c.polizas || []).forEach((p) => {
+      if (!(p.fechaAlta && p.fechaAlta.slice(0, 7) === mes && Number(p.primaAnual) > 0)) return;
+      const f = resolverComision(p, porcentajes).familia;
+      m[f in m ? f : GRUPO_OTROS] += 1;
+    }));
+    return m;
+  }, [clients, porcentajes, mes]);
+
+  const metaDe = (g) => Number(metas?.[g]?.metaPolizas) || 0;
+  const todos = sel === "Todos";
+  const vend = todos ? GRUPOS.reduce((s, g) => s + vendidas[g], 0) : vendidas[sel];
+  const meta = todos ? GRUPOS.reduce((s, g) => s + metaDe(g), 0) : metaDe(sel);
+  const avance = meta > 0 ? vend / meta : 0;
+
+  const esperado = meta > 0 ? meta * (diaMes / diasEnMes) : 0;
+  const proyeccion = diaMes > 0 ? Math.round((vend / diaMes) * diasEnMes) : 0;
+  const cumplida = meta > 0 && vend >= meta;
+  const estado = meta <= 0 ? null
+    : cumplida ? { t: "Meta cumplida", c: "verde", I: Trophy }
+      : vend >= esperado * 1.05 ? { t: "Vas adelantado", c: "verde", I: TrendingUp }
+        : vend >= esperado * 0.85 ? { t: "Vas al ritmo", c: "azul", I: Flame }
+          : { t: "Vas atrasado", c: "rojo", I: TrendingDown };
+
+  function cambiarMeta(valor) {
+    if (todos) return;
+    const limpio = String(valor).replace(/[^0-9]/g, "");
+    onMetasChange?.({ ...metas, [sel]: { ...(metas?.[sel] || {}), metaPolizas: limpio } });
+  }
+  const sumar = (d) => cambiarMeta(String(Math.max(0, metaDe(sel) + d)));
+
+  const color = (av, hay) => (!hay ? "#B8C2CC" : av >= 1 ? "#1FA971" : av >= 0.5 ? "#E0A12A" : "#D6453D");
+  const visibles = GRUPOS.filter((g) => g !== GRUPO_OTROS || vendidas[g] > 0 || metaDe(g) > 0);
+
+  return (
+    <section className="panel ma-card rise" style={{ "--i": 0 }}>
+      <div className="ma-head"><h3 className="serif">Meta de pólizas</h3><small>Pólizas nuevas del mes por ramo</small></div>
+
+      <div className="ma-mins" style={{ marginBottom: 14 }}>
+        {["Todos", ...visibles].map((g) => (
+          <button key={g} type="button" className={`ma-chip${sel === g ? " on" : ""}`} onClick={() => setSel(g)} aria-pressed={sel === g}>{g}</button>
+        ))}
+      </div>
+
+      <div className="ma-meta-row">
+        <Anillo valor={avance} size={116}>
+          <b className="ma-ring-pct" style={{ fontSize: 24 }}>{meta > 0 ? `${Math.round(avance * 100)}%` : "—"}</b>
+          <small>{meta > 0 ? "de tu meta" : "sin meta"}</small>
+        </Anillo>
+        <div className="ma-meta-info">
+          <p className="ma-big" style={{ fontSize: 28 }}>{vend}<span style={{ fontSize: 16, color: "var(--stone)" }}>{meta > 0 ? ` de ${meta}` : ""} póliza{vend === 1 && meta <= 0 ? "" : "s"}</span></p>
+          <p className="ma-sub">{todos ? "vendidas este mes en todos los ramos" : `de ${sel} vendidas este mes`}</p>
+          {estado && <span className={`ma-pill ma-${estado.c}`}><estado.I size={14} /> {estado.t}</span>}
+          {meta > 0 && !cumplida && (
+            <p className="ma-sub" style={{ marginTop: 8 }}>
+              Te faltan <b>{meta - vend} póliza{meta - vend === 1 ? "" : "s"}</b> en {diasRestantes} día{diasRestantes === 1 ? "" : "s"}.
+              {" "}Al ritmo actual cerrarías el mes con <b>{proyeccion}</b>.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {todos ? (
+        meta <= 0 && <p className="ma-nota">Elige un ramo arriba y fija su meta de pólizas del mes para ver tu avance.</p>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 14, paddingTop: 14, borderTop: "1px dashed var(--line)" }}>
+          <span className="ma-sub" style={{ flex: "1 1 auto" }}>Meta de <b>{sel}</b> este mes</span>
+          <button type="button" className="ma-chip" aria-label="Quitar una póliza a la meta" onClick={() => sumar(-1)}>−</button>
+          <input inputMode="numeric" aria-label={`Meta de pólizas de ${sel}`} value={metas?.[sel]?.metaPolizas ?? ""} placeholder="0"
+            onChange={(e) => cambiarMeta(e.target.value)}
+            style={{ width: 64, textAlign: "center", border: "1px solid var(--line)", borderRadius: 9, padding: "7px 8px", fontSize: 14, fontWeight: 700, background: "#fff", color: "var(--ink)" }} />
+          <button type="button" className="ma-chip" aria-label="Sumar una póliza a la meta" onClick={() => sumar(1)}>+</button>
+        </div>
+      )}
+
+      <div className="ma-etapas" style={{ marginTop: 16 }}>
+        {visibles.map((g, i) => {
+          const m = metaDe(g);
+          const av = m > 0 ? vendidas[g] / m : 0;
+          return (
+            <button key={g} type="button" className="ma-etapa" onClick={() => setSel(g)}
+              style={{ "--i": i, "--c": color(av, m > 0), background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer", opacity: todos || sel === g ? 1 : 0.55 }}>
+              <div className="ma-etapa-top">
+                <b>{g}</b>
+                <span className="ma-etapa-n">{vendidas[g]}{m > 0 ? <small> / {m}</small> : <small> sin meta</small>}</span>
+              </div>
+              <div className="ma-bar"><i style={{ width: `${Math.min(100, av * 100)}%`, background: "var(--c)" }} /></div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="ma-nota">Verde: meta cumplida · Ámbar: la mitad o más · Rojo: menos de la mitad · Gris: sin meta. Se cuentan las pólizas con fecha de alta de este mes; las metas son las mismas de la pestaña Comisiones.</p>
+    </section>
+  );
+}
+
+export default function MiActividad({ actividad, clients, prospectos, porcentajes, comisionMes, metas, onMetasChange }) {
   const { config, setConfig, log } = actividad;
   const [periodo, setPeriodo] = useState("30d");
   const [ultimo, setUltimo] = useState(null);
@@ -563,6 +666,10 @@ export default function MiActividad({ actividad, clients, prospectos, porcentaje
           <p className="ma-nota">Aún no tengo una comisión promedio por póliza. Captura tus primeras pólizas nuevas o escríbela en Ajustes para calcular tu plan.</p>
         )}
       </section>
+
+      {/* 1b. Meta de pólizas por ramo */}
+      <MetaPolizas clients={clients} porcentajes={porcentajes} metas={metas} onMetasChange={onMetasChange}
+        diaMes={diaMes} diasEnMes={diasEnMes} diasRestantes={diasRestantes} />
 
       {/* 2. Registro rápido */}
       <section className="panel ma-card rise" style={{ "--i": 1 }}>

@@ -4801,6 +4801,8 @@ function migrateClient(c) {
             prospectos={prospectos}
             porcentajes={porcentajes}
             comisionMes={comisionMesActual}
+            metas={metasComisiones}
+            onMetasChange={setMetasComisiones}
           />
         )}
 
