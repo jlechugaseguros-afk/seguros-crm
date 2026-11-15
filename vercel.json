@@ -5,7 +5,7 @@
       "destination": "/portal.html"
     },
     {
-      "source": "/((?!.*\\.(?:png|jpg|svg|json|js|css|ico|webp)$).*)",
+      "source": "/((?!api/|.*\\.(?:png|jpg|svg|json|js|css|ico|webp)$).*)",
       "destination": "/index.html"
     }
   ],
