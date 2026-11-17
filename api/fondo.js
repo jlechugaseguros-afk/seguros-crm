@@ -1,7 +1,8 @@
 // Fondo de pantalla del CRM: imagen PNG pensada para verse de reojo muchas veces al día.
 //  1) Lo siguiente que tienes que hacer  2) Resumen de hoy  3) Tira de la semana  4) Ritmo de tu meta.
 // Sin montos: el detalle completo (con montos y botones Llamar/WhatsApp) está en /api/detalle.
-// Uso:  /api/fondo?t=<token>&w=1206&h=2622
+// Uso:  /api/fondo?t=<token>&w=1206&h=2622&y=40
+//   w, h = tamaño de la pantalla en píxeles;  y = % de la altura donde empieza el contenido (15–60, por defecto 40).
 import { dibujarPNG } from "./_lib/imagen.js";
 import { aNode } from "./_lib/nodo.js";
 import { leerDatos, armarResumen } from "./_lib/resumen.js";
@@ -24,15 +25,21 @@ async function manejar(req) {
   const w = Math.min(Math.max(parseInt(url.searchParams.get("w") || "1206", 10) || 1206, 600), 3000);
   const alto = Math.min(Math.max(parseInt(url.searchParams.get("h") || "2622", 10) || 2622, 800), 4000);
 
+  const y = Math.min(Math.max(parseInt(url.searchParams.get("y") || "40", 10) || 40, 15), 60);
+
   const datos = await leerDatos(token);
   if (!datos) return error("Enlace no válido. Genera uno nuevo desde Ajustes del CRM.", 401);
   const r = armarResumen(datos);
 
-  // Todo se escala respecto a un iPhone de 1206 x 2622 px; en iPad se limita por la altura.
-  const s = Math.min(w / 1206, alto / 2622);
+  // Todo se escala respecto a un iPhone de 1206 x 2622 px; además se reduce si no cabe en la altura disponible
+  // (iPad, o Android con el contenido empezando más arriba). El alto del contenido a escala 1 es ~1090 px
+  // más ~54 px por cada ramo que se muestre en la meta.
+  const arriba = Math.round((alto * y) / 100); // deja libre el reloj de la pantalla bloqueada
+  const nRamos = Math.min(4, (r.comision.porRamo || []).length);
+  const altoContenido = 1090 + (nRamos ? 70 + nRamos * 54 : 0);
+  const s = Math.min(w / 1206, alto / 2622, (alto - arriba - alto * 0.04) / altoContenido);
   const px = (n) => Math.max(1, Math.round(n * s));
   const ancho = Math.min(w - px(140), px(1066)); // ancho útil de las tarjetas
-  const arriba = Math.round(alto * 0.4); // deja libre el reloj de la pantalla bloqueada
   const borde = px(2);
   const caja = (extra, ...hijos) => h("div", { boxSizing: "border-box", width: ancho, flexDirection: "column", borderRadius: px(44), borderWidth: borde, ...TARJETA, ...extra }, ...hijos);
   const etiqueta = (t) => h("div", { color: ORO, fontSize: px(28), textTransform: "uppercase", letterSpacing: px(4) }, t);
