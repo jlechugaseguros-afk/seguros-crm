@@ -11,7 +11,7 @@ const PRODUCTOS = [
   },
   {
     id: 'salud', nombre: 'Salud', Icono: Stethoscope,
-    aseguradoras: [{ n: 'QSalud Qualitas', url: 'https://www.qualitassalud.com.mx/web/guest/home' }],
+    aseguradoras: [{ n: 'QSalud Qualitas', url: 'https://oplsalud.qualitas.com.mx/opl/login?subRamo=salud&instancia=SEP' }],
     documentos: ['Identificación oficial vigente', 'Datos de cada asegurado (nombre, fecha de nacimiento)', 'Comprobante de domicilio', 'Cuestionario médico'],
     preguntas: ['¿Cuentas con un seguro médico hoy?', '¿Qué hospitales usarías si tuvieras un imprevisto?', '¿Cómo cubrirías una cirugía mayor?'],
   },
