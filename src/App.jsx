@@ -1511,6 +1511,7 @@ function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUploa
   const [ramo, setRamo] = useState(RAMOS[0]);
   const [aseguradora, setAseguradora] = useState(ASEGURADORAS[0]);
   const [pendingFile, setPendingFile] = useState(null);
+  const [gruposAbiertos, setGruposAbiertos] = useState({});
 
   const filtered = docs.filter((d) => {
     const q = query.trim().toLowerCase();
@@ -1521,6 +1522,20 @@ function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUploa
       d.aseguradora.toLowerCase().includes(q)
     );
   });
+
+  // Agrupadas por compañía (A-Z); dentro de cada compañía, por ramo y nombre.
+  const grupos = (() => {
+    const mapa = new Map();
+    filtered.forEach((d) => {
+      const clave = insurerKey(d.aseguradora) || String(d.aseguradora || "Sin compañía").trim().toLowerCase();
+      if (!mapa.has(clave)) mapa.set(clave, { clave, nombre: d.aseguradora || "Sin compañía", items: [] });
+      mapa.get(clave).items.push(d);
+    });
+    const lista = [...mapa.values()];
+    lista.forEach((g) => g.items.sort((a, b) => String(a.ramo || "").localeCompare(String(b.ramo || ""), "es") || String(a.name || "").localeCompare(String(b.name || ""), "es")));
+    return lista.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  })();
+  const buscando = query.trim() !== "";
 
   function handleAdd() {
     if (!pendingFile) return;
@@ -1593,15 +1608,29 @@ function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUploa
         </p>
       )}
 
-      {filtered.map((d) => (
-        <div key={d.id} style={{
+      {grupos.map((g) => {
+        const abierto = buscando || !!gruposAbiertos[g.clave];
+        return (
+          <div key={g.clave} style={{ marginBottom: 10, border: "1px solid var(--line)", borderRadius: 14, background: "#FFFFFF", overflow: "hidden" }}>
+            <button
+              type="button"
+              onClick={() => setGruposAbiertos((a) => ({ ...a, [g.clave]: !a[g.clave] }))}
+              aria-expanded={abierto}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: "var(--ink)" }}
+            >
+              <InsurerMark name={g.nombre} w={56} h={32} radius={7} color={insurerColor(g.nombre)} fontSize={12} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600 }}>{g.nombre}</span>
+              <span style={{ fontSize: 12, color: "var(--stone)", flexShrink: 0 }}>{g.items.length} {g.items.length === 1 ? "documento" : "documentos"}</span>
+              <ChevronDown size={18} style={{ flexShrink: 0, transition: "transform .2s", transform: abierto ? "rotate(180deg)" : "none" }} />
+            </button>
+            {abierto && (
+              <div style={{ padding: "0 14px", borderTop: "1px solid var(--line)" }}>
+                {g.items.map((d) => (
+            <div key={d.id} style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "12px 0", borderBottom: "1px solid var(--line)", gap: 10,
         }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
-            <div style={{ marginTop: 1, flexShrink: 0 }}>
-              <InsurerMark name={d.aseguradora} w={52} h={30} radius={7} color={insurerColor(d.aseguradora)} fontSize={12} />
-            </div>
             <div style={{ minWidth: 0 }}>
               {urls[d.path] ? (
                 <a
@@ -1622,7 +1651,7 @@ function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUploa
                   {d.name} (preparando enlace...)
                 </div>
               )}
-              <div style={{ fontSize: 12, color: "var(--stone)" }}>{d.aseguradora} · {d.ramo}{d.subido_por_nombre ? ` · Subido por ${d.subido_por_nombre}` : ""}</div>
+              <div style={{ fontSize: 12, color: "var(--stone)" }}>{d.ramo}{d.subido_por_nombre ? ` · Subido por ${d.subido_por_nombre}` : ""}</div>
             </div>
           </div>
           {d.subido_por === userId && (
@@ -1635,7 +1664,12 @@ function CondicionesGenerales({ docs, urls, userId, error, onClearError, onUploa
             </button>
           )}
         </div>
-      ))}
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
