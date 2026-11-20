@@ -4,6 +4,19 @@
 
 export const AYUDA_TEMAS = [
   {
+    id: "paquete-entrega",
+    tab: "clientes",
+    titulo: "Enviar el paquete de bienvenida por WhatsApp",
+    palabras: "paquete entrega carta bienvenida poliza condiciones generales whatsapp enviar compartir pdf aseguradora logo qr",
+    pasos: [
+      "Entra a Clientes, abre al cliente y ve a la pestaña Paquete de entrega.",
+      "El paquete se arma solo: carta de bienvenida, póliza y condiciones generales. Quita la palomita a lo que no quieras enviar.",
+      "Para cambiar nombre, fecha, aseguradora, logos o QR de la carta, toca Editar carta (verás la vista previa al momento).",
+      "Si falta la póliza, súbela en la pestaña Pólizas; si faltan las condiciones, súbelas en Condiciones generales o elígelas con Elegir otras.",
+      "Toca Enviar por WhatsApp, elige WhatsApp y al cliente. Puedes mandarlo como un solo PDF o como archivos separados.",
+    ],
+  },
+  {
     id: "poliza-nueva",
     tab: "clientes",
     titulo: "Agregar una póliza a un cliente",

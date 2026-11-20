@@ -38,6 +38,7 @@ import Deslizable from "./Deslizable.jsx";
 import AyudaFlotante from "./AyudaFlotante.jsx";
 import CarteraAccion from "./CarteraAccion.jsx";
 import SiniestrosCliente, { siniestrosAbiertos } from "./SiniestrosCliente.jsx";
+import PaqueteEntrega from "./PaqueteEntrega.jsx";
 import { respaldoAutomaticoSiToca } from "./respaldo.js";
 import { registrarUsoPestana } from "./usoPestanas.js";
 import { pagosDePoliza, fmtMonto, daysUntil, fmtDateFull } from "./pagos.js";
@@ -5016,6 +5017,7 @@ function migrateClient(c) {
                       <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid var(--line)" }}>
                         {[
                           { id: "polizas", label: `Pólizas (${(c.polizas || []).length})` },
+                          { id: "paquete", label: "Paquete de entrega" },
                           { id: "documentos", label: "Documentos Artículo 492" },
                           { id: "facturas", label: "Facturas Agente" },
                           { id: "siniestros", label: `Siniestros${(c.siniestros || []).length ? ` (${siniestrosAbiertos(c)}/${(c.siniestros || []).length})` : ""}` },
@@ -5051,6 +5053,18 @@ function migrateClient(c) {
                           onSubmit={(e) => handleAddPolizaSubmit(e, c.id)}
                           onRemove={(policyId) => handleRemovePoliza(c.id, policyId)}
                           onReplaceDoc={(policyId, file) => handleReplacePolizaDoc(c.id, policyId, file)}
+                        />
+                      )}
+
+                      {expandedTab === "paquete" && (
+                        <PaqueteEntrega
+                          key={c.id}
+                          client={c}
+                          condiciones={conditionDocs}
+                          agente={profile?.nombre || ""}
+                          onActualizarPoliza={(polizaId, patch) => setClients((cs) => cs.map((x) => (x.id === c.id
+                            ? { ...x, polizas: (x.polizas || []).map((p) => (p.id === polizaId ? { ...p, ...patch } : p)) }
+                            : x)))}
                         />
                       )}
 
