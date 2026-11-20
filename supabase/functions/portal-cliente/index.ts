@@ -12,6 +12,16 @@ const cors = {
 };
 const resp = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: cors });
 
+// Condiciones generales: se ligan a cada póliza por compañía y ramo desde la biblioteca compartida del CRM.
+const sinAcentos = (t: unknown) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const claveCia = (t: unknown) => sinAcentos(t).replace(/\b(seguros|seguro|sa|s\.a\.|de|cv|c\.v\.)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+const claveRamo = (t: unknown) => {
+  const r = sinAcentos(t).trim();
+  if (/^(gmm|salud|gastos medicos.*)$/.test(r)) return "salud";
+  if (/(ppr|retiro)/.test(r)) return "retiro";
+  return r;
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -44,6 +54,24 @@ Deno.serve(async (req: Request) => {
         deducible: p.deducible, coaseguroPct: p.coaseguroPct, topeCoaseguro: p.topeCoaseguro,
         docUrl,
       });
+    }
+    // Condiciones generales que le corresponden a cada póliza (misma compañía y ramo)
+    const { data: cgs } = await admin.from("material_compartido").select("id, nombre, path, ramo, aseguradora, created_at").eq("seccion", "condiciones").order("created_at", { ascending: false });
+    const firmadas = new Map<string, string | null>();
+    for (const pol of polizas as any[]) {
+      const ciaP = claveCia(pol.aseguradora);
+      const ramoP = claveRamo(pol.ramo);
+      const docs = [];
+      for (const d of cgs || []) {
+        if (!ciaP || claveCia(d.aseguradora) !== ciaP || claveRamo(d.ramo) !== ramoP || !d.path) continue;
+        if (!firmadas.has(d.path)) {
+          const { data: s3 } = await admin.storage.from(BUCKET).createSignedUrl(d.path, 3600);
+          firmadas.set(d.path, s3?.signedUrl || null);
+        }
+        const url = firmadas.get(d.path);
+        if (url) docs.push({ id: d.id, name: d.nombre, url });
+      }
+      pol.condiciones = docs;
     }
     // Datos de contacto del agente (tarjeta pública)
     const { data: card } = await admin.from("public_cards").select("nombre, correo, telefono, whatsapp, foto_url").eq("agent_id", AGENT_ID).maybeSingle();

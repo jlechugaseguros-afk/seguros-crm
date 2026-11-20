@@ -432,14 +432,13 @@ export default function PaqueteEntrega({ client, condiciones = [], agente = "", 
   ].filter(Boolean);
   const lista = contenido.length > 1 ? `${contenido.slice(0, -1).join(", ")} y ${contenido[contenido.length - 1]}` : contenido[0] || "tu documentación";
   const primerNombre = tituloNombre(String(client.nombre || "").split(/\s+/)[0]);
-  const videoPortal = ((cfg && cfg.videoPortal) || "").trim();
   const mensajeBase = [
     `Hola ${primerNombre}, te comparto tu paquete de bienvenida de tu póliza de ${poliza ? poliza.ramo : ""} con ${poliza ? poliza.aseguradora : ""}: incluye ${lista}.`,
     "Es importante que te tomes un tiempo para leer las condiciones generales: son el “manual” de tu póliza y ahí se especifican los alcances reales que tiene tu cobertura.",
     "Una vez que realices el pago de tu póliza, por favor hazme llegar tu comprobante para anexarlo con la compañía.",
-    videoPortal ? `También te comparto el video para instalar tu portal de clientes: ${videoPortal}` : null,
+    "En un momento te haré llegar por correo electrónico un enlace personalizado para que descargues tu app de cliente. Ahí tendrás a la mano la información de tu póliza y tus condiciones generales, un canal directo de comunicación conmigo y la información para reportar un siniestro en caso de necesitarlo.",
     "Quedo atento a cualquier duda." + (agente ? `\n\nSaludos,\n${agente}` : ""),
-  ].filter(Boolean).join("\n\n");
+  ].join("\n\n");
   const [mensajeEditado, setMensajeEditado] = useState(null);
   useEffect(() => { setMensajeEditado(null); }, [polizaId]);
   const mensaje = mensajeEditado !== null ? mensajeEditado : mensajeBase;
@@ -664,16 +663,6 @@ export default function PaqueteEntrega({ client, condiciones = [], agente = "", 
           )}
         </div>
         {paquete && (paquete.avisos || []).map((a) => <p key={a} style={{ color: "#B23A2E", fontSize: 12, margin: "0 0 6px" }}>{a}</p>)}
-
-        <label style={{ ...etiqueta, marginTop: 4 }}>Enlace del video para instalar el portal de clientes (opcional)</label>
-        <input
-          key={videoPortal}
-          defaultValue={videoPortal}
-          placeholder="Pega aquí el enlace del video (YouTube, Drive, etc.)"
-          onBlur={(e) => { const v = e.target.value.trim(); if (v !== videoPortal) guardarCfg({ ...(cfg || {}), videoPortal: v }); }}
-          style={campo}
-        />
-        <div style={{ fontSize: 11, color: "var(--stone)", margin: "3px 0 6px" }}>Se guarda para todos tus envíos y se agrega al mensaje. Si lo dejas vacío, el mensaje no lo menciona.</div>
 
         <label style={{ ...etiqueta, marginTop: 4 }}>Mensaje que acompaña al paquete</label>
         <textarea value={mensaje} onChange={(e) => setMensajeEditado(e.target.value)} rows={5} style={{ ...campo, resize: "vertical" }} />

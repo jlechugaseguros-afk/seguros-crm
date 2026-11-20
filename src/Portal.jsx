@@ -597,7 +597,7 @@ function Documentos({ data }) {
     <div className="stagger">
       <div style={{ margin: "4px 0 14px" }}>
         <h1 className="serif" style={{ fontSize: 26, color: "var(--ink)" }}>Documentos</h1>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>Tus pólizas en PDF, siempre a la mano.</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>Tus pólizas y condiciones generales en PDF, siempre a la mano.</p>
       </div>
       {con.length === 0 && <div className="panel" style={{ padding: 16, fontSize: 14, color: "var(--muted)", marginBottom: 14 }}>Todavía no hay documentos cargados en tu cuenta.</div>}
       {con.map((p) => {
@@ -613,6 +613,39 @@ function Documentos({ data }) {
           </a>
         );
       })}
+      {ps.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <h2 className="serif" style={{ fontSize: 20, color: "var(--ink)" }}>Condiciones generales</h2>
+          <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0 12px", lineHeight: 1.45 }}>Son el “manual” de tu póliza: ahí se especifican los alcances reales de tu cobertura. Te recomendamos leerlas con calma.</p>
+          {ps.map((p) => {
+            const m = ramoMeta(p.ramo); const I = m.icon;
+            const docs = p.condiciones || [];
+            return (
+              <div key={p.id} className="panel" style={{ padding: 12, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: docs.length ? 8 : 0 }}>
+                  <span style={{ width: 38, height: 38, borderRadius: 11, background: m.bg, display: "grid", placeItems: "center", flexShrink: 0 }}><I size={19} color={m.color} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 700, color: "var(--ink)", fontSize: 14 }}>{m.label} · {p.aseguradora}</span>
+                    <span style={{ display: "block", fontSize: 12, color: "var(--muted)" }}>{p.numeroPoliza || "sin número"}</span>
+                  </span>
+                </div>
+                {docs.map((d) => (
+                  <a key={d.id} href={d.url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", marginTop: 6, border: "1px solid var(--line)", borderRadius: 12, textDecoration: "none", color: "var(--ink)", background: "#fff" }}>
+                    <FileText size={16} color="var(--gold-text)" />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--ink)", color: "#fff", borderRadius: 999, padding: "6px 11px", fontSize: 12, fontWeight: 700, flexShrink: 0 }}><Download size={13} /> PDF</span>
+                  </a>
+                ))}
+                {docs.length === 0 && (
+                  <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "8px 0 0" }}>
+                    Aún no tenemos cargadas las condiciones de esta póliza. <a href={enlace(data, `Hola ${primerNombre(contactoDe(data))}, soy ${data.cliente.nombre}. ¿Me compartes las condiciones generales de mi póliza ${p.aseguradora} · ${p.ramo}${p.numeroPoliza ? ` (${p.numeroPoliza})` : ""}?`)} target="_blank" rel="noreferrer" style={{ color: "var(--gold-text)", fontWeight: 700 }}>Pídeselas a tu agente</a>.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="panel" style={{ padding: 14, marginTop: 6, marginBottom: 16, fontSize: 13, color: "var(--muted)" }}>
         ¿Necesitas carátula, endosos u otro documento? <a href={enlace(data, `Hola ${primerNombre(contactoDe(data))}, soy ${data.cliente.nombre}. Necesito un documento de mi póliza.`)} target="_blank" rel="noreferrer" style={{ color: "var(--gold-text)", fontWeight: 700 }}>Pídeselo a tu agente</a>.
       </div>
